@@ -277,6 +277,10 @@ struct RawState {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(test)]
+    #[global_allocator]
+    static ALLOC: dhat::Alloc = dhat::Alloc;
+
     use std::{fmt::Display, ops::Range};
 
     use num_traits::{Float, ToPrimitive};
@@ -406,6 +410,25 @@ mod tests {
             let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
             Shishua::from_seed(*seed)
         };
+    }
+
+    #[test]
+    fn deallocates() {
+        let _profiler = dhat::Profiler::builder().testing().build();
+        let start_stats = dhat::HeapStats::get();
+        {
+            let mut rng = unsafe {
+                let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
+                Shishua::from_seed(*seed)
+            };
+            let n = rng.next_u32();
+            assert!(n >= u32::MIN && n <= u32::MAX);
+
+            let end_stats = dhat::HeapStats::get();
+            dhat::assert_eq!(Shishua::LAYOUT.size(), end_stats.curr_bytes - start_stats.curr_bytes);
+        }
+        let stats = dhat::HeapStats::get();
+        dhat::assert_eq!(start_stats.curr_bytes, stats.curr_bytes);
     }
 
     #[test]

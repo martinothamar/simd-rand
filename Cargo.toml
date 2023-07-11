@@ -16,3 +16,4 @@ rand = "0.8"
 
 [dev-dependencies]
 num-traits = "0.2"
+dhat = "0.3.2"

@@ -4,7 +4,7 @@ outbin := ${bindir}/profile
 all: run
 
 test:
-	cargo test --release
+	cargo test --release -- --test-threads=1
 
 build:
 	cargo build --release --bin profile
