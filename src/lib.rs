@@ -34,6 +34,7 @@ impl Shishua {
     const LAYOUT: Layout =
         unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState>(), 128) };
 
+    #[cfg_attr(dasm, inline(never))]
     unsafe fn prng_init(seed: [u64; 4], s: &mut RawState) {
         const STEPS: usize = 1;
         const ROUNDS: usize = 13;
@@ -74,6 +75,7 @@ impl Shishua {
         }
     }
 
+    #[cfg_attr(dasm, inline(never))]
     unsafe fn prng_gen(s: &mut RawState, buf: &mut [u8]) {
         let mut o0: __m256i = s.output[0];
         let mut o1 = s.output[1];
@@ -174,6 +176,7 @@ impl Shishua {
 impl SeedableRng for Shishua {
     type Seed = [u8; 32];
 
+    #[cfg_attr(dasm, inline(never))]
     fn from_seed(seed: Self::Seed) -> Self {
         let ptr = unsafe {
             let ptr = alloc::alloc(Self::LAYOUT) as *mut BufferedState;
@@ -196,6 +199,7 @@ impl SeedableRng for Shishua {
 }
 
 impl Drop for Shishua {
+    #[cfg_attr(dasm, inline(never))]
     fn drop(&mut self) {
         let ptr = self.state.as_ptr();
         unsafe {

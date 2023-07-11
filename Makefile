@@ -1,11 +1,7 @@
 bindir := ./target/release
 outbin := ${bindir}/profile
 
-ifndef FN
-override FN = dsa::ring_buffer::RingBuffer<T,_>::new_inline
-endif
-
-all: build run
+all: run
 
 test:
 	cargo test --release -- --test-threads=1
@@ -16,14 +12,11 @@ build:
 check:
 	cargo check
 
-run:
+run: build
 	$(outbin)
 
 dasm:
-	RUSTFLAGS="--cfg dasm" cargo objdump --bin dasm --release -- -d --no-show-raw-insn > $(bindir)/dasm.asm
-
-dasmfn:
-	cargo asm "$(FN)"
+	RUSTFLAGS="--cfg dasm" cargo objdump --bin dasm --release -- -d -S -M intel --no-show-raw-insn > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
 
 clean:
 	cargo clean --release
