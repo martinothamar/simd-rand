@@ -1,5 +1,5 @@
 use rand::Rng;
-use rand_core::{SeedableRng};
+use rand_core::SeedableRng;
 use shishua::Shishua;
 
 fn main() {
