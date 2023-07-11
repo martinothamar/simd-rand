@@ -167,6 +167,11 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
         state.buffer_index += N;
     }
 
+    pub fn buffer_index(&self) -> usize {
+        let state = unsafe { self.state.as_ref() };
+        state.buffer_index
+    }
+
     // #[cfg_attr(dasm, inline(never))]
     // #[cfg_attr(not(dasm), inline(always))]
     // pub fn next_f32(&mut self) -> f32 {
@@ -404,12 +409,17 @@ mod tests {
         }
     }
 
-    #[test]
-    fn construction() {
-        let _ = unsafe {
+    fn create() -> Shishua {
+        unsafe {
             let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
             Shishua::from_seed(*seed)
-        };
+        }
+    }
+
+    #[test]
+    fn construction() {
+        let rng = create();
+        assert!(rng.buffer_index() == 0);
     }
 
     #[test]
@@ -417,10 +427,7 @@ mod tests {
         let _profiler = dhat::Profiler::builder().testing().build();
         let start_stats = dhat::HeapStats::get();
         {
-            let mut rng = unsafe {
-                let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
-                Shishua::from_seed(*seed)
-            };
+            let mut rng = create();
             let n = rng.next_u32();
             assert!(n >= u32::MIN && n <= u32::MAX);
 
@@ -433,10 +440,7 @@ mod tests {
 
     #[test]
     fn sample_u32() {
-        let mut rng = unsafe {
-            let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
-            Shishua::from_seed(*seed)
-        };
+        let mut rng = create();
 
         let n = rng.next_u32();
         assert!(n >= u32::MIN && n <= u32::MAX);
@@ -444,10 +448,7 @@ mod tests {
 
     #[test]
     fn sample_u64() {
-        let mut rng = unsafe {
-            let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
-            Shishua::from_seed(*seed)
-        };
+        let mut rng = create();
 
         let n = rng.next_u64();
         assert!(n >= u64::MIN && n <= u64::MAX);
@@ -455,10 +456,7 @@ mod tests {
 
     #[test]
     fn sample_f64() {
-        let mut rng = unsafe {
-            let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
-            Shishua::from_seed(*seed)
-        };
+        let mut rng = create();
 
         let n = rng.gen_range(0.0..1.0);
         assert!(n >= 0f64 && n < 1.0f64);
@@ -466,10 +464,7 @@ mod tests {
 
     #[test]
     fn sample_f64_distribution() {
-        let mut rng = unsafe {
-            let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
-            Shishua::from_seed(*seed)
-        };
+        let mut rng = create();
 
         test_uniform_distribution::<100_000_000, f64>(
             &mut rng,
@@ -480,10 +475,7 @@ mod tests {
 
     #[test]
     fn sample_f32_distribution() {
-        let mut rng = unsafe {
-            let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
-            Shishua::from_seed(*seed)
-        };
+        let mut rng = create();
 
         test_uniform_distribution::<100_000_000, f32>(
             &mut rng,
