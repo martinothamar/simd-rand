@@ -7,11 +7,13 @@ use std::alloc::Layout;
 use std::iter::Iterator;
 use std::{alloc, mem};
 
-pub struct Shishua {
-    state: NonNull<BufferedState>,
+pub const DEFAULT_BUFFER_SIZE: usize = 1 << 18;
+
+pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
+    state: NonNull<BufferedState<BUFFER_SIZE>>,
 }
 
-impl Shishua {
+impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     const PHI: [u64; 16] = [
         0x9E3779B97F4A7C15,
         0xF39CC0605CEDC834,
@@ -32,7 +34,7 @@ impl Shishua {
     ];
     const BUFFER_SIZE: usize = 1 << 17;
     const LAYOUT: Layout =
-        unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState>(), 128) };
+        unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState<BUFFER_SIZE>>(), 128) };
 
     #[cfg_attr(dasm, inline(never))]
     unsafe fn prng_init(seed: &[u64; 4], s: &mut RawState) {
@@ -146,7 +148,7 @@ impl Shishua {
     }
 
     #[inline(never)]
-    fn fill_buffer(buffered_state: &mut BufferedState) {
+    fn fill_buffer(buffered_state: &mut BufferedState<BUFFER_SIZE>) {
         unsafe {
             Self::prng_gen(&mut buffered_state.state, &mut buffered_state.buffer[..]);
         }
@@ -165,32 +167,28 @@ impl Shishua {
         state.buffer_index += N;
     }
 
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_f32(&mut self) -> f32 {
-        // TODO - is this efficient?
-        let v = self.next_u32();
-        // v as f32 / u32::MAX as f32
-        (v >> 8) as f32 * (1.0f32 / (1u32 << 24) as f32)
-    }
+    // #[cfg_attr(dasm, inline(never))]
+    // #[cfg_attr(not(dasm), inline(always))]
+    // pub fn next_f32(&mut self) -> f32 {
+    //     let v = self.next_u32();
+    //     (v >> 8) as f32 * (1.0f32 / (1u32 << 24) as f32)
+    // }
 
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_f64(&mut self) -> f64 {
-        // TODO - is this efficient?
-        let v = self.next_u64();
-        // v as f64 / u64::MAX as f64
-        (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-    }
+    // #[cfg_attr(dasm, inline(never))]
+    // #[cfg_attr(not(dasm), inline(always))]
+    // pub fn next_f64(&mut self) -> f64 {
+    //     let v = self.next_u64();
+    //     (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+    // }
 }
 
-impl SeedableRng for Shishua {
+impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
     type Seed = [u8; 32];
 
     #[cfg_attr(dasm, inline(never))]
     fn from_seed(seed: Self::Seed) -> Self {
         let ptr = unsafe {
-            let ptr = alloc::alloc(Self::LAYOUT) as *mut BufferedState;
+            let ptr = alloc::alloc(Self::LAYOUT) as *mut BufferedState<BUFFER_SIZE>;
 
             let mut buffered_state = ptr.as_mut().expect("Failed to allocate state for Shishua");
 
@@ -213,7 +211,7 @@ impl SeedableRng for Shishua {
     }
 }
 
-impl Drop for Shishua {
+impl<const BUFFER_SIZE: usize> Drop for Shishua<BUFFER_SIZE> {
     #[cfg_attr(dasm, inline(never))]
     fn drop(&mut self) {
         let ptr = self.state.as_ptr();
@@ -223,7 +221,7 @@ impl Drop for Shishua {
     }
 }
 
-impl RngCore for Shishua {
+impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
     fn next_u32(&mut self) -> u32 {
@@ -265,9 +263,9 @@ impl RngCore for Shishua {
     }
 }
 
-struct BufferedState {
+struct BufferedState<const BUFFER_SIZE: usize> {
     state: RawState,
-    buffer: [u8; Shishua::BUFFER_SIZE],
+    buffer: [u8; BUFFER_SIZE],
     buffer_index: usize,
 }
 
@@ -279,6 +277,13 @@ struct RawState {
 
 #[cfg(test)]
 mod tests {
+    use std::{fmt::Display, ops::Range};
+
+    use num_traits::{Float, ToPrimitive};
+    use rand::Rng;
+
+    type Shishua = super::Shishua<DEFAULT_BUFFER_SIZE>;
+
     use super::*;
 
     const SEED_ZERO: [u64; 4] = [
@@ -432,7 +437,7 @@ mod tests {
             Shishua::from_seed(*seed)
         };
 
-        let n = rng.next_f64();
+        let n = rng.gen_range(0.0..1.0);
         assert!(n >= 0f64 && n < 1.0f64);
     }
 
@@ -443,20 +448,64 @@ mod tests {
             Shishua::from_seed(*seed)
         };
 
-        const SAMPLES: usize = 100_000_000;
+        test_uniform_distribution::<100_000_000, f64>(
+            &mut rng,
+            |rng| rng.gen_range(0.0..1.0),
+            0.0..1.0,
+        );
+    }
+
+    #[test]
+    fn sample_f32_distribution() {
+        let mut rng = unsafe {
+            let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
+            Shishua::from_seed(*seed)
+        };
+
+        test_uniform_distribution::<100_000_000, f32>(
+            &mut rng,
+            |rng| rng.gen_range(0.0f32..1.0f32),
+            0.0..1.0,
+        );
+    }
+
+    fn test_uniform_distribution<const SAMPLES: usize, T: Float + Display>(
+        rng: &mut Shishua,
+        f: fn(&mut Shishua) -> T,
+        range: Range<f64>,
+    ) {
         let mut dist = Vec::with_capacity(SAMPLES);
 
         let mut sum = 0.0;
         for _ in 0..SAMPLES {
-            let n = rng.next_f64();
-            assert!(n >= 0f64 && n < 1.0f64);
-            sum += n;
-            dist.push(n);
+            let value = f(rng).to_f64().unwrap();
+            assert!(value >= range.start && value < range.end);
+            sum = sum + value;
+            dist.push(value);
         }
-        let mean = sum / SAMPLES as f64;
-        let expected_mean = (0.0 + 1.0) / 2.0;
+
+        let samples_divisor = SAMPLES.to_f64().unwrap();
+
+        let mean = sum / samples_divisor;
+        let expected_mean = (range.start + range.end) / 2.0;
         let mean_difference = (mean - expected_mean).abs();
         const DIFF_LIMIT: f64 = 0.00005;
-        assert!(mean_difference < DIFF_LIMIT, "Mean difference was more than {DIFF_LIMIT:.5}: {mean_difference}");
+
+        let mut squared_diffs = 0.0;
+        for n in dist {
+            let diff = (n - mean).powi(2);
+            squared_diffs += diff;
+        }
+
+        let variance = squared_diffs / samples_divisor;
+        let expected_variance = (range.end - range.start).powi(2) / 12.0;
+        let variance_difference = (variance - expected_variance).abs();
+        let stddev = variance.sqrt();
+        let expected_stddev = expected_variance.sqrt();
+        let stddev_difference = (stddev - expected_stddev).abs();
+
+        assert!(mean_difference < DIFF_LIMIT, "Mean difference was more than {DIFF_LIMIT:.5}: {mean_difference:.5}. Expected mean: {expected_mean:.2}");
+        assert!(variance_difference < DIFF_LIMIT, "Variance difference was more than {DIFF_LIMIT:.5}: {variance_difference:.5}. Expected variance: {expected_variance:.2}");
+        assert!(stddev_difference < DIFF_LIMIT, "Std deviation difference was more than {DIFF_LIMIT:.5}: {stddev_difference:.5}. Expected std deviation: {expected_stddev:.2}");
     }
 }
