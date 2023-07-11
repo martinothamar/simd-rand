@@ -34,7 +34,7 @@ impl Shishua {
     const LAYOUT: Layout =
         unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState>(), 128) };
 
-    unsafe fn prng_init(seed: [u8; 32], s: &mut RawState) {
+    unsafe fn prng_init(seed: [u64; 4], s: &mut RawState) {
         const STEPS: usize = 1;
         const ROUNDS: usize = 13;
 
@@ -143,6 +143,7 @@ impl Shishua {
         s.counter = counter;
     }
 
+    #[inline(never)]
     fn fill_buffer(buffered_state: &mut BufferedState) {
         unsafe {
             Self::prng_gen(&mut buffered_state.state, &mut buffered_state.buffer[..]);
@@ -150,7 +151,21 @@ impl Shishua {
         buffered_state.buffer_index = 0;
     }
 
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    fn fill_bytes_arr<const N: usize>(&mut self, dest: &mut [u8; N]) {
+        let state = unsafe { self.state.as_mut() };
+        if state.buffer_index >= Self::BUFFER_SIZE || Self::BUFFER_SIZE - state.buffer_index < N {
+            Self::fill_buffer(state);
+        }
+
+        dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + N])
+    }
+
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
     pub fn next_f64(&mut self) -> f64 {
+        // TODO - is this efficient?
         let v = self.next_u64();
         v as f64 / u64::MAX as f64
     }
@@ -164,7 +179,13 @@ impl SeedableRng for Shishua {
             let ptr = alloc::alloc(Self::LAYOUT) as *mut BufferedState;
 
             let mut buffered_state = ptr.as_mut().expect("Failed to allocate state for Shishua");
-            Self::prng_init(seed, &mut buffered_state.state);
+
+            let mut iseed: [MaybeUninit<u64>; 4] = MaybeUninit::uninit().assume_init();
+            for i in (0..32).step_by(8) {
+                iseed[i / 8] = MaybeUninit::new(u64::from_ne_bytes((&seed[i..i + 8]).try_into().unwrap()));
+            }
+
+            Self::prng_init(mem::transmute::<_, [_; 4]>(iseed), &mut buffered_state.state);
             Self::fill_buffer(&mut buffered_state);
 
             NonNull::new_unchecked(ptr)
@@ -184,22 +205,32 @@ impl Drop for Shishua {
 }
 
 impl RngCore for Shishua {
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
     fn next_u32(&mut self) -> u32 {
-        let mut result: [u8; mem::size_of::<u32>()] = unsafe { MaybeUninit::uninit().assume_init() };
-        self.fill_bytes(&mut result[..]);
+        let result: MaybeUninit<u32> = MaybeUninit::uninit();
+        debug_assert!(mem::align_of_val(&result) == 4);
         unsafe {
-            std::mem::transmute::<[u8; mem::size_of::<u32>()], u32>(result)
+            let mut bytes = mem::transmute::<MaybeUninit<u32>, [u8; 4]>(result);
+            self.fill_bytes_arr(&mut bytes);
+            result.assume_init()
         }
     }
 
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
     fn next_u64(&mut self) -> u64 {
-        let mut result: [u8; mem::size_of::<u64>()] = unsafe { MaybeUninit::uninit().assume_init() };
-        self.fill_bytes(&mut result[..]);
+        let result: MaybeUninit<u64> = MaybeUninit::uninit();
+        debug_assert!(mem::align_of_val(&result) == 8);
         unsafe {
-            std::mem::transmute::<[u8; mem::size_of::<u64>()], u64>(result)
+            let mut bytes = mem::transmute::<MaybeUninit<u64>, [u8; 8]>(result);
+            self.fill_bytes_arr(&mut bytes);
+            result.assume_init()
         }
     }
 
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         let size = dest.len();
 
@@ -211,6 +242,8 @@ impl RngCore for Shishua {
         dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + size])
     }
 
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
         self.fill_bytes(dest);
         Ok(())
@@ -336,10 +369,8 @@ mod tests {
     #[test]
     fn init_from_zero_seed() {
         unsafe { 
-            let seed = std::mem::transmute::<[u64; 4], [u8; 4 * 8]>(SEED_ZERO);
-
             let mut state: RawState = mem::zeroed();
-            Shishua::prng_init(seed, &mut state);
+            Shishua::prng_init(SEED_ZERO, &mut state);
             let mut buf: [u8; 512] = [0; 512];
             Shishua::prng_gen(&mut state, &mut buf[..]);
 
@@ -347,19 +378,17 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn init_from_pi_seed() {
-    //     unsafe { 
-    //         let seed = std::mem::transmute::<[u64; 4], [u8; 4 * 8]>(SEED_PI);
+    #[test]
+    fn init_from_pi_seed() {
+        unsafe { 
+            let mut state: RawState = mem::zeroed();
+            Shishua::prng_init(SEED_PI, &mut state);
+            let mut buf: [u8; 512] = [0; 512];
+            Shishua::prng_gen(&mut state, &mut buf[..]);
 
-    //         let mut state: RawState = mem::zeroed();
-    //         Shishua::prng_init(seed, &mut state);
-    //         let mut buf: [u8; 512] = [0; 512];
-    //         Shishua::prng_gen(&mut state, &mut buf[..]);
-
-    //         assert_eq!(&buf, &SEED_PI_EXPECTED);
-    //     }
-    // }
+            assert_eq!(&buf, &SEED_PI_EXPECTED);
+        }
+    }
 
     #[test]
     fn construction() {
