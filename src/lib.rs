@@ -14,158 +14,25 @@ pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
 }
 
 impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
-    const PHI: [u64; 16] = [
-        0x9E3779B97F4A7C15,
-        0xF39CC0605CEDC834,
-        0x1082276BF3A27251,
-        0xF86C6A11D0C18E95,
-        0x2767F0B153D27B7F,
-        0x0347045B5BF1827F,
-        0x01886F0928403002,
-        0xC1D64BA40F335E36,
-        0xF06AD7AE9717877E,
-        0x85839D6EFFBD7DC6,
-        0x64D325D1C5371682,
-        0xCADD0CCCFDFFBBE1,
-        0x626E33B8D04B4331,
-        0xBBF73C790D94F79D,
-        0x471C4AB3ED3D82A5,
-        0xFEC507705E4AE6E5,
-    ];
     const LAYOUT: Layout =
         unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState<BUFFER_SIZE>>(), 128) };
 
+    // For 'dasm' cfg, our intention is to analyze the generated assembly,
+    // so suggest that the function shouldn't be inlined
     #[cfg_attr(dasm, inline(never))]
-    unsafe fn prng_init(seed: &[u64; 4], s: &mut RawState) {
-        const STEPS: usize = 1;
-        const ROUNDS: usize = 13;
-
-        *s = mem::zeroed();
-        let mut buf: [u8; 128 * STEPS] = [0; 128 * STEPS];
-
-        s.state[0] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(Self::PHI[3]),
-            mem::transmute::<u64, i64>(Self::PHI[2]) ^ seed[1] as i64,
-            mem::transmute::<u64, i64>(Self::PHI[1]),
-            mem::transmute::<u64, i64>(Self::PHI[0]) ^ seed[0] as i64,
-        );
-        s.state[1] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(Self::PHI[7]),
-            mem::transmute::<u64, i64>(Self::PHI[6]) ^ seed[3] as i64,
-            mem::transmute::<u64, i64>(Self::PHI[5]),
-            mem::transmute::<u64, i64>(Self::PHI[4]) ^ seed[2] as i64,
-        );
-        s.state[2] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(Self::PHI[11]),
-            mem::transmute::<u64, i64>(Self::PHI[10]) ^ seed[3] as i64,
-            mem::transmute::<u64, i64>(Self::PHI[9]),
-            mem::transmute::<u64, i64>(Self::PHI[8]) ^ seed[2] as i64,
-        );
-        s.state[3] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(Self::PHI[15]),
-            mem::transmute::<u64, i64>(Self::PHI[14]) ^ seed[1] as i64,
-            mem::transmute::<u64, i64>(Self::PHI[13]),
-            mem::transmute::<u64, i64>(Self::PHI[12]) ^ seed[0] as i64,
-        );
-        for _ in 0..ROUNDS {
-            Self::prng_gen(s, &mut buf[..]);
-            s.state[0] = s.output[3];
-            s.state[1] = s.output[2];
-            s.state[2] = s.output[1];
-            s.state[3] = s.output[0];
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    unsafe fn prng_gen(s: &mut RawState, buf: &mut [u8]) {
-        let mut o0: __m256i = s.output[0];
-        let mut o1 = s.output[1];
-        let mut o2 = s.output[2];
-        let mut o3 = s.output[3];
-        let mut s0 = s.state[0];
-        let mut s1 = s.state[1];
-        let mut s2 = s.state[2];
-        let mut s3 = s.state[3];
-        let mut t0: __m256i;
-        let mut t1: __m256i;
-        let mut t2: __m256i;
-        let mut t3: __m256i;
-        let mut u0: __m256i;
-        let mut u1: __m256i;
-        let mut u2: __m256i;
-        let mut u3: __m256i;
-        let mut counter = s.counter;
-
-        let shu0 = _mm256_set_epi32(4, 3, 2, 1, 0, 7, 6, 5);
-        let shu1 = _mm256_set_epi32(2, 1, 0, 7, 6, 5, 4, 3);
-
-        let increment = _mm256_set_epi64x(1, 3, 5, 7);
-
-        assert!(buf.len() % 128 == 0);
-
-        let buf_ptr = buf.as_mut_ptr();
-        for i in (0..buf.len()).step_by(128) {
-            _mm256_storeu_si256(buf_ptr.add(i + 0) as *mut __m256i, o0);
-            _mm256_storeu_si256(buf_ptr.add(i + 32) as *mut __m256i, o1);
-            _mm256_storeu_si256(buf_ptr.add(i + 64) as *mut __m256i, o2);
-            _mm256_storeu_si256(buf_ptr.add(i + 96) as *mut __m256i, o3);
-
-            s1 = _mm256_add_epi64(s1, counter);
-            s3 = _mm256_add_epi64(s3, counter);
-            counter = _mm256_add_epi64(counter, increment);
-
-            u0 = _mm256_srli_epi64(s0, 1);
-            u1 = _mm256_srli_epi64(s1, 3);
-            u2 = _mm256_srli_epi64(s2, 1);
-            u3 = _mm256_srli_epi64(s3, 3);
-            t0 = _mm256_permutevar8x32_epi32(s0, shu0);
-            t1 = _mm256_permutevar8x32_epi32(s1, shu1);
-            t2 = _mm256_permutevar8x32_epi32(s2, shu0);
-            t3 = _mm256_permutevar8x32_epi32(s3, shu1);
-
-            s0 = _mm256_add_epi64(t0, u0);
-            s1 = _mm256_add_epi64(t1, u1);
-            s2 = _mm256_add_epi64(t2, u2);
-            s3 = _mm256_add_epi64(t3, u3);
-
-            // Two orthogonally grown pieces evolving independently, XORed.
-            o0 = _mm256_xor_si256(u0, t1);
-            o1 = _mm256_xor_si256(u2, t3);
-            o2 = _mm256_xor_si256(s0, s3);
-            o3 = _mm256_xor_si256(s2, s1);
-        }
-
-        s.output[0] = o0;
-        s.output[1] = o1;
-        s.output[2] = o2;
-        s.output[3] = o3;
-        s.state[0] = s0;
-        s.state[1] = s1;
-        s.state[2] = s2;
-        s.state[3] = s3;
-        s.counter = counter;
-    }
-
-    #[inline(never)]
-    fn fill_buffer(buffered_state: &mut BufferedState<BUFFER_SIZE>) {
-        unsafe {
-            Self::prng_gen(&mut buffered_state.state, &mut buffered_state.buffer[..]);
-        }
-        buffered_state.buffer_index = 0;
-    }
-
-    #[cfg_attr(dasm, inline(never))]
+    // For any other cfg this should be inlined, as it is in hotpath for Rng and RngCore traits
     #[cfg_attr(not(dasm), inline(always))]
     fn fill_bytes_arr<const N: usize>(&mut self, dest: &mut [u8; N]) {
         let state = unsafe { self.state.as_mut() };
         if state.buffer_index >= BUFFER_SIZE || BUFFER_SIZE - state.buffer_index < N {
-            Self::fill_buffer(state);
+            state.fill_buffer();
         }
 
         dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + N]);
         state.buffer_index += N;
     }
 
+    #[inline]
     pub fn buffer_index(&self) -> usize {
         let state = unsafe { self.state.as_ref() };
         state.buffer_index
@@ -191,10 +58,19 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
 
     #[cfg_attr(dasm, inline(never))]
     fn from_seed(seed: Self::Seed) -> Self {
+        assert!(
+            BUFFER_SIZE.is_power_of_two(),
+            "The Shishua buffer size must be a power of 2"
+        );
+        assert!(
+            BUFFER_SIZE >= 256,
+            "The Shishua buffer size must be >= 256 (and power of 2)"
+        );
+
         let ptr = unsafe {
             let ptr = alloc::alloc(Self::LAYOUT) as *mut BufferedState<BUFFER_SIZE>;
 
-            let mut buffered_state = ptr.as_mut().expect("Failed to allocate state for Shishua");
+            let buffered_state = ptr.as_mut().expect("Failed to allocate state for Shishua");
 
             let mut iseed: [MaybeUninit<u64>; 4] = MaybeUninit::uninit().assume_init();
             for i in (0..32).step_by(8) {
@@ -202,11 +78,10 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
                 iseed[i / 8] = MaybeUninit::new(u64::from_ne_bytes(seed_bytes));
             }
 
-            Self::prng_init(
-                mem::transmute::<_, &[_; 4]>(&iseed),
-                &mut buffered_state.state,
-            );
-            Self::fill_buffer(&mut buffered_state);
+            buffered_state
+                .state
+                .prng_init(mem::transmute::<_, &[_; 4]>(&iseed));
+            buffered_state.fill_buffer();
 
             NonNull::new_unchecked(ptr)
         };
@@ -250,9 +125,8 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
         let size = dest.len();
 
         let state = unsafe { self.state.as_mut() };
-        if state.buffer_index >= BUFFER_SIZE || BUFFER_SIZE - state.buffer_index < size
-        {
-            Self::fill_buffer(state);
+        if state.buffer_index >= BUFFER_SIZE || BUFFER_SIZE - state.buffer_index < size {
+            state.fill_buffer();
         }
 
         dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + size]);
@@ -273,11 +147,153 @@ struct BufferedState<const BUFFER_SIZE: usize> {
     buffer_index: usize,
 }
 
+impl<const BUFFER_SIZE: usize> BufferedState<BUFFER_SIZE> {
+    #[inline(never)] // Strong hint to not inline, as with sufficient buffer sizes this should be a rare call
+    fn fill_buffer(&mut self) {
+        unsafe {
+            self.state.prng_gen(&mut self.buffer[..]);
+        }
+        self.buffer_index = 0;
+    }
+}
+
 struct RawState {
     state: [__m256i; 4],
     output: [__m256i; 4],
     counter: __m256i,
 }
+
+impl RawState {
+    #[cfg_attr(dasm, inline(never))]
+    unsafe fn prng_init(&mut self, seed: &[u64; 4]) {
+        const STEPS: usize = 1;
+        const ROUNDS: usize = 13;
+
+        *self = mem::zeroed();
+        let mut buf: [u8; 128 * STEPS] = [0; 128 * STEPS];
+
+        self.state[0] = _mm256_set_epi64x(
+            mem::transmute::<u64, i64>(PHI[3]),
+            mem::transmute::<u64, i64>(PHI[2]) ^ seed[1] as i64,
+            mem::transmute::<u64, i64>(PHI[1]),
+            mem::transmute::<u64, i64>(PHI[0]) ^ seed[0] as i64,
+        );
+        self.state[1] = _mm256_set_epi64x(
+            mem::transmute::<u64, i64>(PHI[7]),
+            mem::transmute::<u64, i64>(PHI[6]) ^ seed[3] as i64,
+            mem::transmute::<u64, i64>(PHI[5]),
+            mem::transmute::<u64, i64>(PHI[4]) ^ seed[2] as i64,
+        );
+        self.state[2] = _mm256_set_epi64x(
+            mem::transmute::<u64, i64>(PHI[11]),
+            mem::transmute::<u64, i64>(PHI[10]) ^ seed[3] as i64,
+            mem::transmute::<u64, i64>(PHI[9]),
+            mem::transmute::<u64, i64>(PHI[8]) ^ seed[2] as i64,
+        );
+        self.state[3] = _mm256_set_epi64x(
+            mem::transmute::<u64, i64>(PHI[15]),
+            mem::transmute::<u64, i64>(PHI[14]) ^ seed[1] as i64,
+            mem::transmute::<u64, i64>(PHI[13]),
+            mem::transmute::<u64, i64>(PHI[12]) ^ seed[0] as i64,
+        );
+        for _ in 0..ROUNDS {
+            Self::prng_gen(self, &mut buf[..]);
+            self.state[0] = self.output[3];
+            self.state[1] = self.output[2];
+            self.state[2] = self.output[1];
+            self.state[3] = self.output[0];
+        }
+    }
+
+    #[cfg_attr(dasm, inline(never))]
+    unsafe fn prng_gen(&mut self, buf: &mut [u8]) {
+        let mut o0: __m256i = self.output[0];
+        let mut o1 = self.output[1];
+        let mut o2 = self.output[2];
+        let mut o3 = self.output[3];
+        let mut s0 = self.state[0];
+        let mut s1 = self.state[1];
+        let mut s2 = self.state[2];
+        let mut s3 = self.state[3];
+        let mut t0: __m256i;
+        let mut t1: __m256i;
+        let mut t2: __m256i;
+        let mut t3: __m256i;
+        let mut u0: __m256i;
+        let mut u1: __m256i;
+        let mut u2: __m256i;
+        let mut u3: __m256i;
+        let mut counter = self.counter;
+
+        let shu0 = _mm256_set_epi32(4, 3, 2, 1, 0, 7, 6, 5);
+        let shu1 = _mm256_set_epi32(2, 1, 0, 7, 6, 5, 4, 3);
+
+        let increment = _mm256_set_epi64x(1, 3, 5, 7);
+
+        assert!(buf.len() % 128 == 0);
+
+        let buf_ptr = buf.as_mut_ptr();
+        for i in (0..buf.len()).step_by(128) {
+            _mm256_storeu_si256(buf_ptr.add(i + 0) as *mut __m256i, o0);
+            _mm256_storeu_si256(buf_ptr.add(i + 32) as *mut __m256i, o1);
+            _mm256_storeu_si256(buf_ptr.add(i + 64) as *mut __m256i, o2);
+            _mm256_storeu_si256(buf_ptr.add(i + 96) as *mut __m256i, o3);
+
+            s1 = _mm256_add_epi64(s1, counter);
+            s3 = _mm256_add_epi64(s3, counter);
+            counter = _mm256_add_epi64(counter, increment);
+
+            u0 = _mm256_srli_epi64(s0, 1);
+            u1 = _mm256_srli_epi64(s1, 3);
+            u2 = _mm256_srli_epi64(s2, 1);
+            u3 = _mm256_srli_epi64(s3, 3);
+            t0 = _mm256_permutevar8x32_epi32(s0, shu0);
+            t1 = _mm256_permutevar8x32_epi32(s1, shu1);
+            t2 = _mm256_permutevar8x32_epi32(s2, shu0);
+            t3 = _mm256_permutevar8x32_epi32(s3, shu1);
+
+            s0 = _mm256_add_epi64(t0, u0);
+            s1 = _mm256_add_epi64(t1, u1);
+            s2 = _mm256_add_epi64(t2, u2);
+            s3 = _mm256_add_epi64(t3, u3);
+
+            // Two orthogonally grown pieces evolving independently, XORed.
+            o0 = _mm256_xor_si256(u0, t1);
+            o1 = _mm256_xor_si256(u2, t3);
+            o2 = _mm256_xor_si256(s0, s3);
+            o3 = _mm256_xor_si256(s2, s1);
+        }
+
+        self.output[0] = o0;
+        self.output[1] = o1;
+        self.output[2] = o2;
+        self.output[3] = o3;
+        self.state[0] = s0;
+        self.state[1] = s1;
+        self.state[2] = s2;
+        self.state[3] = s3;
+        self.counter = counter;
+    }
+}
+
+const PHI: [u64; 16] = [
+    0x9E3779B97F4A7C15,
+    0xF39CC0605CEDC834,
+    0x1082276BF3A27251,
+    0xF86C6A11D0C18E95,
+    0x2767F0B153D27B7F,
+    0x0347045B5BF1827F,
+    0x01886F0928403002,
+    0xC1D64BA40F335E36,
+    0xF06AD7AE9717877E,
+    0x85839D6EFFBD7DC6,
+    0x64D325D1C5371682,
+    0xCADD0CCCFDFFBBE1,
+    0x626E33B8D04B4331,
+    0xBBF73C790D94F79D,
+    0x471C4AB3ED3D82A5,
+    0xFEC507705E4AE6E5,
+];
 
 #[cfg(test)]
 mod tests {
@@ -293,6 +309,212 @@ mod tests {
     type Shishua = super::Shishua<DEFAULT_BUFFER_SIZE>;
 
     use super::*;
+
+    #[test]
+    fn init_from_zero_seed() {
+        unsafe {
+            let mut state: RawState = mem::zeroed();
+            state.prng_init(&SEED_ZERO);
+            let mut buf: [u8; 512] = [0; 512];
+            state.prng_gen(&mut buf[..]);
+
+            assert_eq!(&buf, &SEED_ZERO_EXPECTED);
+        }
+    }
+
+    #[test]
+    fn init_from_pi_seed() {
+        unsafe {
+            let mut state: RawState = mem::zeroed();
+            state.prng_init(&SEED_PI);
+            let mut buf: [u8; 512] = [0; 512];
+            state.prng_gen(&mut buf[..]);
+
+            assert_eq!(&buf, &SEED_PI_EXPECTED);
+        }
+    }
+
+    fn get_zero_seed() -> &'static [u8; 32] {
+        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO) }
+    }
+
+    fn get_predefined_seed() -> &'static [u8; 32] {
+        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_PI) }
+    }
+
+    fn create_with_zero_seed() -> Shishua {
+        let seed = get_zero_seed();
+        Shishua::from_seed(*seed)
+    }
+
+    fn create_with_predefined_seed() -> Shishua {
+        let seed = get_predefined_seed();
+        Shishua::from_seed(*seed)
+    }
+
+    #[test]
+    fn construction_zero_seed() {
+        let mut rng = create_with_zero_seed();
+        assert!(rng.buffer_index() == 0);
+        let v = rng.gen_range(DOUBLE_RANGE);
+        assert!(DOUBLE_RANGE.contains(&v) && v != 0.0);
+    }
+
+    #[test]
+    fn construction_predefined_seed() {
+        let mut rng = create_with_predefined_seed();
+        assert!(rng.buffer_index() == 0);
+        let v = rng.gen_range(DOUBLE_RANGE);
+        assert!(DOUBLE_RANGE.contains(&v) && v != 0.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn construction_invalid_size_power() {
+        let seed = get_predefined_seed();
+        let rng = super::Shishua::<127>::from_seed(*seed);
+        assert!(rng.buffer_index() == 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn construction_invalid_size_small() {
+        let seed = get_predefined_seed();
+        let rng = super::Shishua::<128>::from_seed(*seed);
+        assert!(rng.buffer_index() == 0);
+    }
+
+    #[cfg(mem_test)]
+    #[test]
+    fn deallocates() {
+        let _profiler = dhat::Profiler::builder().testing().build();
+        let start_stats = dhat::HeapStats::get();
+        {
+            let mut rng = create_with_zero_seed();
+            let n = rng.next_u32();
+            assert!(n >= u32::MIN && n <= u32::MAX);
+
+            let end_stats = dhat::HeapStats::get();
+            dhat::assert_eq!(
+                Shishua::LAYOUT.size(),
+                end_stats.curr_bytes - start_stats.curr_bytes
+            );
+        }
+        let stats = dhat::HeapStats::get();
+        dhat::assert_eq!(start_stats.curr_bytes, stats.curr_bytes);
+    }
+
+    #[test]
+    fn sample_u32() {
+        let mut rng = create_with_zero_seed();
+
+        let n = rng.next_u32();
+        assert!(n >= u32::MIN && n <= u32::MAX);
+    }
+
+    #[test]
+    fn sample_u64() {
+        let mut rng = create_with_zero_seed();
+
+        let n = rng.next_u64();
+        assert!(n >= u64::MIN && n <= u64::MAX);
+    }
+
+    #[test]
+    fn sample_f64() {
+        let mut rng = create_with_zero_seed();
+
+        let n = rng.gen_range(DOUBLE_RANGE);
+        assert!(DOUBLE_RANGE.contains(&n));
+    }
+
+    #[test]
+    fn sample_f32() {
+        let mut rng = create_with_zero_seed();
+
+        let n = rng.gen_range(FLOAT_RANGE);
+        assert!(FLOAT_RANGE.contains(&n));
+    }
+
+    #[test]
+    fn sample_f64_distribution() {
+        let mut rng = create_with_zero_seed();
+
+        test_uniform_distribution::<100_000_000, f64>(
+            &mut rng,
+            |rng| rng.gen_range(DOUBLE_RANGE),
+            DOUBLE_RANGE,
+        );
+    }
+
+    #[test]
+    fn sample_f32_distribution() {
+        let mut rng = create_with_zero_seed();
+
+        test_uniform_distribution::<100_000_000, f32>(
+            &mut rng,
+            |rng| rng.gen_range(FLOAT_RANGE),
+            DOUBLE_RANGE,
+        );
+    }
+
+    fn test_uniform_distribution<const SAMPLES: usize, T: Float + Display>(
+        rng: &mut Shishua,
+        f: fn(&mut Shishua) -> T,
+        range: Range<f64>,
+    ) {
+        // Even to T represents a generic floating point,
+        // we still use f64 to make sure we dont lose too much precision
+
+        let mut dist = Vec::with_capacity(SAMPLES);
+
+        let mut sum = 0.0;
+        for _ in 0..SAMPLES {
+            let value = f(rng).to_f64().unwrap();
+            assert!(value >= range.start && value < range.end);
+            sum = sum + value;
+            dist.push(value);
+        }
+
+        let samples_divisor = SAMPLES.to_f64().unwrap();
+
+        let mean = sum / samples_divisor;
+
+        let mut squared_diffs = 0.0;
+        for n in dist {
+            let diff = (n - mean).powi(2);
+            squared_diffs += diff;
+        }
+
+        // Statistical tests below
+        // We expect all the metrics below to deviate no more than DIFF_LIMIT
+        const DIFF_LIMIT: f64 = 0.00005;
+
+        // In uniform distribution, where the interval is a to b
+
+        // the mean should be: μ = (a + b) / 2
+        let expected_mean = (range.start + range.end) / 2.0;
+        let mean_difference = (mean - expected_mean).abs();
+
+        let variance = squared_diffs / samples_divisor;
+        // the variance should be: σ2 = (b – a)2 / 12
+        let expected_variance = (range.end - range.start).powi(2) / 12.0;
+        let variance_difference = (variance - expected_variance).abs();
+
+        let stddev = variance.sqrt();
+        // The standard deviation should be: σ = √σ2
+        let expected_stddev = expected_variance.sqrt();
+        let stddev_difference = (stddev - expected_stddev).abs();
+
+        // If any of these metrics deviate by DIFF_LIMIT or more,
+        // we should fail the test
+        assert!(mean_difference <= DIFF_LIMIT, "Mean difference was more than {DIFF_LIMIT:.5}: {mean_difference:.5}. Expected mean: {expected_mean:.2}");
+        assert!(variance_difference <= DIFF_LIMIT, "Variance difference was more than {DIFF_LIMIT:.5}: {variance_difference:.5}. Expected variance: {expected_variance:.2}");
+        assert!(stddev_difference <= DIFF_LIMIT, "Std deviation difference was more than {DIFF_LIMIT:.5}: {stddev_difference:.5}. Expected std deviation: {expected_stddev:.2}");
+    }
+
+    const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
+    const FLOAT_RANGE: Range<f32> = 0.0f32..1.0f32;
 
     const SEED_ZERO: [u64; 4] = [
         0x0000000000000000,
@@ -383,144 +605,4 @@ mod tests {
         0x53, 0xaa, 0x49, 0x81, 0xb2, 0x14, 0xee, 0xd2, 0x52, 0x68, 0x4b, 0xe3, 0xc0, 0x4e, 0x1b,
         0x75, 0xed,
     ];
-
-    #[test]
-    fn init_from_zero_seed() {
-        unsafe {
-            let mut state: RawState = mem::zeroed();
-            Shishua::prng_init(&SEED_ZERO, &mut state);
-            let mut buf: [u8; 512] = [0; 512];
-            Shishua::prng_gen(&mut state, &mut buf[..]);
-
-            assert_eq!(&buf, &SEED_ZERO_EXPECTED);
-        }
-    }
-
-    #[test]
-    fn init_from_pi_seed() {
-        unsafe {
-            let mut state: RawState = mem::zeroed();
-            Shishua::prng_init(&SEED_PI, &mut state);
-            let mut buf: [u8; 512] = [0; 512];
-            Shishua::prng_gen(&mut state, &mut buf[..]);
-
-            assert_eq!(&buf, &SEED_PI_EXPECTED);
-        }
-    }
-
-    fn create() -> Shishua {
-        unsafe {
-            let seed = std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO);
-            Shishua::from_seed(*seed)
-        }
-    }
-
-    #[test]
-    fn construction() {
-        let rng = create();
-        assert!(rng.buffer_index() == 0);
-    }
-
-    #[cfg(mem_test)]
-    #[test]
-    fn deallocates() {
-        let _profiler = dhat::Profiler::builder().testing().build();
-        let start_stats = dhat::HeapStats::get();
-        {
-            let mut rng = create();
-            let n = rng.next_u32();
-            assert!(n >= u32::MIN && n <= u32::MAX);
-
-            let end_stats = dhat::HeapStats::get();
-            dhat::assert_eq!(Shishua::LAYOUT.size(), end_stats.curr_bytes - start_stats.curr_bytes);
-        }
-        let stats = dhat::HeapStats::get();
-        dhat::assert_eq!(start_stats.curr_bytes, stats.curr_bytes);
-    }
-
-    #[test]
-    fn sample_u32() {
-        let mut rng = create();
-
-        let n = rng.next_u32();
-        assert!(n >= u32::MIN && n <= u32::MAX);
-    }
-
-    #[test]
-    fn sample_u64() {
-        let mut rng = create();
-
-        let n = rng.next_u64();
-        assert!(n >= u64::MIN && n <= u64::MAX);
-    }
-
-    #[test]
-    fn sample_f64() {
-        let mut rng = create();
-
-        let n = rng.gen_range(0.0..1.0);
-        assert!(n >= 0f64 && n < 1.0f64);
-    }
-
-    #[test]
-    fn sample_f64_distribution() {
-        let mut rng = create();
-
-        test_uniform_distribution::<100_000_000, f64>(
-            &mut rng,
-            |rng| rng.gen_range(0.0..1.0),
-            0.0..1.0,
-        );
-    }
-
-    #[test]
-    fn sample_f32_distribution() {
-        let mut rng = create();
-
-        test_uniform_distribution::<100_000_000, f32>(
-            &mut rng,
-            |rng| rng.gen_range(0.0f32..1.0f32),
-            0.0..1.0,
-        );
-    }
-
-    fn test_uniform_distribution<const SAMPLES: usize, T: Float + Display>(
-        rng: &mut Shishua,
-        f: fn(&mut Shishua) -> T,
-        range: Range<f64>,
-    ) {
-        let mut dist = Vec::with_capacity(SAMPLES);
-
-        let mut sum = 0.0;
-        for _ in 0..SAMPLES {
-            let value = f(rng).to_f64().unwrap();
-            assert!(value >= range.start && value < range.end);
-            sum = sum + value;
-            dist.push(value);
-        }
-
-        let samples_divisor = SAMPLES.to_f64().unwrap();
-
-        let mean = sum / samples_divisor;
-        let expected_mean = (range.start + range.end) / 2.0;
-        let mean_difference = (mean - expected_mean).abs();
-        const DIFF_LIMIT: f64 = 0.00005;
-
-        let mut squared_diffs = 0.0;
-        for n in dist {
-            let diff = (n - mean).powi(2);
-            squared_diffs += diff;
-        }
-
-        let variance = squared_diffs / samples_divisor;
-        let expected_variance = (range.end - range.start).powi(2) / 12.0;
-        let variance_difference = (variance - expected_variance).abs();
-        let stddev = variance.sqrt();
-        let expected_stddev = expected_variance.sqrt();
-        let stddev_difference = (stddev - expected_stddev).abs();
-
-        assert!(mean_difference < DIFF_LIMIT, "Mean difference was more than {DIFF_LIMIT:.5}: {mean_difference:.5}. Expected mean: {expected_mean:.2}");
-        assert!(variance_difference < DIFF_LIMIT, "Variance difference was more than {DIFF_LIMIT:.5}: {variance_difference:.5}. Expected variance: {expected_variance:.2}");
-        assert!(stddev_difference < DIFF_LIMIT, "Std deviation difference was more than {DIFF_LIMIT:.5}: {stddev_difference:.5}. Expected std deviation: {expected_stddev:.2}");
-    }
 }

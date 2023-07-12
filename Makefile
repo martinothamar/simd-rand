@@ -4,10 +4,10 @@ outbin := ${bindir}/profile
 all: run
 
 test:
-	cargo test --release
+	cargo test --lib --release
 
 memtest:
-	RUSTFLAGS="--cfg mem_test" cargo test --release -- --test-threads=1
+	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
 
 build:
 	cargo build --release --bin profile
@@ -19,7 +19,8 @@ run: build
 	$(outbin)
 
 dasm:
-	RUSTFLAGS="--cfg dasm" cargo objdump --bin dasm --release -- -d -S -M intel --no-show-raw-insn > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
+	RUSTFLAGS="--cfg dasm" cargo objdump --bin dasm --release -- \
+	 -d -S -M intel --no-show-raw-insn > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
 
 clean:
 	cargo clean --release
