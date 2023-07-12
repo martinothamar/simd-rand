@@ -19,14 +19,12 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
 
     // For 'dasm' cfg, our intention is to analyze the generated assembly,
     // so suggest that the function shouldn't be inlined
-    #[cfg_attr(dasm, inline(never))]
+    // #[cfg_attr(dasm, inline(never))]
     // For any other cfg this should be inlined, as it is in hotpath for Rng and RngCore traits
     #[cfg_attr(not(dasm), inline(always))]
     fn fill_bytes_arr<const N: usize>(&mut self, dest: &mut [u8; N]) {
         let state = unsafe { self.state.as_mut() };
-        if state.buffer_index >= BUFFER_SIZE || BUFFER_SIZE - state.buffer_index < N {
-            state.fill_buffer();
-        }
+        state.ensure_buffered(N);
 
         dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + N]);
         state.buffer_index += N;
@@ -81,7 +79,7 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
             buffered_state
                 .state
                 .prng_init(mem::transmute::<_, &[_; 4]>(&iseed));
-            buffered_state.fill_buffer();
+            buffered_state.rebuffer();
 
             NonNull::new_unchecked(ptr)
         };
@@ -125,9 +123,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
         let size = dest.len();
 
         let state = unsafe { self.state.as_mut() };
-        if state.buffer_index >= BUFFER_SIZE || BUFFER_SIZE - state.buffer_index < size {
-            state.fill_buffer();
-        }
+        state.ensure_buffered(size);
 
         dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + size]);
         state.buffer_index += size;
@@ -148,8 +144,16 @@ struct BufferedState<const BUFFER_SIZE: usize> {
 }
 
 impl<const BUFFER_SIZE: usize> BufferedState<BUFFER_SIZE> {
-    #[inline(never)] // Strong hint to not inline, as with sufficient buffer sizes this should be a rare call
-    fn fill_buffer(&mut self) {
+    #[inline(always)] // This should be inlined, this branch will be checked every time we sample
+    fn ensure_buffered(&mut self, size: usize) {
+        if BUFFER_SIZE - self.buffer_index < size {
+            self.rebuffer();
+        }
+    }
+    
+    #[cold]
+    #[inline(never)] // This should not be inlined, as entering the branch above is the rare case
+    fn rebuffer(&mut self) {
         unsafe {
             self.state.prng_gen(&mut self.buffer[..]);
         }
@@ -164,7 +168,7 @@ struct RawState {
 }
 
 impl RawState {
-    #[cfg_attr(dasm, inline(never))]
+    #[inline(never)] // This should be called rarely (only when rebuffering), so prefer not to inline
     unsafe fn prng_init(&mut self, seed: &[u64; 4]) {
         const STEPS: usize = 1;
         const ROUNDS: usize = 13;
@@ -205,7 +209,7 @@ impl RawState {
         }
     }
 
-    #[cfg_attr(dasm, inline(never))]
+    #[inline(never)] // This should be called rarely (only when rebuffering), so prefer not to inline
     unsafe fn prng_gen(&mut self, buf: &mut [u8]) {
         let mut o0: __m256i = self.output[0];
         let mut o1 = self.output[1];
