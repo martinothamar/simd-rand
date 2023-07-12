@@ -1,7 +1,7 @@
-use std::mem::MaybeUninit;
 use std::ptr::NonNull;
 use std::{arch::x86_64::*, mem::size_of};
 
+use rand_core::le::read_u64_into;
 use rand_core::{RngCore, SeedableRng};
 use std::alloc::Layout;
 use std::iter::Iterator;
@@ -19,36 +19,43 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
 
     // For 'dasm' cfg, our intention is to analyze the generated assembly,
     // so suggest that the function shouldn't be inlined
-    // #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(dasm, inline(never))]
     // For any other cfg this should be inlined, as it is in hotpath for Rng and RngCore traits
     #[cfg_attr(not(dasm), inline(always))]
     fn fill_bytes_arr<const N: usize>(&mut self, dest: &mut [u8; N]) {
-        let state = unsafe { self.state.as_mut() };
-        state.ensure_buffered(N);
+        unsafe {
+            let state = self.state.as_mut();
 
-        dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + N]);
-        state.buffer_index += N;
+            state.ensure_buffered(N);
+
+            let src = state
+                .buffer
+                .as_slice()
+                .get_unchecked(state.buffer_index..state.buffer_index + N);
+            dest.copy_from_slice(src);
+            state.buffer_index += N;
+        };
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn buffer_index(&self) -> usize {
         let state = unsafe { self.state.as_ref() };
         state.buffer_index
     }
 
-    // #[cfg_attr(dasm, inline(never))]
-    // #[cfg_attr(not(dasm), inline(always))]
-    // pub fn next_f32(&mut self) -> f32 {
-    //     let v = self.next_u32();
-    //     (v >> 8) as f32 * (1.0f32 / (1u32 << 24) as f32)
-    // }
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    pub fn next_f32(&mut self) -> f32 {
+        let v = self.next_u32();
+        (v >> 8) as f32 * (1.0f32 / (1u32 << 24) as f32)
+    }
 
-    // #[cfg_attr(dasm, inline(never))]
-    // #[cfg_attr(not(dasm), inline(always))]
-    // pub fn next_f64(&mut self) -> f64 {
-    //     let v = self.next_u64();
-    //     (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-    // }
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    pub fn next_f64(&mut self) -> f64 {
+        let v = self.next_u64();
+        (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+    }
 }
 
 impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
@@ -70,11 +77,8 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
 
             let buffered_state = ptr.as_mut().expect("Failed to allocate state for Shishua");
 
-            let mut iseed: [MaybeUninit<u64>; 4] = MaybeUninit::uninit().assume_init();
-            for i in (0..32).step_by(8) {
-                let seed_bytes = (&seed[i..i + 8]).try_into().unwrap();
-                iseed[i / 8] = MaybeUninit::new(u64::from_ne_bytes(seed_bytes));
-            }
+            let mut iseed = [0; 4];
+            read_u64_into(&seed[..], iseed.as_mut_slice());
 
             buffered_state
                 .state
@@ -122,11 +126,18 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         let size = dest.len();
 
-        let state = unsafe { self.state.as_mut() };
-        state.ensure_buffered(size);
+        unsafe {
+            let state = self.state.as_mut();
 
-        dest.copy_from_slice(&state.buffer[state.buffer_index..state.buffer_index + size]);
-        state.buffer_index += size;
+            state.ensure_buffered(size);
+
+            let src = state
+                .buffer
+                .as_slice()
+                .get_unchecked(state.buffer_index..state.buffer_index + size);
+            dest.copy_from_slice(src);
+            state.buffer_index += size;
+        };
     }
 
     #[cfg_attr(dasm, inline(never))]
@@ -150,7 +161,7 @@ impl<const BUFFER_SIZE: usize> BufferedState<BUFFER_SIZE> {
             self.rebuffer();
         }
     }
-    
+
     #[cold]
     #[inline(never)] // This should not be inlined, as entering the branch above is the rare case
     fn rebuffer(&mut self) {
@@ -211,7 +222,7 @@ impl RawState {
 
     #[inline(never)] // This should be called rarely (only when rebuffering), so prefer not to inline
     unsafe fn prng_gen(&mut self, buf: &mut [u8]) {
-        let mut o0: __m256i = self.output[0];
+        let mut o0 = self.output[0];
         let mut o1 = self.output[1];
         let mut o2 = self.output[2];
         let mut o3 = self.output[3];
@@ -467,7 +478,7 @@ mod tests {
         f: fn(&mut Shishua) -> T,
         range: Range<f64>,
     ) {
-        // Even to T represents a generic floating point,
+        // Even though T represents a generic floating point,
         // we still use f64 to make sure we dont lose too much precision
 
         let mut dist = Vec::with_capacity(SAMPLES);
@@ -491,7 +502,7 @@ mod tests {
         }
 
         // Statistical tests below
-        // We expect all the metrics below to deviate no more than DIFF_LIMIT
+        // We expect all the metrics to deviate no more than DIFF_LIMIT
         const DIFF_LIMIT: f64 = 0.00005;
 
         // In uniform distribution, where the interval is a to b

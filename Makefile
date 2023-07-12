@@ -9,6 +9,9 @@ test:
 memtest:
 	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
 
+bench:
+	cargo bench --benches
+
 build:
 	cargo build --release --bin profile
 
@@ -19,8 +22,8 @@ run: build
 	$(outbin)
 
 dasm:
-	RUSTFLAGS="--cfg dasm" cargo objdump --bin dasm --release -- \
-	 -d -S -M intel --no-show-raw-insn > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
+	cargo objdump --bin dasm --release -- \
+	-d -S -M intel --no-show-raw-insn > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
 
 clean:
 	cargo clean --release
