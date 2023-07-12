@@ -4,7 +4,10 @@ outbin := ${bindir}/profile
 all: run
 
 test:
-	cargo test --release -- --test-threads=1
+	cargo test --release
+
+memtest:
+	RUSTFLAGS="--cfg mem_test" cargo test --release -- --test-threads=1
 
 build:
 	cargo build --release --bin profile

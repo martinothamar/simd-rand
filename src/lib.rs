@@ -281,7 +281,7 @@ struct RawState {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(test)]
+    #[cfg(mem_test)]
     #[global_allocator]
     static ALLOC: dhat::Alloc = dhat::Alloc;
 
@@ -421,6 +421,7 @@ mod tests {
         assert!(rng.buffer_index() == 0);
     }
 
+    #[cfg(mem_test)]
     #[test]
     fn deallocates() {
         let _profiler = dhat::Profiler::builder().testing().build();
