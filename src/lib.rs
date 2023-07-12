@@ -32,7 +32,6 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
         0x471C4AB3ED3D82A5,
         0xFEC507705E4AE6E5,
     ];
-    const BUFFER_SIZE: usize = 1 << 17;
     const LAYOUT: Layout =
         unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState<BUFFER_SIZE>>(), 128) };
 
@@ -159,7 +158,7 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     #[cfg_attr(not(dasm), inline(always))]
     fn fill_bytes_arr<const N: usize>(&mut self, dest: &mut [u8; N]) {
         let state = unsafe { self.state.as_mut() };
-        if state.buffer_index >= Self::BUFFER_SIZE || Self::BUFFER_SIZE - state.buffer_index < N {
+        if state.buffer_index >= BUFFER_SIZE || BUFFER_SIZE - state.buffer_index < N {
             Self::fill_buffer(state);
         }
 
@@ -251,7 +250,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
         let size = dest.len();
 
         let state = unsafe { self.state.as_mut() };
-        if state.buffer_index >= Self::BUFFER_SIZE || Self::BUFFER_SIZE - state.buffer_index < size
+        if state.buffer_index >= BUFFER_SIZE || BUFFER_SIZE - state.buffer_index < size
         {
             Self::fill_buffer(state);
         }
