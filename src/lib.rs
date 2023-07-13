@@ -7,6 +7,8 @@ use std::alloc::{Layout, LayoutError};
 use std::iter::Iterator;
 use std::{alloc, mem};
 
+pub mod xoshiro256plusplus;
+
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 compile_error!("shishua-rs currently relies on x86_64 with AVX2 support.");
 
