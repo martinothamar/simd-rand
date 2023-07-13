@@ -19,6 +19,19 @@ num-traits = "0.2"
 dhat = "0.3.2"
 criterion = { version = "0.5", features = ["html_reports"] }
 
+[lib]
+bench = false
+
 [[bench]]
 name = "rng"
 harness = false
+
+[[bin]]
+name = "dasm"
+path = "src/bin/dasm.rs"
+bench = false
+
+[[bin]]
+name = "profile"
+path = "src/bin/profile.rs"
+bench = false

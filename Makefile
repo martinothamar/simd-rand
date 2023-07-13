@@ -10,7 +10,7 @@ memtest:
 	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
 
 bench:
-	cargo bench --benches
+	cargo bench -- --verbose
 
 build:
 	cargo build --release --bin profile
