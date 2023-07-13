@@ -12,6 +12,9 @@ memtest:
 bench:
 	cargo bench -- --verbose --save-baseline rng
 
+stat: build
+	perf stat -d -d -d ./target/release/profile
+
 build:
 	cargo build --release --bin profile
 

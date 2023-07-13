@@ -18,6 +18,8 @@ rand = { version = "0.8", features = ["small_rng"] }
 num-traits = "0.2"
 dhat = "0.3.2"
 criterion = { version = "0.5", features = ["html_reports"] }
+criterion-perf-events = "0.4"
+perfcnt = "0.8"
 
 [lib]
 bench = false
