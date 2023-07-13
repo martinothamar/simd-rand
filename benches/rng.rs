@@ -23,11 +23,11 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         b.iter(|| work(&mut rng))
     });
-    group.bench_function("SmallRng u64", |b| {
-        let mut rng: SmallRng = SmallRng::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    // group.bench_function("SmallRng u64", |b| {
+    //     let mut rng: SmallRng = SmallRng::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
 
-        b.iter(|| work(&mut rng))
-    });
+    //     b.iter(|| work(&mut rng))
+    // });
 
     group.finish();
 }

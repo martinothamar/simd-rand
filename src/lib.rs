@@ -3,22 +3,29 @@ use std::{arch::x86_64::*, mem::size_of};
 
 use rand_core::le::read_u64_into;
 use rand_core::{RngCore, SeedableRng};
-use std::alloc::Layout;
+use std::alloc::{Layout, LayoutError};
 use std::iter::Iterator;
 use std::{alloc, mem};
 
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 compile_error!("shishua-rs currently relies on x86_64 with AVX2 support.");
 
-pub const DEFAULT_BUFFER_SIZE: usize = 1 << 18;
+pub const DEFAULT_BUFFER_SIZE: usize = 1 << 17;
 
 pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
     state: NonNull<BufferedState<BUFFER_SIZE>>,
 }
 
+const BUFFERED_STATE_ALIGNMENT: usize = 128;
+const fn get_buffered_state_layout_unchecked<const BUFFER_SIZE: usize>() -> Layout {
+    unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState<BUFFER_SIZE>>(), BUFFERED_STATE_ALIGNMENT) }
+}
+const fn get_buffered_state_layout<const BUFFER_SIZE: usize>() -> Result<Layout, LayoutError> {
+    Layout::from_size_align(size_of::<BufferedState<BUFFER_SIZE>>(), BUFFERED_STATE_ALIGNMENT)
+}
+
 impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
-    const LAYOUT: Layout =
-        unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState<BUFFER_SIZE>>(), 128) };
+    const LAYOUT: Layout = get_buffered_state_layout_unchecked::<BUFFER_SIZE>();
 
     // For 'dasm' cfg, our intention is to analyze the generated assembly,
     // so suggest that the function shouldn't be inlined
@@ -66,6 +73,10 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
 
     #[cfg_attr(dasm, inline(never))]
     fn from_seed(seed: Self::Seed) -> Self {
+        assert!(
+            get_buffered_state_layout::<BUFFER_SIZE>().is_ok(),
+            "couldnt construct memory layout of Shishua buffered state"
+        );
         assert!(
             BUFFER_SIZE.is_power_of_two(),
             "The Shishua buffer size must be a power of 2"
