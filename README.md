@@ -13,30 +13,28 @@ A Rust implementation of Shishua,
 
 #### Word sampling (`next_u64`)
 
+Each iterations extracts 64 u64 values in a loop. This equates to 512 bytes per iteration.
+
 ```
     Finished bench [optimized + debuginfo] target(s) in 0.04s
      Running benches/rng.rs (target/release/deps/rng-a5d22c2c623a41ec)
-Gnuplot not found, using plotters backend
 Benchmarking RNG/Shishua u64
 Benchmarking RNG/Shishua u64: Warming up for 3.0000 s
 Benchmarking RNG/Shishua u64: Collecting 100 samples in estimated 5.0001 s (118336650 iterations)
 Benchmarking RNG/Shishua u64: Analyzing
 RNG/Shishua u64         time:   [42.041 ns 42.134 ns 42.247 ns]
-                        change: [-0.8518% -0.3894% +0.0013%] (p = 0.08 > 0.05)
-                        No change in performance detected.
 Found 8 outliers among 100 measurements (8.00%)
   5 (5.00%) high mild
   3 (3.00%) high severe
 slope  [42.041 ns 42.247 ns] R^2            [0.9879274 0.9876047]
 mean   [42.074 ns 42.278 ns] std. dev.      [331.70 ps 722.91 ps]
 median [42.038 ns 42.163 ns] med. abs. dev. [214.35 ps 375.16 ps]
+------------------------------------------------------------------------------------------------
 Benchmarking RNG/SmallRng u64
 Benchmarking RNG/SmallRng u64: Warming up for 3.0000 s
 Benchmarking RNG/SmallRng u64: Collecting 100 samples in estimated 5.0001 s (113064450 iterations)
 Benchmarking RNG/SmallRng u64: Analyzing
 RNG/SmallRng u64        time:   [44.710 ns 44.927 ns 45.162 ns]
-                        change: [-0.0314% +0.6662% +1.2478%] (p = 0.04 < 0.05)
-                        Change within noise threshold.
 Found 7 outliers among 100 measurements (7.00%)
   5 (5.00%) high mild
   2 (2.00%) high severe
