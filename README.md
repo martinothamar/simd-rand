@@ -16,31 +16,36 @@ A Rust implementation of Shishua,
 Each iterations extracts 64 u64 values in a loop. This equates to 512 bytes per iteration.
 
 ```
+❯ make bench
+cargo bench -- --verbose --save-baseline rng
     Finished bench [optimized + debuginfo] target(s) in 0.04s
      Running benches/rng.rs (target/release/deps/rng-a5d22c2c623a41ec)
+Gnuplot not found, using plotters backend
 Benchmarking RNG/Shishua u64
 Benchmarking RNG/Shishua u64: Warming up for 3.0000 s
-Benchmarking RNG/Shishua u64: Collecting 100 samples in estimated 5.0001 s (118336650 iterations)
+Benchmarking RNG/Shishua u64: Collecting 100 samples in estimated 5.0002 s (118467950 iterations)
 Benchmarking RNG/Shishua u64: Analyzing
-RNG/Shishua u64         time:   [42.041 ns 42.134 ns 42.247 ns]
-Found 8 outliers among 100 measurements (8.00%)
-  5 (5.00%) high mild
-  3 (3.00%) high severe
-slope  [42.041 ns 42.247 ns] R^2            [0.9879274 0.9876047]
-mean   [42.074 ns 42.278 ns] std. dev.      [331.70 ps 722.91 ps]
-median [42.038 ns 42.163 ns] med. abs. dev. [214.35 ps 375.16 ps]
-------------------------------------------------------------------------------------------------
+RNG/Shishua u64         time:   [42.174 ns 42.305 ns 42.472 ns]
+                        thrpt:  [11.227 GiB/s 11.271 GiB/s 11.307 GiB/s]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+slope  [42.174 ns 42.472 ns] R^2            [0.9631425 0.9623679]
+mean   [42.143 ns 42.425 ns] std. dev.      [319.73 ps 1.1356 ns]
+median [42.023 ns 42.174 ns] med. abs. dev. [184.36 ps 324.07 ps]
+-------------------------------------------------------------------------
 Benchmarking RNG/SmallRng u64
 Benchmarking RNG/SmallRng u64: Warming up for 3.0000 s
-Benchmarking RNG/SmallRng u64: Collecting 100 samples in estimated 5.0001 s (113064450 iterations)
+Benchmarking RNG/SmallRng u64: Collecting 100 samples in estimated 5.0000 s (113114950 iterations)
 Benchmarking RNG/SmallRng u64: Analyzing
-RNG/SmallRng u64        time:   [44.710 ns 44.927 ns 45.162 ns]
+RNG/SmallRng u64        time:   [44.301 ns 44.560 ns 44.885 ns]
+                        thrpt:  [10.624 GiB/s 10.701 GiB/s 10.764 GiB/s]
 Found 7 outliers among 100 measurements (7.00%)
   5 (5.00%) high mild
   2 (2.00%) high severe
-slope  [44.710 ns 45.162 ns] R^2            [0.9477585 0.9471898]
-mean   [44.635 ns 44.964 ns] std. dev.      [654.10 ps 1.0341 ns]
-median [44.429 ns 44.693 ns] med. abs. dev. [389.24 ps 703.26 ps]
+slope  [44.301 ns 44.885 ns] R^2            [0.9544741 0.9527437]
+mean   [44.249 ns 44.517 ns] std. dev.      [409.92 ps 950.32 ps]
+median [44.086 ns 44.257 ns] med. abs. dev. [209.27 ps 431.39 ps]
 ```
 
 ### Assembly
