@@ -1,23 +1,20 @@
 # Shishua for Rust
 
 A Rust implementation of Shishua, 
-[the worlds fastest PRNG](https://espadrine.github.io/blog/posts/shishua-the-fastest-prng-in-the-world.html) ([GitHub](https://github.com/espadrine/shishua)).
+['the worlds fastest PRNG'](https://espadrine.github.io/blog/posts/shishua-the-fastest-prng-in-the-world.html) ([GitHub](https://github.com/espadrine/shishua)).
 
 ## Limitations
 
-* Only AVX2 path
-* Only x86_64
+* Only AVX2 path (x86_64)
 
-## Debugging/inspection
+## Performance
 
-Requirements for disassembly:
+### Benchmarks
 
-```sh
-cargo install cargo-binutils
-rustup component add llvm-tools-preview
-```
+#### Word sampling (`next_u64`)
 
-Then you can run `make dasm`
+![image](https://github.com/martinothamar/shishua-rs/assets/5425986/52e22c74-65e3-4357-9ba4-a7d7d87dc7c1)
+![image](https://github.com/martinothamar/shishua-rs/assets/5425986/f540c69e-9b2c-4440-bdc5-311e3e23672d)
 
 ### Assembly
 
@@ -103,3 +100,13 @@ Example disassembly output
 </tr>
 </table>
 
+### Notes
+
+Requirements for disassembly:
+
+```sh
+cargo install cargo-binutils
+rustup component add llvm-tools-preview
+```
+
+Then you can run `make dasm`
