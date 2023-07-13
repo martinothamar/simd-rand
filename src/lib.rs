@@ -10,7 +10,28 @@ use std::{alloc, mem};
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 compile_error!("shishua-rs currently relies on x86_64 with AVX2 support.");
 
-pub const DEFAULT_BUFFER_SIZE: usize = 1 << 17;
+pub const DEFAULT_BUFFER_SIZE: usize = 1024 * 32;
+
+/// Shishua is a fast, vectorized, buffered PRNG.
+/// When initialized, it will seed its state of size `BUFFER_SIZE` (32k by default).
+/// When sampling, if enough randomness is buffered, it will just extract your T from the buffered bytes.
+/// When all the buffered randomness is spent, it will rebuffer using vectorized instructions
+/// 
+/// # Performance 
+/// 
+/// Performance varies slightly by what `BUFFER_SIZE` is set.
+/// Ideal conditions are of course when the entire state can reside in L1 cache.
+/// Wether or not this happens is dependent on _how_ the generator is used,
+/// so I recommend you benchmark your specific workload and use something like
+/// perf stat to observe cache misses (L1-dcache-load-misses:u).
+/// 
+/// # Safety
+/// 
+/// As this is a performance-oriented library, there is some unsafe code here.
+/// One example is elision of bounds check in the hotpath of extracting random bytes
+/// from the buffer. The library is in a single file so feel free to check and
+/// provide feedback.
+/// 
 
 pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
     state: NonNull<BufferedState<BUFFER_SIZE>>,
