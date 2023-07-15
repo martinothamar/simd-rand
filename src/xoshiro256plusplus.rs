@@ -51,7 +51,7 @@ impl SeedableRng for Xoshiro256PlusPlusX4 {
 }
 
 #[inline]
-pub fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
+fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
     const SIZE: usize = mem::size_of::<u64>();
     assert!(src.len() == SIZE * 4);
     unsafe {
@@ -127,6 +127,8 @@ impl Xoshiro256PlusPlusX4 {
     }
 }
 
+#[cfg_attr(dasm, inline(never))]
+#[cfg_attr(not(dasm), inline(always))]
 fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
     unsafe {
         // rotl: (x << k) | (x >> (64 - k)), k = 23
@@ -145,12 +147,6 @@ mod tests {
     use rand_core::{RngCore, SeedableRng};
 
     use super::*;
-
-    #[test]
-    fn bitfiddling() {
-        let v = 0b00000000_00000000_00000000_000000001u32;
-        print(v);
-    }
 
     #[test]
     fn generate_vector() {
@@ -176,6 +172,12 @@ mod tests {
         assert!(data.iter().all(|&v| v != 0));
         assert!(data.iter().unique().count() == data.len());
         println!("{data:?}");
+    }
+
+    #[test]
+    fn bitfiddling() {
+        let v = 0b00000000_00000000_00000000_000000001u32;
+        print(v);
     }
 
     fn print<T>(v: T)
