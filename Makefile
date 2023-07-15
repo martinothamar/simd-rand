@@ -32,7 +32,11 @@ run: build
 
 dasm:
 	cargo objdump --bin dasm --release -- \
-	-d -S -M intel --no-show-raw-insn > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
+	-d -S -M intel > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
+
+dasmexp: dasm
+	cargo rustc --release --bin dasm -- --emit asm=/dev/stdout | c++filt > src/bin/dasm.S
+	
 
 clean:
 	cargo clean --release

@@ -130,10 +130,6 @@ impl Xoshiro256PlusPlusX4 {
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
     pub fn next_u64x4(&mut self, mem: &mut U64x4) {
-        assert!(
-            mem::align_of_val(mem) % 32 == 0,
-            "mem needs to be aligned to 32 bytes"
-        );
 
         unsafe {
             let mut v = _mm256_set1_epi64x(0);
@@ -142,19 +138,30 @@ impl Xoshiro256PlusPlusX4 {
         }
     }
 
+    // Unfortunately this is not fast enough,
+    // since there is no direct intrinsic for u64 -> f64 conversion (other than in avx512)
+    // #[cfg_attr(dasm, inline(never))]
+    // #[cfg_attr(not(dasm), inline(always))]
+    // pub fn next_f64x4(&mut self, mem: &mut F64x4) {
+
+    //     unsafe {
+    //         let mut v = _mm256_set1_pd(0.0);
+    //         self.next_m256d(&mut v);
+    //         _mm256_store_pd(transmute::<_, *mut f64>(&mut mem.0), v);
+    //     }
+    // }
+
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
     pub fn next_f64x4(&mut self, mem: &mut F64x4) {
-        assert!(
-            mem::align_of_val(mem) % 32 == 0,
-            "mem needs to be aligned to 32 bytes"
-        );
-
-        unsafe {
-            let mut v = _mm256_set1_pd(0.0);
-            self.next_m256d(&mut v);
-            _mm256_store_pd(transmute::<_, *mut f64>(&mut mem.0), v);
-        }
+        
+        let mut v = Default::default();
+        self.next_u64x4(&mut v);
+        
+        mem.0[0] = (v.0[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        mem.0[1] = (v.0[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        mem.0[2] = (v.0[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        mem.0[3] = (v.0[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
     }
 }
 

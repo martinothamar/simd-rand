@@ -1,10 +1,14 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
 use std::mem;
 
 use criterion::measurement::Measurement;
 use criterion::{criterion_group, criterion_main, Criterion, black_box, Throughput};
-// use criterion_perf_events::Perf;
-// use perfcnt::linux::HardwareEventType as Hardware;
-// use perfcnt::linux::PerfCounterBuilderLinux as Builder;
+use criterion_perf_events::Perf;
+use perfcnt::linux::HardwareEventType as Hardware;
+use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand::rngs::SmallRng;
 use rand_core::{RngCore, SeedableRng};
 use shishua::Shishua;
