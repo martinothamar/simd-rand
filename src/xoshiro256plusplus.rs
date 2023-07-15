@@ -2,29 +2,29 @@ use std::{arch::x86_64::*, mem::{transmute, self}};
 
 use rand_core::SeedableRng;
 
-pub struct Xoshiro256PlusPlusx4Seed(pub [u8; 128]);
+pub struct Xoshiro256PlusPlusX4Seed(pub [u8; 128]);
 
 #[repr(align(32))]
-pub struct Xoshiro256PlusPlusx4 {
+pub struct Xoshiro256PlusPlusX4 {
     s0: __m256i,
     s1: __m256i,
     s2: __m256i,
     s3: __m256i,
 }
-impl Default for Xoshiro256PlusPlusx4Seed {
-    fn default() -> Xoshiro256PlusPlusx4Seed {
-        Xoshiro256PlusPlusx4Seed([0; 128])
+impl Default for Xoshiro256PlusPlusX4Seed {
+    fn default() -> Xoshiro256PlusPlusX4Seed {
+        Xoshiro256PlusPlusX4Seed([0; 128])
     }
 }
 
-impl AsMut<[u8]> for Xoshiro256PlusPlusx4Seed {
+impl AsMut<[u8]> for Xoshiro256PlusPlusX4Seed {
     fn as_mut(&mut self) -> &mut [u8] {
         &mut self.0
     }
 }
 
-impl SeedableRng for Xoshiro256PlusPlusx4 {
-    type Seed = Xoshiro256PlusPlusx4Seed;
+impl SeedableRng for Xoshiro256PlusPlusX4 {
+    type Seed = Xoshiro256PlusPlusX4Seed;
 
     fn from_seed(seed: Self::Seed) -> Self {
         const SIZE: usize = mem::size_of::<u64>();
@@ -61,7 +61,7 @@ pub fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
     }
 }
 
-impl Xoshiro256PlusPlusx4 {
+impl Xoshiro256PlusPlusX4 {
     pub fn next_m256i(&mut self) -> __m256i {
         unsafe {
             let s0 = _mm256_load_si256(
@@ -119,47 +119,6 @@ impl Xoshiro256PlusPlusx4 {
 #[repr(align(32))]
 pub struct U64x4([u64; 4]);
 
-// impl RngCore for Xoshiro256PlusPlus {
-//     #[inline]
-//     fn next_u64(&mut self) -> u64 {
-//         let result_plusplus = self.s[0]
-//             .wrapping_add(self.s[3])
-//             .rotate_left(23)
-//             .wrapping_add(self.s[0]);
-
-//         let t = self.s[1] << 17;
-
-//         self.s[2] ^= self.s[0];
-//         self.s[3] ^= self.s[1];
-//         self.s[1] ^= self.s[2];
-//         self.s[0] ^= self.s[3];
-
-//         self.s[2] ^= t;
-
-//         self.s[3] = self.s[3].rotate_left(45);
-
-//         result_plusplus
-//     }
-
-//     #[inline]
-//     fn next_u32(&mut self) -> u32 {
-//         // The lowest bits have some linear dependencies, so we use the
-//         // upper bits instead.
-//         (self.next_u64() >> 32) as u32
-//     }
-
-//     #[inline]
-//     fn fill_bytes(&mut self, dest: &mut [u8]) {
-//         fill_bytes_via_next(self, dest);
-//     }
-
-//     #[inline]
-//     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
-//         self.fill_bytes(dest);
-//         Ok(())
-//     }
-// }
-
 fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
     unsafe { 
         // rotl: (x << k) | (x >> (64 - k)), k = 23
@@ -175,6 +134,7 @@ mod tests {
     use num_traits::PrimInt;
     use rand::rngs::SmallRng;
     use rand_core::{SeedableRng, RngCore};
+    use itertools::Itertools;
 
     use super::*;
 
@@ -188,15 +148,26 @@ mod tests {
     fn rng() {
         let mut seeder = SmallRng::seed_from_u64(0);
 
-        let mut seed: Xoshiro256PlusPlusx4Seed = Default::default();
+        let mut seed: Xoshiro256PlusPlusX4Seed = Default::default();
         seeder.fill_bytes(&mut seed.0[..]);
 
-        let mut rng = Xoshiro256PlusPlusx4::from_seed(seed);
+        let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
 
         let mut values = U64x4([0; 4]);
         rng.next_u64s(&mut values);
 
-        assert!(values.0.iter().all(|&v| v != 0));
+        let data = values.0;
+        assert!(data.iter().all(|&v| v != 0));
+        assert!(data.iter().unique().count() == data.len());
+        println!("{data:?}");
+
+        let mut values = U64x4([0; 4]);
+        rng.next_u64s(&mut values);
+
+        let data = values.0;
+        assert!(data.iter().all(|&v| v != 0));
+        assert!(data.iter().unique().count() == data.len());
+        println!("{data:?}");
     }
     
     fn print<T>(v: T) where T: PrimInt + ToString {

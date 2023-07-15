@@ -20,6 +20,7 @@ dhat = "0.3.2"
 criterion = { version = "0.5", features = ["html_reports"] }
 criterion-perf-events = "0.4"
 perfcnt = "0.8"
+itertools = "0.11.0"
 
 [lib]
 bench = false
