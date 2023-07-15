@@ -1,11 +1,15 @@
 use std::{arch::x86_64::*, mem::{transmute, self}};
 
-use rand_core::{SeedableRng, le::read_u64_into};
+use rand_core::SeedableRng;
 
 pub struct Xoshiro256PlusPlusx4Seed(pub [u8; 128]);
 
+#[repr(align(32))]
 pub struct Xoshiro256PlusPlusx4 {
-    states: [[u64; 4]; 4],
+    s0: __m256i,
+    s1: __m256i,
+    s2: __m256i,
+    s3: __m256i,
 }
 impl Default for Xoshiro256PlusPlusx4Seed {
     fn default() -> Xoshiro256PlusPlusx4Seed {
@@ -25,32 +29,46 @@ impl SeedableRng for Xoshiro256PlusPlusx4 {
     fn from_seed(seed: Self::Seed) -> Self {
         const SIZE: usize = mem::size_of::<u64>();
         const LEN: usize = 4;
-        let mut states: [[u64; LEN]; LEN] = [[0; 4]; 4];
-        read_u64_into(&seed.0[..(SIZE * LEN * 1)], &mut states[0][..]);
-        read_u64_into(&seed.0[(SIZE * LEN * 1)..(SIZE * LEN * 2)], &mut states[1][..]);
-        read_u64_into(&seed.0[(SIZE * LEN * 2)..(SIZE * LEN * 3)], &mut states[2][..]);
-        read_u64_into(&seed.0[(SIZE * LEN * 3)..], &mut states[3][..]);
-
-        Self {
-            states
+        const VECSIZE: usize = SIZE * LEN;
+        unsafe {
+            let mut s0: __m256i = _mm256_setzero_si256();
+            let mut s1: __m256i = _mm256_setzero_si256();
+            let mut s2: __m256i = _mm256_setzero_si256();
+            let mut s3: __m256i = _mm256_setzero_si256();
+            read_u64_into_vec(&seed.0[(VECSIZE * 0)..(VECSIZE * 1)], &mut s0);
+            read_u64_into_vec(&seed.0[(VECSIZE * 1)..(VECSIZE * 2)], &mut s1);
+            read_u64_into_vec(&seed.0[(VECSIZE * 2)..(VECSIZE * 3)], &mut s2);
+            read_u64_into_vec(&seed.0[(VECSIZE * 3)..(VECSIZE * 4)], &mut s3);
+    
+            Self {
+                s0, s1, s2, s3
+            }
         }
+    }
+}
+
+#[inline]
+pub fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
+    const SIZE: usize = mem::size_of::<u64>();
+    assert!(src.len() == SIZE * 4);
+    unsafe {
+        *dst = _mm256_set_epi64x(
+            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
+            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
+            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),
+            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap())),
+        )
     }
 }
 
 impl Xoshiro256PlusPlusx4 {
     pub fn next_m256i(&mut self) -> __m256i {
         unsafe {
-            let s0 = _mm256_set_epi64x(
-                transmute::<_, i64>(self.states[0][0]),
-                transmute::<_, i64>(self.states[1][0]),
-                transmute::<_, i64>(self.states[2][0]),
-                transmute::<_, i64>(self.states[3][0])
+            let s0 = _mm256_load_si256(
+                transmute::<_, *const __m256i>(&self.s0)
             );
-            let s3 = _mm256_set_epi64x(
-                transmute::<_, i64>(self.states[0][3]),
-                transmute::<_, i64>(self.states[1][3]),
-                transmute::<_, i64>(self.states[2][3]),
-                transmute::<_, i64>(self.states[3][3])
+            let s3 = _mm256_load_si256(
+                transmute::<_, *const __m256i>(&self.s3)
             );
 
             // s[0] + s[3]
@@ -58,19 +76,14 @@ impl Xoshiro256PlusPlusx4 {
 
             // rotl(s[0] + s[3], 23)
             // rotl: (x << k) | (x >> (64 - k)), k = 23
-            const K: i32 = 23; 
-            let rotl = _mm256_sll_epi64(sadd, _mm_set1_epi32(K));
-            let rotl = _mm256_or_si256(rotl, _mm256_srl_epi64(sadd, _mm_set1_epi32(64 - K)));
+            let rotl = rotate_left::<23>(sadd);
 
             // rotl(...) + s[0]
             let result = _mm256_add_epi64(rotl, s0);
 
             //         let t = self.s[1] << 17;
-            let s1 = _mm256_set_epi64x(
-                transmute::<_, i64>(self.states[0][1]),
-                transmute::<_, i64>(self.states[1][1]),
-                transmute::<_, i64>(self.states[2][1]),
-                transmute::<_, i64>(self.states[3][1])
+            let s1 = _mm256_load_si256(
+                transmute::<_, *const __m256i>(&self.s1)
             );
             let t = _mm256_sll_epi64(s1, _mm_set1_epi32(17));
 
@@ -78,12 +91,16 @@ impl Xoshiro256PlusPlusx4 {
             //         self.s[3] ^= self.s[1];
             //         self.s[1] ^= self.s[2];
             //         self.s[0] ^= self.s[3];
+            self.s2 = _mm256_xor_si256(self.s2, self.s0);
+            self.s3 = _mm256_xor_si256(self.s3, self.s1);
+            self.s1 = _mm256_xor_si256(self.s1, self.s2);
+            self.s0 = _mm256_xor_si256(self.s0, self.s3);
 
             //         self.s[2] ^= t;
+            self.s2 = _mm256_xor_si256(self.s2, t);
 
             //         self.s[3] = self.s[3].rotate_left(45);
-
-            //         result_plusplus
+            self.s3 = rotate_left::<45>(self.s3);
 
             result
         }
@@ -142,6 +159,14 @@ pub struct U64x4([u64; 4]);
 //         Ok(())
 //     }
 // }
+
+fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
+    unsafe { 
+        // rotl: (x << k) | (x >> (64 - k)), k = 23
+        let rotl = _mm256_sll_epi64(x, _mm_set1_epi32(K));
+        _mm256_or_si256(rotl, _mm256_srl_epi64(x, _mm_set1_epi32(64 - K)))
+    }
+}
 
 #[cfg(test)]
 mod tests {
