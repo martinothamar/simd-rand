@@ -1,4 +1,7 @@
-use std::{arch::x86_64::*, mem::{transmute, self}};
+use std::{
+    arch::x86_64::*,
+    mem::{self, transmute},
+};
 
 use rand_core::SeedableRng;
 
@@ -39,10 +42,8 @@ impl SeedableRng for Xoshiro256PlusPlusX4 {
             read_u64_into_vec(&seed.0[(VECSIZE * 1)..(VECSIZE * 2)], &mut s1);
             read_u64_into_vec(&seed.0[(VECSIZE * 2)..(VECSIZE * 3)], &mut s2);
             read_u64_into_vec(&seed.0[(VECSIZE * 3)..(VECSIZE * 4)], &mut s3);
-    
-            Self {
-                s0, s1, s2, s3
-            }
+
+            Self { s0, s1, s2, s3 }
         }
     }
 }
@@ -53,10 +54,18 @@ pub fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
     assert!(src.len() == SIZE * 4);
     unsafe {
         *dst = _mm256_set_epi64x(
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap())),
+            transmute::<_, i64>(u64::from_le_bytes(
+                src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap(),
+            )),
+            transmute::<_, i64>(u64::from_le_bytes(
+                src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap(),
+            )),
+            transmute::<_, i64>(u64::from_le_bytes(
+                src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap(),
+            )),
+            transmute::<_, i64>(u64::from_le_bytes(
+                src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap(),
+            )),
         )
     }
 }
@@ -64,12 +73,8 @@ pub fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
 impl Xoshiro256PlusPlusX4 {
     pub fn next_m256i(&mut self) -> __m256i {
         unsafe {
-            let s0 = _mm256_load_si256(
-                transmute::<_, *const __m256i>(&self.s0)
-            );
-            let s3 = _mm256_load_si256(
-                transmute::<_, *const __m256i>(&self.s3)
-            );
+            let s0 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s0));
+            let s3 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s3));
 
             // s[0] + s[3]
             let sadd = _mm256_add_epi64(s0, s3);
@@ -82,9 +87,7 @@ impl Xoshiro256PlusPlusX4 {
             let result = _mm256_add_epi64(rotl, s0);
 
             //         let t = self.s[1] << 17;
-            let s1 = _mm256_load_si256(
-                transmute::<_, *const __m256i>(&self.s1)
-            );
+            let s1 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s1));
             let t = _mm256_sll_epi64(s1, _mm_set1_epi32(17));
 
             //         self.s[2] ^= self.s[0];
@@ -107,10 +110,13 @@ impl Xoshiro256PlusPlusX4 {
     }
 
     pub fn next_u64s(&mut self, mem: &mut U64x4) {
-        assert!(mem::align_of_val(mem) % 32 == 0, "mem needs to be aligned to 32 bytes");
+        assert!(
+            mem::align_of_val(mem) % 32 == 0,
+            "mem needs to be aligned to 32 bytes"
+        );
 
         let vec = self.next_m256i();
-        unsafe {   
+        unsafe {
             _mm256_store_si256(transmute::<_, *mut __m256i>(&mut mem.0), vec);
         }
     }
@@ -120,7 +126,7 @@ impl Xoshiro256PlusPlusX4 {
 pub struct U64x4([u64; 4]);
 
 fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
-    unsafe { 
+    unsafe {
         // rotl: (x << k) | (x >> (64 - k)), k = 23
         let rotl = _mm256_sll_epi64(x, _mm_set1_epi32(K));
         _mm256_or_si256(rotl, _mm256_srl_epi64(x, _mm_set1_epi32(64 - K)))
@@ -131,10 +137,10 @@ fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
 mod tests {
     use std::mem;
 
+    use itertools::Itertools;
     use num_traits::PrimInt;
     use rand::rngs::SmallRng;
-    use rand_core::{SeedableRng, RngCore};
-    use itertools::Itertools;
+    use rand_core::{RngCore, SeedableRng};
 
     use super::*;
 
@@ -169,8 +175,11 @@ mod tests {
         assert!(data.iter().unique().count() == data.len());
         println!("{data:?}");
     }
-    
-    fn print<T>(v: T) where T: PrimInt + ToString {
+
+    fn print<T>(v: T)
+    where
+        T: PrimInt + ToString,
+    {
         let size = mem::size_of::<T>();
         let bit_size = size * 8;
 
