@@ -42,7 +42,11 @@ pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
 
 #[derive(Default)]
 #[repr(align(32))]
-pub struct U64x4([u64; 4]);
+pub struct U64x4(pub [u64; 4]);
+
+#[derive(Default)]
+#[repr(align(32))]
+pub struct F64x4(pub [f64; 4]);
 
 const BUFFERED_STATE_ALIGNMENT: usize = 128;
 const fn get_buffered_state_layout_unchecked<const BUFFER_SIZE: usize>() -> Layout {

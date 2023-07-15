@@ -15,6 +15,9 @@ bench:
 benchvec:
 	cargo bench --bench vectorized -- --verbose --save-baseline vectorized
 
+benchxoshiro:
+	cargo bench --bench xoshiro -- --verbose --save-baseline xoshiro
+
 stat: build
 	perf stat -d -d -d ./target/release/profile
 
