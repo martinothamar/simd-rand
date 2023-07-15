@@ -10,7 +10,10 @@ memtest:
 	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
 
 bench:
-	cargo bench -- --verbose --save-baseline rng
+	cargo bench --bench shishua -- --verbose --save-baseline shishua
+
+benchvec:
+	cargo bench --bench vectorized -- --verbose --save-baseline vectorized
 
 stat: build
 	perf stat -d -d -d ./target/release/profile

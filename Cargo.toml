@@ -26,7 +26,11 @@ itertools = "0.11.0"
 bench = false
 
 [[bench]]
-name = "rng"
+name = "shishua"
+harness = false
+
+[[bench]]
+name = "vectorized"
 harness = false
 
 [[bin]]

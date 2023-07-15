@@ -1,3 +1,4 @@
+use std::mem::{MaybeUninit, transmute};
 use std::ptr::NonNull;
 use std::{arch::x86_64::*, mem::size_of};
 
@@ -39,6 +40,10 @@ pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
     state: NonNull<BufferedState<BUFFER_SIZE>>,
 }
 
+#[derive(Default)]
+#[repr(align(32))]
+pub struct U64x4([u64; 4]);
+
 const BUFFERED_STATE_ALIGNMENT: usize = 128;
 const fn get_buffered_state_layout_unchecked<const BUFFER_SIZE: usize>() -> Layout {
     unsafe { Layout::from_size_align_unchecked(size_of::<BufferedState<BUFFER_SIZE>>(), BUFFERED_STATE_ALIGNMENT) }
@@ -63,6 +68,7 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
 
             let src = state
                 .buffer
+                .0
                 .as_slice()
                 .get_unchecked(state.buffer_index..state.buffer_index + N);
             dest.copy_from_slice(src);
@@ -88,6 +94,41 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     pub fn next_f64(&mut self) -> f64 {
         let v = self.next_u64();
         (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+    }
+
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    pub fn next_m256i(&mut self, result: &mut __m256i) {
+        const SIZE: usize = mem::size_of::<__m256i>();
+        unsafe {
+            let state = self.state.as_mut();
+
+            state.ensure_buffered(SIZE);
+
+            
+            let src = &state
+                .buffer
+                .0[state.buffer_index];
+
+            *result = _mm256_load_si256(transmute::<_, *const __m256i>(src));
+
+            state.buffer_index += SIZE;
+        }
+    }
+    
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    pub fn next_u64x4(&mut self, mem: &mut U64x4) {
+        assert!(
+            mem::align_of_val(mem) % 32 == 0,
+            "mem needs to be aligned to 32 bytes"
+        );
+
+        unsafe {
+            let mut result: MaybeUninit<__m256i> = MaybeUninit::uninit();
+            self.next_m256i(&mut *result.as_mut_ptr());
+            _mm256_store_si256(transmute::<_, *mut __m256i>(&mut mem.0), result.assume_init());
+        }
     }
 }
 
@@ -170,6 +211,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
 
             let src = state
                 .buffer
+                .0
                 .as_slice()
                 .get_unchecked(state.buffer_index..state.buffer_index + size);
             dest.copy_from_slice(src);
@@ -187,9 +229,12 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
 
 struct BufferedState<const BUFFER_SIZE: usize> {
     state: RawState,
-    buffer: [u8; BUFFER_SIZE],
+    buffer: BufferedStateBuffer<BUFFER_SIZE>,
     buffer_index: usize,
 }
+
+#[repr(align(32))]
+struct BufferedStateBuffer<const BUFFER_SIZE: usize>([u8; BUFFER_SIZE]);
 
 impl<const BUFFER_SIZE: usize> BufferedState<BUFFER_SIZE> {
     #[inline(always)] // This should be inlined, this branch will be checked every time we sample
@@ -199,11 +244,11 @@ impl<const BUFFER_SIZE: usize> BufferedState<BUFFER_SIZE> {
         }
     }
 
-    #[cold]
+    #[cold]          // This attribute seems to make LLVM organize jumps/branches better
     #[inline(never)] // This should not be inlined, as entering the branch above is the rare case
     fn rebuffer(&mut self) {
         unsafe {
-            self.state.prng_gen(&mut self.buffer[..]);
+            self.state.prng_gen(&mut self.buffer.0[..]);
         }
         self.buffer_index = 0;
     }
@@ -355,12 +400,23 @@ mod tests {
 
     use std::{fmt::Display, ops::Range};
 
+    use itertools::Itertools;
     use num_traits::{Float, ToPrimitive};
     use rand::Rng;
 
     type Shishua = super::Shishua<DEFAULT_BUFFER_SIZE>;
 
     use super::*;
+
+    #[test]
+    fn alignment() {
+        assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>() % 32 == 0);
+
+        let rng = create_with_zero_seed();
+        let state = unsafe { rng.state.as_ref() };
+        let buf_alignment = mem::align_of_val(&state.buffer);
+        assert!(buf_alignment % 32 == 0);
+    }
 
     #[test]
     fn init_from_zero_seed() {
@@ -486,6 +542,27 @@ mod tests {
 
         let n = rng.gen_range(FLOAT_RANGE);
         assert!(FLOAT_RANGE.contains(&n));
+    }
+
+    #[test]
+    fn generate_vector() {
+        let mut rng = create_with_predefined_seed();
+
+        let mut values = U64x4([0; 4]);
+        rng.next_u64x4(&mut values);
+
+        let data = values.0;
+        assert!(data.iter().all(|&v| v != 0));
+        assert!(data.iter().unique().count() == data.len());
+        println!("{data:?}");
+
+        let mut values = U64x4([0; 4]);
+        rng.next_u64x4(&mut values);
+
+        let data = values.0;
+        assert!(data.iter().all(|&v| v != 0));
+        assert!(data.iter().unique().count() == data.len());
+        println!("{data:?}");
     }
 
     #[test]

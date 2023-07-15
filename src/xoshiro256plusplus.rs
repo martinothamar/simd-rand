@@ -1,9 +1,11 @@
 use std::{
     arch::x86_64::*,
-    mem::{self, transmute},
+    mem::{self, transmute, MaybeUninit},
 };
 
 use rand_core::SeedableRng;
+
+use crate::U64x4;
 
 pub struct Xoshiro256PlusPlusX4Seed(pub [u8; 128]);
 
@@ -71,7 +73,9 @@ pub fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
 }
 
 impl Xoshiro256PlusPlusX4 {
-    pub fn next_m256i(&mut self) -> __m256i {
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    pub fn next_m256i(&mut self, result: &mut __m256i) {
         unsafe {
             let s0 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s0));
             let s3 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s3));
@@ -84,7 +88,7 @@ impl Xoshiro256PlusPlusX4 {
             let rotl = rotate_left::<23>(sadd);
 
             // rotl(...) + s[0]
-            let result = _mm256_add_epi64(rotl, s0);
+            *result = _mm256_add_epi64(rotl, s0);
 
             //         let t = self.s[1] << 17;
             let s1 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s1));
@@ -104,26 +108,24 @@ impl Xoshiro256PlusPlusX4 {
 
             //         self.s[3] = self.s[3].rotate_left(45);
             self.s3 = rotate_left::<45>(self.s3);
-
-            result
         }
     }
 
-    pub fn next_u64s(&mut self, mem: &mut U64x4) {
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    pub fn next_u64x4(&mut self, mem: &mut U64x4) {
         assert!(
             mem::align_of_val(mem) % 32 == 0,
             "mem needs to be aligned to 32 bytes"
         );
 
-        let vec = self.next_m256i();
         unsafe {
-            _mm256_store_si256(transmute::<_, *mut __m256i>(&mut mem.0), vec);
+            let mut result: MaybeUninit<__m256i> = MaybeUninit::uninit();
+            self.next_m256i(&mut *result.as_mut_ptr());
+            _mm256_store_si256(transmute::<_, *mut __m256i>(&mut mem.0), result.assume_init());
         }
     }
 }
-
-#[repr(align(32))]
-pub struct U64x4([u64; 4]);
 
 fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
     unsafe {
@@ -151,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn rng() {
+    fn generate_vector() {
         let mut seeder = SmallRng::seed_from_u64(0);
 
         let mut seed: Xoshiro256PlusPlusX4Seed = Default::default();
@@ -160,7 +162,7 @@ mod tests {
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
 
         let mut values = U64x4([0; 4]);
-        rng.next_u64s(&mut values);
+        rng.next_u64x4(&mut values);
 
         let data = values.0;
         assert!(data.iter().all(|&v| v != 0));
@@ -168,7 +170,7 @@ mod tests {
         println!("{data:?}");
 
         let mut values = U64x4([0; 4]);
-        rng.next_u64s(&mut values);
+        rng.next_u64x4(&mut values);
 
         let data = values.0;
         assert!(data.iter().all(|&v| v != 0));
