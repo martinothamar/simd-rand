@@ -6,9 +6,6 @@ all: run
 test:
 	cargo test && cargo test --release
 
-memtest:
-	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
-
 bench:
 	cargo bench --bench $(BENCH) -- --verbose
 
