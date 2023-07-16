@@ -1,6 +1,6 @@
 use rand::rngs::SmallRng;
 use rand_core::{SeedableRng, RngCore};
-use shishua::{Shishua, xoshiro256plusplus::Xoshiro256PlusPlusX4};
+use simd_prng::specific::avx2::{Xoshiro256PlusPlusX4, Shishua};
 
 #[inline(never)]
 fn do_shishua(rng: &mut Shishua) -> u64 {

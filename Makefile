@@ -9,10 +9,10 @@ test:
 memtest:
 	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
 
-bench:
+benchshishua:
 	cargo bench --bench shishua -- --verbose --save-baseline shishua
 
-benchvec:
+benchcomparison:
 	cargo bench --bench vectorized -- --verbose --save-baseline vectorized
 
 benchxoshiro:
@@ -36,7 +36,6 @@ dasm:
 
 dasmexp: dasm
 	cargo rustc --release --bin dasm -- --emit asm=/dev/stdout | c++filt > src/bin/dasm.S
-	
 
 clean:
 	cargo clean --release

@@ -1,11 +1,14 @@
-# Shishua for Rust
+# SIMD PRNG in Rest
 
-A Rust implementation of Shishua, 
-['the worlds fastest PRNG'](https://espadrine.github.io/blog/posts/shishua-the-fastest-prng-in-the-world.html) ([GitHub](https://github.com/espadrine/shishua)).
+SIMD implementations of common PRNGs in Rust.
+Currently
 
-## Limitations
+* Shishua (buffered, AVX2)
+* Xoshiro256++ (x4, AVX2)
 
-* Only AVX2 path (x86_64)
+Plan is to start of implementing PRNGs targeting specific instruction sets (such as AVX__N__) in the `simd_prng::specific` module,
+and then maybe investigate portable implementations of these if possible.
+The PRNGs implement the `SeedableRng` trait from `rand_core`.
 
 ## Performance
 

@@ -12,8 +12,8 @@ use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand_core::{SeedableRng, RngCore};
 use rand_xoshiro::Xoshiro256PlusPlus;
-use shishua::{U64x4, F64x4};
-use shishua::xoshiro256plusplus::Xoshiro256PlusPlusX4;
+use simd_prng::specific::avx2::Xoshiro256PlusPlusX4;
+use simd_prng::{U64x4, F64x4};
 
 const ITERATIONS: usize = 16;
 

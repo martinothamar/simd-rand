@@ -11,7 +11,7 @@ use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand::rngs::SmallRng;
 use rand_core::{RngCore, SeedableRng};
-use shishua::Shishua;
+use simd_prng::specific::avx2::Shishua;
 
 const ITERATIONS: usize = 64;
 
