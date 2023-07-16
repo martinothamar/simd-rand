@@ -35,7 +35,6 @@ impl DerefMut for U64x4 {
     }
 }
 
-
 impl Into<U64x4> for [u64; 4] {
     fn into(self) -> U64x4 {
         U64x4::new(self)

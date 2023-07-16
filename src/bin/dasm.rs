@@ -1,5 +1,5 @@
 use rand::rngs::SmallRng;
-use rand_core::{SeedableRng, RngCore};
+use rand_core::{RngCore, SeedableRng};
 use simd_prng::specific::avx2::*;
 
 #[inline(never)]

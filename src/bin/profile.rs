@@ -1,6 +1,6 @@
 use std::{hint::black_box, time::Instant};
 
-use rand_core::{SeedableRng, RngCore};
+use rand_core::{RngCore, SeedableRng};
 use simd_prng::specific::avx2::*;
 
 fn main() {
@@ -9,7 +9,7 @@ fn main() {
     for _ in 0..4 {
         let start = Instant::now();
         for _ in 0..4_000_000_000u64 {
-            black_box( rng.next_u64());
+            black_box(rng.next_u64());
         }
         let end = Instant::now();
         let duration = end.duration_since(start);

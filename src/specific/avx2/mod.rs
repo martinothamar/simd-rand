@@ -1,9 +1,9 @@
-pub use xoshiro256plusplus::*;
 pub use shishua::*;
-pub use vecs::*;
 pub use simdprng::*;
+pub use vecs::*;
+pub use xoshiro256plusplus::*;
 
-mod xoshiro256plusplus;
 mod shishua;
-mod vecs;
 mod simdprng;
+mod vecs;
+mod xoshiro256plusplus;

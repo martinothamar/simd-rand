@@ -1,12 +1,13 @@
 use std::{
     arch::x86_64::*,
-    mem::{self, transmute}, ops::{Deref, DerefMut},
+    mem::{self, transmute},
+    ops::{Deref, DerefMut},
 };
 
 use rand_core::SeedableRng;
 
-use super::vecs::*;
 use super::simdprng::*;
+use super::vecs::*;
 
 pub struct Xoshiro256PlusPlusX4Seed([u8; 128]);
 
@@ -240,6 +241,7 @@ mod tests {
 
     #[test]
     fn reference() {
+        #[rustfmt::skip]
         let ref_seed: [u8; 128] = [
             1, 0, 0, 0, 0, 0, 0, 0,
             1, 0, 0, 0, 0, 0, 0, 0,
@@ -262,22 +264,16 @@ mod tests {
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed.try_into().unwrap());
         // These values were produced with the reference implementation:
         // http://xoshiro.di.unimi.it/xoshiro256plusplus.c
+        #[rustfmt::skip]
         let expected = [
-            41943041,
-            58720359,
-            3588806011781223,
-            3591011842654386,
-            9228616714210784205,
-            9973669472204895162,
-            14011001112246962877,
-            12406186145184390807,
-            15849039046786891736,
-            10450023813501588000,
+            41943041, 58720359, 3588806011781223, 3591011842654386,
+            9228616714210784205, 9973669472204895162, 14011001112246962877,
+            12406186145184390807, 15849039046786891736, 10450023813501588000,
         ];
         for &e in &expected {
             let mut mem = Default::default();
             rng.next_u64x4(&mut mem);
-            for v in mem.into_iter() {    
+            for v in mem.into_iter() {
                 assert_eq!(v, e);
             }
         }

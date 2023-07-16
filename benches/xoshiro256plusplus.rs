@@ -5,12 +5,12 @@
 use std::mem;
 
 use criterion::measurement::Measurement;
-use criterion::{criterion_group, criterion_main, Criterion, black_box, Throughput};
-use rand::Rng;
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use criterion_perf_events::Perf;
 use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
-use rand_core::{SeedableRng, RngCore};
+use rand::Rng;
+use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use simd_prng::specific::avx2::*;
 
@@ -47,7 +47,6 @@ fn do_xoshiro_x4_f64(rng: &mut Xoshiro256PlusPlusX4, data: &mut F64x4) {
 }
 
 fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
-    
     let mut group = c.benchmark_group("xoshiro");
 
     group.throughput(Throughput::Bytes((ITERATIONS * mem::size_of::<U64x4>()) as u64));

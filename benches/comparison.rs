@@ -5,7 +5,7 @@
 use std::mem;
 
 use criterion::measurement::Measurement;
-use criterion::{criterion_group, criterion_main, Criterion, black_box, Throughput};
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use criterion_perf_events::Perf;
 use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
@@ -26,7 +26,6 @@ fn do_xoshiro256plusplus(rng: &mut Xoshiro256PlusPlusX4, data: &mut U64x4) {
 }
 
 fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
-    
     let mut group = c.benchmark_group("comparison");
 
     group.throughput(Throughput::Bytes((ITERATIONS * mem::size_of::<U64x4>()) as u64));
