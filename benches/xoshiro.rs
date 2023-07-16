@@ -19,7 +19,7 @@ const ITERATIONS: usize = 16;
 
 fn do_xoshiro_u64(rng: &mut Xoshiro256PlusPlus, data: &mut U64x4) {
     for _ in 0..ITERATIONS {
-        let mut data = black_box(data.0);
+        let data = black_box(&mut *data);
         data[0] = rng.next_u64();
         data[1] = rng.next_u64();
         data[2] = rng.next_u64();
@@ -35,7 +35,7 @@ fn do_xoshiro_x4_u64(rng: &mut Xoshiro256PlusPlusX4, data: &mut U64x4) {
 
 fn do_xoshiro_f64(rng: &mut Xoshiro256PlusPlus, data: &mut F64x4) {
     for _ in 0..ITERATIONS {
-        let mut data = black_box(data.0);
+        let data = black_box(&mut *data);
         data[0] = rng.gen_range(0.0..1.0);
         data[1] = rng.gen_range(0.0..1.0);
         data[2] = rng.gen_range(0.0..1.0);

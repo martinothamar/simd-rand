@@ -16,7 +16,7 @@ fn do_small_rng(rng: &mut SmallRng) -> u64 {
 fn do_xoshiro_x4(rng: &mut Xoshiro256PlusPlusX4) -> u64 {
     let mut result = Default::default();
     rng.next_u64x4(&mut result);
-    result.0[0]
+    result[0]
 }
 
 fn main() {

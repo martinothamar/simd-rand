@@ -1,4 +1,4 @@
-use std::mem::{MaybeUninit, transmute};
+use std::mem::transmute;
 use std::ptr::NonNull;
 use std::{arch::x86_64::*, mem::size_of};
 
@@ -7,8 +7,10 @@ use rand_core::{RngCore, SeedableRng};
 use std::alloc::{Layout, LayoutError};
 use std::iter::Iterator;
 use std::{alloc, mem};
+pub use crate::vecs::*;
 
 pub mod xoshiro256plusplus;
+mod vecs;
 
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 compile_error!("shishua-rs currently relies on x86_64 with AVX2 support.");
@@ -39,14 +41,6 @@ pub const DEFAULT_BUFFER_SIZE: usize = 1024 * 32;
 pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
     state: NonNull<BufferedState<BUFFER_SIZE>>,
 }
-
-#[derive(Default)]
-#[repr(align(32))]
-pub struct U64x4(pub [u64; 4]);
-
-#[derive(Default)]
-#[repr(align(32))]
-pub struct F64x4(pub [f64; 4]);
 
 const BUFFERED_STATE_ALIGNMENT: usize = 128;
 const fn get_buffered_state_layout_unchecked<const BUFFER_SIZE: usize>() -> Layout {
@@ -123,15 +117,10 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
     pub fn next_u64x4(&mut self, mem: &mut U64x4) {
-        assert!(
-            mem::align_of_val(mem) % 32 == 0,
-            "mem needs to be aligned to 32 bytes"
-        );
-
         unsafe {
-            let mut result: MaybeUninit<__m256i> = MaybeUninit::uninit();
-            self.next_m256i(&mut *result.as_mut_ptr());
-            _mm256_store_si256(transmute::<_, *mut __m256i>(&mut mem.0), result.assume_init());
+            let mut result = _mm256_set1_epi64x(0);
+            self.next_m256i(&mut result);
+            _mm256_store_si256(transmute::<_, *mut __m256i>(mem), result);
         }
     }
 }
@@ -552,21 +541,19 @@ mod tests {
     fn generate_vector() {
         let mut rng = create_with_predefined_seed();
 
-        let mut values = U64x4([0; 4]);
+        let mut values = U64x4::new([0; 4]);
         rng.next_u64x4(&mut values);
 
-        let data = values.0;
-        assert!(data.iter().all(|&v| v != 0));
-        assert!(data.iter().unique().count() == data.len());
-        println!("{data:?}");
+        assert!(values.iter().all(|&v| v != 0));
+        assert!(values.iter().unique().count() == values.len());
+        println!("{values:?}");
 
-        let mut values = U64x4([0; 4]);
+        let mut values = U64x4::new([0; 4]);
         rng.next_u64x4(&mut values);
 
-        let data = values.0;
-        assert!(data.iter().all(|&v| v != 0));
-        assert!(data.iter().unique().count() == data.len());
-        println!("{data:?}");
+        assert!(values.iter().all(|&v| v != 0));
+        assert!(values.iter().unique().count() == values.len());
+        println!("{values:?}");
     }
 
     #[test]

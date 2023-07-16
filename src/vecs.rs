@@ -1,0 +1,50 @@
+use std::ops::{Deref, DerefMut};
+
+
+#[derive(Default, Debug)]
+#[repr(align(32))]
+pub struct U64x4([u64; 4]);
+
+#[derive(Default, Debug)]
+#[repr(align(32))]
+pub struct F64x4([f64; 4]);
+
+impl U64x4 {
+    #[inline(always)]
+    pub fn new(values: [u64; 4]) -> Self {
+        Self(values)
+    }
+}
+
+impl F64x4 {
+    #[inline(always)]
+    pub fn new(values: [f64; 4]) -> Self {
+        Self(values)
+    }
+}
+
+impl Deref for U64x4 {
+    type Target = [u64; 4];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for U64x4 {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Deref for F64x4 {
+    type Target = [f64; 4];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for F64x4 {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}

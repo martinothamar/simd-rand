@@ -130,11 +130,10 @@ impl Xoshiro256PlusPlusX4 {
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
     pub fn next_u64x4(&mut self, mem: &mut U64x4) {
-
         unsafe {
             let mut v = _mm256_set1_epi64x(0);
             self.next_m256i(&mut v);
-            _mm256_store_si256(transmute::<_, *mut __m256i>(&mut mem.0), v);
+            _mm256_store_si256(transmute::<_, *mut __m256i>(mem), v);
         }
     }
 
@@ -158,10 +157,10 @@ impl Xoshiro256PlusPlusX4 {
         let mut v = Default::default();
         self.next_u64x4(&mut v);
         
-        mem.0[0] = (v.0[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        mem.0[1] = (v.0[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        mem.0[2] = (v.0[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        mem.0[3] = (v.0[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        mem[0] = (v[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        mem[1] = (v[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        mem[2] = (v[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        mem[3] = (v[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
     }
 }
 
@@ -213,13 +212,12 @@ mod tests {
 
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
 
-        let mut values = U64x4([0; 4]);
+        let mut values = U64x4::new([0; 4]);
         rng.next_u64x4(&mut values);
 
-        let data = values.0;
-        assert!(data.iter().all(|&v| v != 0));
-        assert!(data.iter().unique().count() == data.len());
-        println!("{data:?}");
+        assert!(values.iter().all(|&v| v != 0));
+        assert!(values.iter().unique().count() == values.len());
+        println!("{values:?}");
     }
 
     #[test]
@@ -231,12 +229,11 @@ mod tests {
 
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
 
-        let mut values = F64x4([0.0; 4]);
+        let mut values = F64x4::new([0.0; 4]);
         rng.next_f64x4(&mut values);
 
-        let data = values.0;
-        assert!(data.iter().all(|&v| v != 0.0));
-        println!("{data:?}");
+        assert!(values.iter().all(|&v| v != 0.0));
+        println!("{values:?}");
     }
 
     #[test]
