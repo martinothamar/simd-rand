@@ -26,7 +26,6 @@ fn do_xoshiro_u64(rng: &mut Xoshiro256PlusPlus, data: &mut U64x4) {
         data[3] = rng.next_u64();
     }
 }
-// This is 10x faster on my machine... somethings not right
 fn do_xoshiro_x4_u64(rng: &mut Xoshiro256PlusPlusX4, data: &mut U64x4) {
     for _ in 0..ITERATIONS {
         rng.next_u64x4(black_box(data));
@@ -42,11 +41,6 @@ fn do_xoshiro_f64(rng: &mut Xoshiro256PlusPlus, data: &mut F64x4) {
         data[3] = rng.gen_range(0.0..1.0);
     }
 }
-// fn do_xoshiro_x4_f64(rng: &mut Xoshiro256PlusPlusX4, data: &mut F64x4) {
-//     for _ in 0..ITERATIONS {
-//         rng.next_f64x4(black_box(data));
-//     }
-// }
 fn do_xoshiro_x4_f64(rng: &mut Xoshiro256PlusPlusX4, data: &mut F64x4) {
     for _ in 0..ITERATIONS {
         rng.next_f64x4(black_box(data));
@@ -72,18 +66,18 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
     // let xoshiro_x4_f64_name = format!("Xoshiro256PlusPlusX4 f64x4 - {suffix}");
     let xoshiro_x4_f64_name = format!("Xoshiro256PlusPlusX4 f64x4 - {suffix}");
 
-    // group.bench_function(xoshiro_u64_name, |b| {
-    //     let mut rng: Xoshiro256PlusPlus = Xoshiro256PlusPlus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-    //     let mut data: U64x4 = Default::default();
+    group.bench_function(xoshiro_u64_name, |b| {
+        let mut rng: Xoshiro256PlusPlus = Xoshiro256PlusPlus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data: U64x4 = Default::default();
 
-    //     b.iter(|| do_xoshiro_u64(&mut rng, black_box(&mut data)))
-    // });
-    // group.bench_function(xoshiro_x4_u64_name, |b| {
-    //     let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-    //     let mut data: U64x4 = Default::default();
+        b.iter(|| do_xoshiro_u64(&mut rng, black_box(&mut data)))
+    });
+    group.bench_function(xoshiro_x4_u64_name, |b| {
+        let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data: U64x4 = Default::default();
 
-    //     b.iter(|| do_xoshiro_x4_u64(&mut rng, black_box(&mut data)))
-    // });
+        b.iter(|| do_xoshiro_x4_u64(&mut rng, black_box(&mut data)))
+    });
 
     group.bench_function(xoshiro_f64_name, |b| {
         let mut rng: Xoshiro256PlusPlus = Xoshiro256PlusPlus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
@@ -91,12 +85,6 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
 
         b.iter(|| do_xoshiro_f64(&mut rng, black_box(&mut data)))
     });
-    // group.bench_function(xoshiro_x4_f64_name, |b| {
-    //     let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-    //     let mut data: F64x4 = Default::default();
-
-    //     b.iter(|| do_xoshiro_x4_f64(&mut rng, black_box(&mut data)))
-    // });
     group.bench_function(xoshiro_x4_f64_name, |b| {
         let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data: F64x4 = Default::default();
