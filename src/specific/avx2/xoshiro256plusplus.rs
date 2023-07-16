@@ -234,36 +234,18 @@ mod tests {
 
     use itertools::Itertools;
     use num_traits::PrimInt;
-    use rand::rngs::SmallRng;
-    use rand_core::{RngCore, SeedableRng};
+    use rand_core::{SeedableRng, RngCore};
     use serial_test::parallel;
+
+    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE};
 
     use super::*;
 
     #[test]
     #[parallel]
     fn reference() {
-        #[rustfmt::skip]
-        let ref_seed: [u8; 128] = [
-            1, 0, 0, 0, 0, 0, 0, 0,
-            1, 0, 0, 0, 0, 0, 0, 0,
-            1, 0, 0, 0, 0, 0, 0, 0,
-            1, 0, 0, 0, 0, 0, 0, 0,
-            2, 0, 0, 0, 0, 0, 0, 0, 
-            2, 0, 0, 0, 0, 0, 0, 0, 
-            2, 0, 0, 0, 0, 0, 0, 0, 
-            2, 0, 0, 0, 0, 0, 0, 0, 
-            3, 0, 0, 0, 0, 0, 0, 0,
-            3, 0, 0, 0, 0, 0, 0, 0,
-            3, 0, 0, 0, 0, 0, 0, 0,
-            3, 0, 0, 0, 0, 0, 0, 0,
-            4, 0, 0, 0, 0, 0, 0, 0,
-            4, 0, 0, 0, 0, 0, 0, 0,
-            4, 0, 0, 0, 0, 0, 0, 0,
-            4, 0, 0, 0, 0, 0, 0, 0,
-        ];
-        let seed: Xoshiro256PlusPlusX4Seed = ref_seed.into();
-        let mut rng = Xoshiro256PlusPlusX4::from_seed(seed.try_into().unwrap());
+        let seed: Xoshiro256PlusPlusX4Seed = REF_SEED.into();
+        let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
         // These values were produced with the reference implementation:
         // http://xoshiro.di.unimi.it/xoshiro256plusplus.c
         #[rustfmt::skip]
@@ -283,13 +265,17 @@ mod tests {
 
     #[test]
     #[parallel]
-    fn generate_vector_u64() {
-        let mut seeder = SmallRng::seed_from_u64(0);
-
+    fn sample_u64x4() {
         let mut seed: Xoshiro256PlusPlusX4Seed = Default::default();
-        seeder.fill_bytes(&mut seed[..]);
-
+        rand::thread_rng().fill_bytes(&mut *seed);
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
+
+        let mut values = U64x4::new([0; 4]);
+        rng.next_u64x4(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0));
+        assert!(values.iter().unique().count() == values.len());
+        println!("{values:?}");
 
         let mut values = U64x4::new([0; 4]);
         rng.next_u64x4(&mut values);
@@ -301,12 +287,9 @@ mod tests {
 
     #[test]
     #[parallel]
-    fn generate_vector_f64() {
-        let mut seeder = SmallRng::seed_from_u64(0);
-
+    fn sample_f64x4() {
         let mut seed: Xoshiro256PlusPlusX4Seed = Default::default();
-        seeder.fill_bytes(&mut seed[..]);
-
+        rand::thread_rng().fill_bytes(&mut *seed);
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
 
         let mut values = F64x4::new([0.0; 4]);
@@ -314,6 +297,43 @@ mod tests {
 
         assert!(values.iter().all(|&v| v != 0.0));
         println!("{values:?}");
+
+        let mut values = F64x4::new([0.0; 4]);
+        rng.next_f64x4(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0.0));
+        println!("{values:?}");
+    }
+
+    #[test]
+    #[parallel]
+    fn sample_f64x4_distribution() {
+        let mut seed: Xoshiro256PlusPlusX4Seed = Default::default();
+        rand::thread_rng().fill_bytes(&mut *seed);
+        let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
+
+        let mut current: Option<F64x4> = None;
+        let mut current_index: usize = 0;
+
+        test_uniform_distribution::<100_000_000, f64>(
+            || match &current {
+                Some(vector) if current_index < 4 => {
+                    let result = vector[current_index];
+                    current_index += 1;
+                    return result;
+                }
+                _ => {
+                    let mut vector = Default::default();
+                    current_index = 0;
+                    rng.next_f64x4(&mut vector);
+                    let result = vector[current_index];
+                    current = Some(vector);
+                    current_index += 1;
+                    return result;
+                }
+            },
+            DOUBLE_RANGE,
+        );
     }
 
     #[test]
@@ -344,4 +364,24 @@ mod tests {
         }
         println!("{output}");
     }
+    
+    #[rustfmt::skip]
+    const REF_SEED: [u8; 128] = [
+        1, 0, 0, 0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0, 0, 0, 0,
+        2, 0, 0, 0, 0, 0, 0, 0, 
+        2, 0, 0, 0, 0, 0, 0, 0, 
+        2, 0, 0, 0, 0, 0, 0, 0, 
+        2, 0, 0, 0, 0, 0, 0, 0, 
+        3, 0, 0, 0, 0, 0, 0, 0,
+        3, 0, 0, 0, 0, 0, 0, 0,
+        3, 0, 0, 0, 0, 0, 0, 0,
+        3, 0, 0, 0, 0, 0, 0, 0,
+        4, 0, 0, 0, 0, 0, 0, 0,
+        4, 0, 0, 0, 0, 0, 0, 0,
+        4, 0, 0, 0, 0, 0, 0, 0,
+        4, 0, 0, 0, 0, 0, 0, 0,
+    ];
 }

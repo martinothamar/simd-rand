@@ -371,35 +371,23 @@ impl RawState {
     }
 }
 
+#[rustfmt::skip]
 const PHI: [u64; 16] = [
-    0x9E3779B97F4A7C15,
-    0xF39CC0605CEDC834,
-    0x1082276BF3A27251,
-    0xF86C6A11D0C18E95,
-    0x2767F0B153D27B7F,
-    0x0347045B5BF1827F,
-    0x01886F0928403002,
-    0xC1D64BA40F335E36,
-    0xF06AD7AE9717877E,
-    0x85839D6EFFBD7DC6,
-    0x64D325D1C5371682,
-    0xCADD0CCCFDFFBBE1,
-    0x626E33B8D04B4331,
-    0xBBF73C790D94F79D,
-    0x471C4AB3ED3D82A5,
-    0xFEC507705E4AE6E5,
+    0x9E3779B97F4A7C15, 0xF39CC0605CEDC834, 0x1082276BF3A27251, 0xF86C6A11D0C18E95,
+    0x2767F0B153D27B7F, 0x0347045B5BF1827F, 0x01886F0928403002, 0xC1D64BA40F335E36,
+    0xF06AD7AE9717877E, 0x85839D6EFFBD7DC6, 0x64D325D1C5371682, 0xCADD0CCCFDFFBBE1,
+    0x626E33B8D04B4331, 0xBBF73C790D94F79D, 0x471C4AB3ED3D82A5, 0xFEC507705E4AE6E5,
 ];
 
 #[cfg(test)]
 mod tests {
-    use std::{fmt::Display, ops::Range};
-
     use itertools::Itertools;
-    use num_traits::{Float, ToPrimitive};
     use rand::Rng;
     use serial_test::parallel;
 
     type Shishua = super::Shishua<DEFAULT_BUFFER_SIZE>;
+
+    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, FLOAT_RANGE};
 
     use super::*;
 
@@ -416,7 +404,7 @@ mod tests {
 
     #[test]
     #[parallel]
-    fn init_from_zero_seed() {
+    fn reference_zero() {
         unsafe {
             let mut state: RawState = mem::zeroed();
             state.prng_init(&SEED_ZERO);
@@ -429,7 +417,7 @@ mod tests {
 
     #[test]
     #[parallel]
-    fn init_from_pi_seed() {
+    fn reference_pi() {
         unsafe {
             let mut state: RawState = mem::zeroed();
             state.prng_init(&SEED_PI);
@@ -438,24 +426,6 @@ mod tests {
 
             assert_eq!(&buf, &SEED_PI_EXPECTED);
         }
-    }
-
-    fn get_zero_seed() -> &'static [u8; 32] {
-        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO) }
-    }
-
-    fn get_predefined_seed() -> &'static [u8; 32] {
-        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_PI) }
-    }
-
-    fn create_with_zero_seed() -> Shishua {
-        let seed = get_zero_seed();
-        Shishua::from_seed(*seed)
-    }
-
-    fn create_with_predefined_seed() -> Shishua {
-        let seed = get_predefined_seed();
-        Shishua::from_seed(*seed)
     }
 
     #[test]
@@ -532,7 +502,7 @@ mod tests {
 
     #[test]
     #[parallel]
-    fn generate_vector() {
+    fn sample_u64x4() {
         let mut rng = create_with_predefined_seed();
 
         let mut values = U64x4::new([0; 4]);
@@ -552,10 +522,57 @@ mod tests {
 
     #[test]
     #[parallel]
+    fn sample_f64x4() {
+        let mut rng = create_with_predefined_seed();
+
+        let mut values = F64x4::new([0.0; 4]);
+        rng.next_f64x4(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0.0));
+        println!("{values:?}");
+
+        let mut values = F64x4::new([0.0; 4]);
+        rng.next_f64x4(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0.0));
+        println!("{values:?}");
+    }
+
+    #[test]
+    #[parallel]
     fn sample_f64_distribution() {
         let mut rng = create_with_zero_seed();
 
-        test_uniform_distribution::<100_000_000, f64>(&mut rng, |rng| rng.gen_range(DOUBLE_RANGE), DOUBLE_RANGE);
+        test_uniform_distribution::<100_000_000, f64>(|| rng.gen_range(DOUBLE_RANGE), DOUBLE_RANGE);
+    }
+
+    #[test]
+    #[parallel]
+    fn sample_f64x4_distribution() {
+        let mut rng = create_with_zero_seed();
+
+        let mut current: Option<F64x4> = None;
+        let mut current_index: usize = 0;
+
+        test_uniform_distribution::<100_000_000, f64>(
+            || match &current {
+                Some(vector) if current_index < 4 => {
+                    let result = vector[current_index];
+                    current_index += 1;
+                    return result;
+                }
+                _ => {
+                    let mut vector = Default::default();
+                    current_index = 0;
+                    rng.next_f64x4(&mut vector);
+                    let result = vector[current_index];
+                    current = Some(vector);
+                    current_index += 1;
+                    return result;
+                }
+            },
+            DOUBLE_RANGE,
+        );
     }
 
     #[test]
@@ -563,69 +580,26 @@ mod tests {
     fn sample_f32_distribution() {
         let mut rng = create_with_zero_seed();
 
-        test_uniform_distribution::<100_000_000, f32>(&mut rng, |rng| rng.gen_range(FLOAT_RANGE), DOUBLE_RANGE);
+        tests::test_uniform_distribution::<100_000_000, f32>(|| rng.gen_range(FLOAT_RANGE), DOUBLE_RANGE);
     }
 
-    fn test_uniform_distribution<const SAMPLES: usize, T: Float + Display>(
-        rng: &mut Shishua,
-        f: fn(&mut Shishua) -> T,
-        range: Range<f64>,
-    ) {
-        // Even though T represents a generic floating point,
-        // we still use f64 to make sure we dont lose too much precision
-
-        let mut dist = Vec::with_capacity(SAMPLES);
-
-        let mut sum = 0.0;
-        for _ in 0..SAMPLES {
-            let value = f(rng).to_f64().unwrap();
-            assert!(value >= range.start && value < range.end);
-            sum = sum + value;
-            dist.push(value);
-        }
-
-        let samples_divisor = SAMPLES.to_f64().unwrap();
-
-        let mean = sum / samples_divisor;
-
-        let mut squared_diffs = 0.0;
-        for n in dist {
-            let diff = (n - mean).powi(2);
-            squared_diffs += diff;
-        }
-
-        // Statistical tests below
-        // We expect all the metrics to deviate no more than DIFF_LIMIT
-        const DIFF_LIMIT: f64 = 0.00005;
-
-        // In uniform distribution, where the interval is a to b
-
-        // the mean should be: μ = (a + b) / 2
-        let expected_mean = (range.start + range.end) / 2.0;
-        let mean_difference = (mean - expected_mean).abs();
-
-        let variance = squared_diffs / samples_divisor;
-        // the variance should be: σ2 = (b – a)2 / 12
-        let expected_variance = (range.end - range.start).powi(2) / 12.0;
-        let variance_difference = (variance - expected_variance).abs();
-
-        let stddev = variance.sqrt();
-        // The standard deviation should be: σ = √σ2
-        let expected_stddev = expected_variance.sqrt();
-        let stddev_difference = (stddev - expected_stddev).abs();
-
-        // If any of these metrics deviate by DIFF_LIMIT or more,
-        // we should fail the test
-        assert!(
-            mean_difference <= DIFF_LIMIT,
-            "Mean difference was more than {DIFF_LIMIT:.5}: {mean_difference:.5}. Expected mean: {expected_mean:.2}"
-        );
-        assert!(variance_difference <= DIFF_LIMIT, "Variance difference was more than {DIFF_LIMIT:.5}: {variance_difference:.5}. Expected variance: {expected_variance:.2}");
-        assert!(stddev_difference <= DIFF_LIMIT, "Std deviation difference was more than {DIFF_LIMIT:.5}: {stddev_difference:.5}. Expected std deviation: {expected_stddev:.2}");
+    fn get_zero_seed() -> &'static [u8; 32] {
+        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO) }
     }
 
-    const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
-    const FLOAT_RANGE: Range<f32> = 0.0f32..1.0f32;
+    fn get_predefined_seed() -> &'static [u8; 32] {
+        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_PI) }
+    }
+
+    fn create_with_zero_seed() -> Shishua {
+        let seed = get_zero_seed();
+        Shishua::from_seed(*seed)
+    }
+
+    fn create_with_predefined_seed() -> Shishua {
+        let seed = get_predefined_seed();
+        Shishua::from_seed(*seed)
+    }
 
     const SEED_ZERO: [u64; 4] = [
         0x0000000000000000,
