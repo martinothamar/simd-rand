@@ -1,13 +1,46 @@
 use std::{
     arch::x86_64::*,
-    mem::{self, transmute},
+    mem::{self, transmute}, ops::{Deref, DerefMut},
 };
 
 use rand_core::SeedableRng;
 
-use crate::{F64x4, U64x4};
+use super::vecs::*;
+use super::simdprng::*;
 
-pub struct Xoshiro256PlusPlusX4Seed(pub [u8; 128]);
+pub struct Xoshiro256PlusPlusX4Seed([u8; 128]);
+
+impl Xoshiro256PlusPlusX4Seed {
+    pub fn new(seed: [u8; 128]) -> Self {
+        Self(seed)
+    }
+}
+
+impl Into<Xoshiro256PlusPlusX4Seed> for [u8; 128] {
+    fn into(self) -> Xoshiro256PlusPlusX4Seed {
+        Xoshiro256PlusPlusX4Seed::new(self)
+    }
+}
+
+impl Into<Xoshiro256PlusPlusX4Seed> for Vec<u8> {
+    fn into(self) -> Xoshiro256PlusPlusX4Seed {
+        assert!(self.len() == 128);
+        Xoshiro256PlusPlusX4Seed::new(self.try_into().unwrap())
+    }
+}
+
+impl Deref for Xoshiro256PlusPlusX4Seed {
+    type Target = [u8; 128];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for Xoshiro256PlusPlusX4Seed {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 #[repr(align(32))]
 pub struct Xoshiro256PlusPlusX4 {
@@ -40,10 +73,10 @@ impl SeedableRng for Xoshiro256PlusPlusX4 {
             let mut s1: __m256i = _mm256_setzero_si256();
             let mut s2: __m256i = _mm256_setzero_si256();
             let mut s3: __m256i = _mm256_setzero_si256();
-            read_u64_into_vec(&seed.0[(VECSIZE * 0)..(VECSIZE * 1)], &mut s0);
-            read_u64_into_vec(&seed.0[(VECSIZE * 1)..(VECSIZE * 2)], &mut s1);
-            read_u64_into_vec(&seed.0[(VECSIZE * 2)..(VECSIZE * 3)], &mut s2);
-            read_u64_into_vec(&seed.0[(VECSIZE * 3)..(VECSIZE * 4)], &mut s3);
+            read_u64_into_vec(&seed[(VECSIZE * 0)..(VECSIZE * 1)], &mut s0);
+            read_u64_into_vec(&seed[(VECSIZE * 1)..(VECSIZE * 2)], &mut s1);
+            read_u64_into_vec(&seed[(VECSIZE * 2)..(VECSIZE * 3)], &mut s2);
+            read_u64_into_vec(&seed[(VECSIZE * 3)..(VECSIZE * 4)], &mut s3);
 
             Self { s0, s1, s2, s3 }
         }
@@ -72,10 +105,10 @@ fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
     }
 }
 
-impl Xoshiro256PlusPlusX4 {
+impl SimdPrng for Xoshiro256PlusPlusX4 {
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_m256i(&mut self, result: &mut __m256i) {
+    fn next_m256i(&mut self, vector: &mut __m256i) {
         unsafe {
             let s0 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s0));
             let s3 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s3));
@@ -88,7 +121,7 @@ impl Xoshiro256PlusPlusX4 {
             let rotl = rotate_left::<23>(sadd);
 
             // rotl(...) + s[0]
-            *result = _mm256_add_epi64(rotl, s0);
+            *vector = _mm256_add_epi64(rotl, s0);
 
             //         let t = self.s[1] << 17;
             let s1 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s1));
@@ -111,29 +144,31 @@ impl Xoshiro256PlusPlusX4 {
         }
     }
 
+    // Unfortunately this is not fast enough,
+    // since there is no direct intrinsic for u64 -> f64 conversion (other than in avx512)
+    // #[cfg_attr(dasm, inline(never))]
+    // #[cfg_attr(not(dasm), inline(always))]
+    // fn next_m256d(&mut self, result: &mut __m256d) {
+    //     // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+    //     unsafe {
+    //         let mut v = _mm256_set1_epi64x(0);
+    //         self.next_m256i(&mut v);
+
+    //         let lhs1 = _mm256_srl_epi64(v, _mm_cvtsi32_si128(11));
+    //         let lhs2 = u64_to_f64(lhs1);
+
+    //         let rhs = _mm256_set1_pd(1.1102230246251565E-16);
+    //         *result = _mm256_mul_pd(lhs2, rhs)
+    //     }
+    // }
+
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_m256d(&mut self, result: &mut __m256d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+    fn next_u64x4(&mut self, vector: &mut U64x4) {
         unsafe {
             let mut v = _mm256_set1_epi64x(0);
             self.next_m256i(&mut v);
-
-            let lhs1 = _mm256_srl_epi64(v, _mm_cvtsi32_si128(11));
-            let lhs2 = u64_to_f64(lhs1);
-
-            let rhs = _mm256_set1_pd(1.1102230246251565E-16);
-            *result = _mm256_mul_pd(lhs2, rhs)
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_u64x4(&mut self, mem: &mut U64x4) {
-        unsafe {
-            let mut v = _mm256_set1_epi64x(0);
-            self.next_m256i(&mut v);
-            _mm256_store_si256(transmute::<_, *mut __m256i>(mem), v);
+            _mm256_store_si256(transmute::<_, *mut __m256i>(vector), v);
         }
     }
 
@@ -152,15 +187,14 @@ impl Xoshiro256PlusPlusX4 {
 
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_f64x4(&mut self, mem: &mut F64x4) {
-        
+    fn next_f64x4(&mut self, vector: &mut F64x4) {
         let mut v = Default::default();
         self.next_u64x4(&mut v);
-        
-        mem[0] = (v[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        mem[1] = (v[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        mem[2] = (v[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        mem[3] = (v[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+
+        vector[0] = (v[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        vector[1] = (v[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        vector[2] = (v[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        vector[3] = (v[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
     }
 }
 
@@ -176,21 +210,22 @@ fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
 
 // No direct conv intrinsic in AVX2, this hack is from
 // https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
-#[cfg_attr(dasm, inline(never))]
-#[cfg_attr(not(dasm), inline(always))]
-unsafe fn u64_to_f64(v: __m256i) -> __m256d {
-    let magic_i_lo = _mm256_set1_epi64x(0x4330000000000000);
-    let magic_i_hi32 = _mm256_set1_epi64x(0x4530000000000000);
-    let magic_i_all = _mm256_set1_epi64x(0x4530000000100000);
-    let magic_d_all = _mm256_castsi256_pd(magic_i_all);
+// Unfortunately not faster than just loading and operating on the scalars
+// #[cfg_attr(dasm, inline(never))]
+// #[cfg_attr(not(dasm), inline(always))]
+// unsafe fn u64_to_f64(v: __m256i) -> __m256d {
+//     let magic_i_lo = _mm256_set1_epi64x(0x4330000000000000);
+//     let magic_i_hi32 = _mm256_set1_epi64x(0x4530000000000000);
+//     let magic_i_all = _mm256_set1_epi64x(0x4530000000100000);
+//     let magic_d_all = _mm256_castsi256_pd(magic_i_all);
 
-    let v_lo = _mm256_blend_epi32(magic_i_lo, v, 0b01010101);
-    let v_hi = _mm256_srli_epi64(v, 32);
-    let v_hi = _mm256_xor_si256(v_hi, magic_i_hi32);
-    let v_hi_dbl = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all);
-    let result = _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));
-    result
-}
+//     let v_lo = _mm256_blend_epi32(magic_i_lo, v, 0b01010101);
+//     let v_hi = _mm256_srli_epi64(v, 32);
+//     let v_hi = _mm256_xor_si256(v_hi, magic_i_hi32);
+//     let v_hi_dbl = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all);
+//     let result = _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));
+//     result
+// }
 
 #[cfg(test)]
 mod tests {
@@ -204,11 +239,56 @@ mod tests {
     use super::*;
 
     #[test]
+    fn reference() {
+        let ref_seed: [u8; 128] = [
+            1, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0,
+            2, 0, 0, 0, 0, 0, 0, 0, 
+            2, 0, 0, 0, 0, 0, 0, 0, 
+            2, 0, 0, 0, 0, 0, 0, 0, 
+            2, 0, 0, 0, 0, 0, 0, 0, 
+            3, 0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0, 0,
+            4, 0, 0, 0, 0, 0, 0, 0,
+            4, 0, 0, 0, 0, 0, 0, 0,
+            4, 0, 0, 0, 0, 0, 0, 0,
+            4, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let seed: Xoshiro256PlusPlusX4Seed = ref_seed.into();
+        let mut rng = Xoshiro256PlusPlusX4::from_seed(seed.try_into().unwrap());
+        // These values were produced with the reference implementation:
+        // http://xoshiro.di.unimi.it/xoshiro256plusplus.c
+        let expected = [
+            41943041,
+            58720359,
+            3588806011781223,
+            3591011842654386,
+            9228616714210784205,
+            9973669472204895162,
+            14011001112246962877,
+            12406186145184390807,
+            15849039046786891736,
+            10450023813501588000,
+        ];
+        for &e in &expected {
+            let mut mem = Default::default();
+            rng.next_u64x4(&mut mem);
+            for v in mem.into_iter() {    
+                assert_eq!(v, e);
+            }
+        }
+    }
+
+    #[test]
     fn generate_vector_u64() {
         let mut seeder = SmallRng::seed_from_u64(0);
 
         let mut seed: Xoshiro256PlusPlusX4Seed = Default::default();
-        seeder.fill_bytes(&mut seed.0[..]);
+        seeder.fill_bytes(&mut seed[..]);
 
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
 
@@ -225,7 +305,7 @@ mod tests {
         let mut seeder = SmallRng::seed_from_u64(0);
 
         let mut seed: Xoshiro256PlusPlusX4Seed = Default::default();
-        seeder.fill_bytes(&mut seed.0[..]);
+        seeder.fill_bytes(&mut seed[..]);
 
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
 

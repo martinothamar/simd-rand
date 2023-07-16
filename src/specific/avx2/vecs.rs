@@ -1,6 +1,5 @@
 use std::ops::{Deref, DerefMut};
 
-
 #[derive(Default, Debug)]
 #[repr(align(32))]
 pub struct U64x4([u64; 4]);
@@ -36,6 +35,13 @@ impl DerefMut for U64x4 {
     }
 }
 
+
+impl Into<U64x4> for [u64; 4] {
+    fn into(self) -> U64x4 {
+        U64x4::new(self)
+    }
+}
+
 impl Deref for F64x4 {
     type Target = [f64; 4];
 
@@ -46,5 +52,11 @@ impl Deref for F64x4 {
 impl DerefMut for F64x4 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl Into<F64x4> for [f64; 4] {
+    fn into(self) -> F64x4 {
+        F64x4::new(self)
     }
 }

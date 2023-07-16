@@ -1,7 +1,7 @@
 use std::{hint::black_box, time::Instant};
 
 use rand_core::{SeedableRng, RngCore};
-use simd_prng::specific::avx2::Shishua;
+use simd_prng::specific::avx2::*;
 
 fn main() {
     let mut rng: Shishua<{ 1024 * 32 }> = Shishua::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);

@@ -8,7 +8,8 @@ use std::alloc::{Layout, LayoutError};
 use std::iter::Iterator;
 use std::{alloc, mem};
 
-use crate::vecs::*;
+use super::vecs::*;
+use super::simdprng::*;
 
 pub const DEFAULT_BUFFER_SIZE: usize = 1024 * 32;
 
@@ -88,10 +89,12 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
         let v = self.next_u64();
         (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
     }
+}
 
+impl<const BUFFER_SIZE: usize> SimdPrng for Shishua<BUFFER_SIZE> {
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_m256i(&mut self, result: &mut __m256i) {
+    fn next_m256i(&mut self, vector: &mut __m256i) {
         const SIZE: usize = mem::size_of::<__m256i>();
         unsafe {
             let state = self.state.as_mut();
@@ -103,7 +106,7 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
                 .buffer
                 .0[state.buffer_index];
 
-            *result = _mm256_load_si256(transmute::<_, *const __m256i>(src));
+            *vector = _mm256_load_si256(transmute::<_, *const __m256i>(src));
 
             state.buffer_index += SIZE;
         }
@@ -111,12 +114,24 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_u64x4(&mut self, mem: &mut U64x4) {
+    fn next_u64x4(&mut self, vector: &mut U64x4) {
         unsafe {
             let mut result = _mm256_set1_epi64x(0);
             self.next_m256i(&mut result);
-            _mm256_store_si256(transmute::<_, *mut __m256i>(mem), result);
+            _mm256_store_si256(transmute::<_, *mut __m256i>(vector), result);
         }
+    }
+
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    fn next_f64x4(&mut self, vector: &mut F64x4) {
+        let mut v = Default::default();
+        self.next_u64x4(&mut v);
+
+        vector[0] = (v[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        vector[1] = (v[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        vector[2] = (v[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
+        vector[3] = (v[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
     }
 }
 

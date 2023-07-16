@@ -10,8 +10,7 @@ use criterion_perf_events::Perf;
 use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand_core::SeedableRng;
-use simd_prng::U64x4;
-use simd_prng::specific::avx2::{Xoshiro256PlusPlusX4, Shishua};
+use simd_prng::specific::avx2::*;
 
 const ITERATIONS: usize = 16;
 
