@@ -6,7 +6,6 @@ pub(crate) const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
 pub(crate) const FLOAT_RANGE: Range<f32> = 0.0f32..1.0f32;
 
 pub(crate) fn test_uniform_distribution<const SAMPLES: usize, T: Float + Display>(
-    // f: fn(&mut Shishua) -> T,
     mut f: impl FnMut() -> T,
     range: Range<f64>,
 ) {
