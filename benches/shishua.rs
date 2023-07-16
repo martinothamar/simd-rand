@@ -9,15 +9,40 @@ use criterion::{criterion_group, criterion_main, Criterion, black_box, Throughpu
 use criterion_perf_events::Perf;
 use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
+use rand::Rng;
 use rand::rngs::SmallRng;
 use rand_core::{RngCore, SeedableRng};
 use simd_prng::specific::avx2::*;
 
-const ITERATIONS: usize = 64;
+const ITERATIONS: usize = 16;
 
-fn work<T: RngCore>(rng: &mut T) {
+fn do_shishua_u64(rng: &mut Shishua, data: &mut U64x4) {
     for _ in 0..ITERATIONS {
-        black_box(rng.next_u64());
+        rng.next_u64x4(black_box(data));
+    }
+}
+fn do_small_rng_u64(rng: &mut SmallRng, data: &mut U64x4) {
+    for _ in 0..ITERATIONS {
+        let data = black_box(&mut *data);
+        data[0] = rng.next_u64();
+        data[1] = rng.next_u64();
+        data[2] = rng.next_u64();
+        data[3] = rng.next_u64();
+    }
+}
+
+fn do_shishua_f64(rng: &mut Shishua, data: &mut F64x4) {
+    for _ in 0..ITERATIONS {
+        rng.next_f64x4(black_box(data));
+    }
+}
+fn do_small_rng_f64(rng: &mut SmallRng, data: &mut F64x4) {
+    for _ in 0..ITERATIONS {
+        let data = black_box(&mut *data);
+        data[0] = rng.gen_range(0.0..1.0);
+        data[1] = rng.gen_range(0.0..1.0);
+        data[2] = rng.gen_range(0.0..1.0);
+        data[3] = rng.gen_range(0.0..1.0);
     }
 }
 
@@ -34,18 +59,34 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
         _ => unreachable!(),
     };
 
-    let shishua_name = format!("Shishua u64 - {suffix}");
-    let small_rng_name = format!("SmallRng u64 - {suffix}");
+    let shishua_u64_name = format!("Shishua u64x4 - {suffix}");
+    let small_rng_u64_name = format!("SmallRng u64x4 - {suffix}");
+    let shishua_f64_name = format!("Shishua f64x4 - {suffix}");
+    let small_rng_f64_name = format!("SmallRng f64x4 - {suffix}");
 
-    group.bench_function(shishua_name, |b| {
+    group.bench_function(shishua_u64_name, |b| {
         let mut rng: Shishua = Shishua::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data: U64x4 = Default::default();
 
-        b.iter(|| work(&mut rng))
+        b.iter(|| do_shishua_u64(&mut rng, &mut data))
     });
-    group.bench_function(small_rng_name, |b| {
+    group.bench_function(small_rng_u64_name, |b| {
         let mut rng: SmallRng = SmallRng::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data: U64x4 = Default::default();
 
-        b.iter(|| work(&mut rng))
+        b.iter(|| do_small_rng_u64(&mut rng, &mut data))
+    });
+    group.bench_function(shishua_f64_name, |b| {
+        let mut rng: Shishua = Shishua::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data: F64x4 = Default::default();
+
+        b.iter(|| do_shishua_f64(&mut rng, &mut data))
+    });
+    group.bench_function(small_rng_f64_name, |b| {
+        let mut rng: SmallRng = SmallRng::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data: F64x4 = Default::default();
+
+        b.iter(|| do_small_rng_f64(&mut rng, &mut data))
     });
 
     group.finish();

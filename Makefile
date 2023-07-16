@@ -9,14 +9,14 @@ test:
 memtest:
 	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
 
+benchcomparison:
+	cargo bench --bench comparison -- --verbose --save-baseline comparison
+
 benchshishua:
 	cargo bench --bench shishua -- --verbose --save-baseline shishua
 
-benchcomparison:
-	cargo bench --bench vectorized -- --verbose --save-baseline vectorized
-
 benchxoshiro:
-	cargo bench --bench xoshiro -- --verbose --save-baseline xoshiro
+	cargo bench --bench xoshiro256plusplus -- --verbose --save-baseline xoshiro256plusplus
 
 stat: build
 	perf stat -d -d -d ./target/release/profile

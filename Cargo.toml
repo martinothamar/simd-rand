@@ -27,15 +27,15 @@ rand_xoshiro = "0.6.0"
 bench = false
 
 [[bench]]
-name = "shishua"
-harness = false
-
-[[bench]]
 name = "comparison"
 harness = false
 
 [[bench]]
-name = "xoshiro"
+name = "shishua"
+harness = false
+
+[[bench]]
+name = "xoshiro256plusplus"
 harness = false
 
 [[bin]]

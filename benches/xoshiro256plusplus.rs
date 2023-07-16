@@ -62,7 +62,6 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
     let xoshiro_u64_name = format!("Xoshiro256PlusPlus u64x4 - {suffix}");
     let xoshiro_x4_u64_name = format!("Xoshiro256PlusPlusX4 u64x4 - {suffix}");
     let xoshiro_f64_name = format!("Xoshiro256PlusPlus f64x4 - {suffix}");
-    // let xoshiro_x4_f64_name = format!("Xoshiro256PlusPlusX4 f64x4 - {suffix}");
     let xoshiro_x4_f64_name = format!("Xoshiro256PlusPlusX4 f64x4 - {suffix}");
 
     group.bench_function(xoshiro_u64_name, |b| {
