@@ -47,7 +47,7 @@ const fn get_buffered_state_layout<const BUFFER_SIZE: usize>() -> Result<Layout,
 }
 
 impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
-    const LAYOUT: Layout = get_buffered_state_layout_unchecked::<BUFFER_SIZE>();
+    pub const LAYOUT: Layout = get_buffered_state_layout_unchecked::<BUFFER_SIZE>();
 
     // For 'dasm' cfg, our intention is to analyze the generated assembly,
     // so suggest that the function shouldn't be inlined
@@ -392,21 +392,19 @@ const PHI: [u64; 16] = [
 
 #[cfg(test)]
 mod tests {
-    #[cfg(mem_test)]
-    #[global_allocator]
-    static ALLOC: dhat::Alloc = dhat::Alloc;
-
     use std::{fmt::Display, ops::Range};
 
     use itertools::Itertools;
     use num_traits::{Float, ToPrimitive};
     use rand::Rng;
+    use serial_test::parallel;
 
     type Shishua = super::Shishua<DEFAULT_BUFFER_SIZE>;
 
     use super::*;
 
     #[test]
+    #[parallel]
     fn alignment() {
         assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>() % 32 == 0);
 
@@ -417,6 +415,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn init_from_zero_seed() {
         unsafe {
             let mut state: RawState = mem::zeroed();
@@ -429,6 +428,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn init_from_pi_seed() {
         unsafe {
             let mut state: RawState = mem::zeroed();
@@ -459,6 +459,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn construction_zero_seed() {
         let mut rng = create_with_zero_seed();
         assert!(rng.buffer_index() == 0);
@@ -467,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn construction_predefined_seed() {
         let mut rng = create_with_predefined_seed();
         assert!(rng.buffer_index() == 0);
@@ -475,6 +477,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     #[should_panic]
     fn construction_invalid_size_power() {
         let seed = get_predefined_seed();
@@ -483,6 +486,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     #[should_panic]
     fn construction_invalid_size_small() {
         let seed = get_predefined_seed();
@@ -490,24 +494,8 @@ mod tests {
         assert!(rng.buffer_index() == 0);
     }
 
-    #[cfg(mem_test)]
     #[test]
-    fn deallocates() {
-        let _profiler = dhat::Profiler::builder().testing().build();
-        let start_stats = dhat::HeapStats::get();
-        {
-            let mut rng = create_with_zero_seed();
-            let n = rng.next_u32();
-            assert!(n >= u32::MIN && n <= u32::MAX);
-
-            let end_stats = dhat::HeapStats::get();
-            dhat::assert_eq!(Shishua::LAYOUT.size(), end_stats.curr_bytes - start_stats.curr_bytes);
-        }
-        let stats = dhat::HeapStats::get();
-        dhat::assert_eq!(start_stats.curr_bytes, stats.curr_bytes);
-    }
-
-    #[test]
+    #[parallel]
     fn sample_u32() {
         let mut rng = create_with_zero_seed();
 
@@ -516,6 +504,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn sample_u64() {
         let mut rng = create_with_zero_seed();
 
@@ -524,6 +513,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn sample_f64() {
         let mut rng = create_with_zero_seed();
 
@@ -532,6 +522,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn sample_f32() {
         let mut rng = create_with_zero_seed();
 
@@ -540,6 +531,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn generate_vector() {
         let mut rng = create_with_predefined_seed();
 
@@ -559,6 +551,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn sample_f64_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -566,6 +559,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn sample_f32_distribution() {
         let mut rng = create_with_zero_seed();
 

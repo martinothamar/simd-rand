@@ -236,10 +236,12 @@ mod tests {
     use num_traits::PrimInt;
     use rand::rngs::SmallRng;
     use rand_core::{RngCore, SeedableRng};
+    use serial_test::parallel;
 
     use super::*;
 
     #[test]
+    #[parallel]
     fn reference() {
         #[rustfmt::skip]
         let ref_seed: [u8; 128] = [
@@ -280,6 +282,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn generate_vector_u64() {
         let mut seeder = SmallRng::seed_from_u64(0);
 
@@ -297,6 +300,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn generate_vector_f64() {
         let mut seeder = SmallRng::seed_from_u64(0);
 
@@ -313,6 +317,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     fn bitfiddling() {
         let v = 0b00000000_00000000_00000000_000000001u32;
         print(v);

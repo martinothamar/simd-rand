@@ -4,22 +4,16 @@ outbin := ${bindir}/profile
 all: run
 
 test:
-	cargo test --lib --release
+	cargo test && cargo test --release
 
 memtest:
 	RUSTFLAGS="--cfg mem_test" cargo test --lib --release -- --test-threads=1
 
-benchcomparison:
-	cargo bench --bench comparison -- --verbose --save-baseline comparison
-
-benchshishua:
-	cargo bench --bench shishua -- --verbose --save-baseline shishua
-
-benchxoshiro:
-	cargo bench --bench xoshiro256plusplus -- --verbose --save-baseline xoshiro256plusplus
+bench:
+	cargo bench --bench $(BENCH) -- --verbose
 
 stat: build
-	perf stat -d -d -d ./target/release/profile
+	perf stat -d -d -d $(outbin)
 
 build:
 	cargo build --release --example profile
