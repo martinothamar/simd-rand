@@ -1,4 +1,4 @@
-# SIMD PRNG in Rest
+# SIMD PRNG in Rust
 
 SIMD implementations of common PRNGs in Rust.
 Currently
