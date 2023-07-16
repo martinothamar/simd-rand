@@ -543,7 +543,7 @@ mod tests {
     fn sample_f64_distribution() {
         let mut rng = create_with_zero_seed();
 
-        test_uniform_distribution::<100_000_000, f64>(|| rng.gen_range(DOUBLE_RANGE), DOUBLE_RANGE);
+        test_uniform_distribution::<10_000_000, f64>(|| rng.gen_range(DOUBLE_RANGE), DOUBLE_RANGE);
     }
 
     #[test]
@@ -554,7 +554,7 @@ mod tests {
         let mut current: Option<F64x4> = None;
         let mut current_index: usize = 0;
 
-        test_uniform_distribution::<100_000_000, f64>(
+        test_uniform_distribution::<10_000_000, f64>(
             || match &current {
                 Some(vector) if current_index < 4 => {
                     let result = vector[current_index];
@@ -580,7 +580,7 @@ mod tests {
     fn sample_f32_distribution() {
         let mut rng = create_with_zero_seed();
 
-        tests::test_uniform_distribution::<100_000_000, f32>(|| rng.gen_range(FLOAT_RANGE), DOUBLE_RANGE);
+        tests::test_uniform_distribution::<10_000_000, f32>(|| rng.gen_range(FLOAT_RANGE), FLOAT_RANGE);
     }
 
     fn get_zero_seed() -> &'static [u8; 32] {

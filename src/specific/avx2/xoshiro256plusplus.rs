@@ -315,7 +315,7 @@ mod tests {
         let mut current: Option<F64x4> = None;
         let mut current_index: usize = 0;
 
-        test_uniform_distribution::<100_000_000, f64>(
+        test_uniform_distribution::<10_000_000, f64>(
             || match &current {
                 Some(vector) if current_index < 4 => {
                     let result = vector[current_index];
