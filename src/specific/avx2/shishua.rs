@@ -89,6 +89,22 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
         let v = self.next_u64();
         (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
     }
+    
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    pub fn next_m256d_pure_avx(&mut self, result: &mut __m256d) {
+        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+        unsafe {
+            let mut v = _mm256_set1_epi64x(0);
+            self.next_m256i(&mut v);
+
+            let lhs1 = _mm256_srl_epi64(v, _mm_cvtsi32_si128(11));
+            let lhs2 = super::u64_to_f64(lhs1);
+
+            let rhs = _mm256_set1_pd(1.1102230246251565E-16);
+            *result = _mm256_mul_pd(lhs2, rhs)
+        }
+    }
 }
 
 impl<const BUFFER_SIZE: usize> SimdPrng for Shishua<BUFFER_SIZE> {
@@ -106,6 +122,18 @@ impl<const BUFFER_SIZE: usize> SimdPrng for Shishua<BUFFER_SIZE> {
             *vector = _mm256_load_si256(transmute::<_, *const __m256i>(src));
 
             state.buffer_index += SIZE;
+        }
+    }
+
+    #[cfg_attr(dasm, inline(never))]
+    #[cfg_attr(not(dasm), inline(always))]
+    fn next_m256d(&mut self, result: &mut __m256d) {
+        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+        unsafe {
+            let mut v = Default::default();
+            self.next_f64x4(&mut v);
+            
+            *result = _mm256_load_pd(v.as_ptr());
         }
     }
 

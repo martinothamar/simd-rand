@@ -1,30 +1,29 @@
-use rand::rngs::SmallRng;
-use rand_core::{RngCore, SeedableRng};
+use criterion::black_box;
+use rand_core::SeedableRng;
 use simd_prng::specific::avx2::*;
+use std::arch::x86_64::*;
 
 #[inline(never)]
-fn do_shishua(rng: &mut Shishua) -> u64 {
-    rng.next_u64()
+fn do_xoshiro_mm256d(rng: &mut Xoshiro256PlusPlusX4) -> __m256d {
+    unsafe {
+        let mut result = _mm256_set1_pd(0.0);
+        rng.next_m256d(&mut result);
+        result
+    }
 }
 
 #[inline(never)]
-fn do_small_rng(rng: &mut SmallRng) -> u64 {
-    rng.next_u64()
-}
-
-#[inline(never)]
-fn do_xoshiro_x4(rng: &mut Xoshiro256PlusPlusX4) -> u64 {
-    let mut result = Default::default();
-    rng.next_u64x4(&mut result);
-    result[0]
+fn do_xoshiro_mm256d_pure_avx(rng: &mut Xoshiro256PlusPlusX4) -> __m256d {
+    unsafe {
+        let mut result = _mm256_set1_pd(0.0);
+        rng.next_m256d_pure_avx(&mut result);
+        result
+    }
 }
 
 fn main() {
-    let mut rng1: Shishua = Shishua::seed_from_u64(0);
-    let mut rng2 = SmallRng::seed_from_u64(0);
-    let mut rng3 = Xoshiro256PlusPlusX4::seed_from_u64(0);
+    let mut rng = Xoshiro256PlusPlusX4::seed_from_u64(0);
 
-    println!("{}", do_shishua(&mut rng1));
-    println!("{}", do_small_rng(&mut rng2));
-    println!("{}", do_xoshiro_x4(&mut rng3));
+    black_box(do_xoshiro_mm256d(&mut rng));
+    black_box(do_xoshiro_mm256d_pure_avx(&mut rng));
 }
