@@ -9,21 +9,15 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughpu
 use criterion_perf_events::Perf;
 use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
-use rand::rngs::SmallRng;
 use rand::Rng;
 use rand_core::{RngCore, SeedableRng};
+use rand_xoshiro::Xoshiro256Plus;
 use simd_prng::specific::avx2::*;
 
 const ITERATIONS: usize = 16;
 
 #[inline(always)]
-fn do_shishua_u64(rng: &mut Shishua, data: &mut U64x4) {
-    for _ in 0..ITERATIONS {
-        rng.next_u64x4(black_box(data));
-    }
-}
-#[inline(always)]
-fn do_small_rng_u64(rng: &mut SmallRng, data: &mut U64x4) {
+fn do_xoshiro_u64(rng: &mut Xoshiro256Plus, data: &mut U64x4) {
     for _ in 0..ITERATIONS {
         let data = black_box(&mut *data);
         data[0] = rng.next_u64();
@@ -32,15 +26,15 @@ fn do_small_rng_u64(rng: &mut SmallRng, data: &mut U64x4) {
         data[3] = rng.next_u64();
     }
 }
-
 #[inline(always)]
-fn do_shishua_f64(rng: &mut Shishua, data: &mut F64x4) {
+fn do_xoshiro_x4_u64(rng: &mut Xoshiro256PlusX4, data: &mut U64x4) {
     for _ in 0..ITERATIONS {
-        rng.next_f64x4(black_box(data));
+        rng.next_u64x4(black_box(data));
     }
 }
+
 #[inline(always)]
-fn do_small_rng_f64(rng: &mut SmallRng, data: &mut F64x4) {
+fn do_xoshiro_f64(rng: &mut Xoshiro256Plus, data: &mut F64x4) {
     for _ in 0..ITERATIONS {
         let data = black_box(&mut *data);
         data[0] = rng.gen_range(0.0..1.0);
@@ -49,11 +43,17 @@ fn do_small_rng_f64(rng: &mut SmallRng, data: &mut F64x4) {
         data[3] = rng.gen_range(0.0..1.0);
     }
 }
+#[inline(always)]
+fn do_xoshiro_x4_f64(rng: &mut Xoshiro256PlusX4, data: &mut F64x4) {
+    for _ in 0..ITERATIONS {
+        rng.next_f64x4(black_box(data));
+    }
+}
 
 fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
-    let mut group = c.benchmark_group("shishua");
+    let mut group = c.benchmark_group("xoshiro");
 
-    group.throughput(Throughput::Bytes((ITERATIONS * mem::size_of::<u64>()) as u64));
+    group.throughput(Throughput::Bytes((ITERATIONS * mem::size_of::<U64x4>()) as u64));
 
     let suffix = match T {
         Type::TIME => "Time",
@@ -62,34 +62,35 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
         _ => unreachable!(),
     };
 
-    let shishua_u64_name = format!("Shishua u64x4 - {suffix}");
-    let small_rng_u64_name = format!("SmallRng u64x4 - {suffix}");
-    let shishua_f64_name = format!("Shishua f64x4 - {suffix}");
-    let small_rng_f64_name = format!("SmallRng f64x4 - {suffix}");
+    let xoshiro_u64_name = format!("Xoshiro256Plus u64x4 - {suffix}");
+    let xoshiro_x4_u64_name = format!("Xoshiro256PlusX4 u64x4 - {suffix}");
+    let xoshiro_f64_name = format!("Xoshiro256Plus f64x4 - {suffix}");
+    let xoshiro_x4_f64_name = format!("Xoshiro256PlusX4 f64x4 - {suffix}");
 
-    group.bench_function(shishua_u64_name, |b| {
-        let mut rng: Shishua = Shishua::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    group.bench_function(xoshiro_u64_name, |b| {
+        let mut rng: Xoshiro256Plus = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data: U64x4 = Default::default();
 
-        b.iter(|| do_shishua_u64(&mut rng, &mut data))
+        b.iter(|| do_xoshiro_u64(&mut rng, black_box(&mut data)))
     });
-    group.bench_function(small_rng_u64_name, |b| {
-        let mut rng: SmallRng = SmallRng::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    group.bench_function(xoshiro_x4_u64_name, |b| {
+        let mut rng: Xoshiro256PlusX4 = Xoshiro256PlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data: U64x4 = Default::default();
 
-        b.iter(|| do_small_rng_u64(&mut rng, &mut data))
+        b.iter(|| do_xoshiro_x4_u64(&mut rng, black_box(&mut data)))
     });
-    group.bench_function(shishua_f64_name, |b| {
-        let mut rng: Shishua = Shishua::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+
+    group.bench_function(xoshiro_f64_name, |b| {
+        let mut rng: Xoshiro256Plus = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data: F64x4 = Default::default();
 
-        b.iter(|| do_shishua_f64(&mut rng, &mut data))
+        b.iter(|| do_xoshiro_f64(&mut rng, black_box(&mut data)))
     });
-    group.bench_function(small_rng_f64_name, |b| {
-        let mut rng: SmallRng = SmallRng::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    group.bench_function(xoshiro_x4_f64_name, |b| {
+        let mut rng: Xoshiro256PlusX4 = Xoshiro256PlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data: F64x4 = Default::default();
 
-        b.iter(|| do_small_rng_f64(&mut rng, &mut data))
+        b.iter(|| do_xoshiro_x4_f64(&mut rng, black_box(&mut data)))
     });
 
     group.finish();

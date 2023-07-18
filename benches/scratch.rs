@@ -17,12 +17,13 @@ use simd_prng::specific::avx2::*;
 
 const ITERATIONS: usize = 16;
 
-
+#[inline(always)]
 fn do_next_m256d(rng: &mut Xoshiro256PlusPlusX4, data: &mut __m256d) {
     for _ in 0..ITERATIONS {
         rng.next_m256d(black_box(data));
     }
 }
+#[inline(always)]
 fn do_next_m256d_pure_avx(rng: &mut Xoshiro256PlusPlusX4, data: &mut __m256d) {
     for _ in 0..ITERATIONS {
         rng.next_m256d_pure_avx(black_box(data));
@@ -44,23 +45,18 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
     let next_m256d_name = format!("next_m256d __m256d - {suffix}");
     let next_m256d_from_f64x4_name = format!("next_m256d_pure_avx __m256d - {suffix}");
 
+    group.bench_function(next_m256d_name, |b| unsafe {
+        let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data = _mm256_set1_pd(0.0);
 
-    group.bench_function(next_m256d_name, |b| {
-        unsafe {
-            let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-            let mut data = _mm256_set1_pd(0.0);
-    
-            b.iter(|| do_next_m256d(&mut rng, black_box(&mut data)))
-        }
+        b.iter(|| do_next_m256d(&mut rng, black_box(&mut data)))
     });
 
-    group.bench_function(next_m256d_from_f64x4_name, |b| {
-        unsafe {
-            let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-            let mut data = _mm256_set1_pd(0.0);
-    
-            b.iter(|| do_next_m256d_pure_avx(&mut rng, black_box(&mut data)))
-        }
+    group.bench_function(next_m256d_from_f64x4_name, |b| unsafe {
+        let mut rng: Xoshiro256PlusPlusX4 = Xoshiro256PlusPlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data = _mm256_set1_pd(0.0);
+
+        b.iter(|| do_next_m256d_pure_avx(&mut rng, black_box(&mut data)))
     });
 
     group.finish();

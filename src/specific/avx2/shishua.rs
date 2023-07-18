@@ -95,7 +95,7 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     pub fn next_m256d_pure_avx(&mut self, result: &mut __m256d) {
         // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
         unsafe {
-            let mut v = _mm256_set1_epi64x(0);
+            let mut v = _mm256_setzero_si256();
             self.next_m256i(&mut v);
 
             let lhs1 = _mm256_srl_epi64(v, _mm_cvtsi32_si128(11));
@@ -141,7 +141,7 @@ impl<const BUFFER_SIZE: usize> SimdPrng for Shishua<BUFFER_SIZE> {
     #[cfg_attr(not(dasm), inline(always))]
     fn next_u64x4(&mut self, vector: &mut U64x4) {
         unsafe {
-            let mut result = _mm256_set1_epi64x(0);
+            let mut result = _mm256_setzero_si256();
             self.next_m256i(&mut result);
             _mm256_store_si256(transmute::<_, *mut __m256i>(vector), result);
         }

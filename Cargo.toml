@@ -42,6 +42,10 @@ name = "xoshiro256plusplus"
 harness = false
 
 [[bench]]
+name = "xoshiro256plus"
+harness = false
+
+[[bench]]
 name = "scratch"
 harness = false
 

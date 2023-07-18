@@ -6,7 +6,9 @@ use std::{
 
 use rand_core::SeedableRng;
 
-use super::simdprng::*;
+use crate::specific::avx2::read_u64_into_vec;
+
+use super::{simdprng::*, rotate_left};
 use super::vecs::*;
 
 pub struct Xoshiro256PlusPlusX4Seed([u8; 128]);
@@ -84,35 +86,13 @@ impl SeedableRng for Xoshiro256PlusPlusX4 {
     }
 }
 
-#[inline]
-fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
-    const SIZE: usize = mem::size_of::<u64>();
-    assert!(src.len() == SIZE * 4);
-    unsafe {
-        *dst = _mm256_set_epi64x(
-            transmute::<_, i64>(u64::from_le_bytes(
-                src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap(),
-            )),
-            transmute::<_, i64>(u64::from_le_bytes(
-                src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap(),
-            )),
-            transmute::<_, i64>(u64::from_le_bytes(
-                src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap(),
-            )),
-            transmute::<_, i64>(u64::from_le_bytes(
-                src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap(),
-            )),
-        )
-    }
-}
-
 impl Xoshiro256PlusPlusX4 {
     #[cfg_attr(dasm, inline(never))]
     #[cfg_attr(not(dasm), inline(always))]
     pub fn next_m256d_pure_avx(&mut self, result: &mut __m256d) {
         // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
         unsafe {
-            let mut v = _mm256_set1_epi64x(0);
+            let mut v = _mm256_setzero_si256();
             self.next_m256i(&mut v);
 
             let lhs1 = _mm256_srl_epi64(v, _mm_cvtsi32_si128(11));
@@ -129,36 +109,25 @@ impl SimdPrng for Xoshiro256PlusPlusX4 {
     #[cfg_attr(not(dasm), inline(always))]
     fn next_m256i(&mut self, vector: &mut __m256i) {
         unsafe {
-            let s0 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s0));
-            let s3 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s3));
+            // const uint64_t result = rotl(s[0] + s[3], 23) + s[0];
+            *vector = _mm256_add_epi64(rotate_left::<23>(_mm256_add_epi64(self.s0, self.s3)), self.s0);
 
-            // s[0] + s[3]
-            let sadd = _mm256_add_epi64(s0, s3);
+            // let t = self.s[1] << 17;
+            let t = _mm256_sll_epi64(self.s1, _mm_cvtsi32_si128(17));
 
-            // rotl(s[0] + s[3], 23)
-            // rotl: (x << k) | (x >> (64 - k)), k = 23
-            let rotl = rotate_left::<23>(sadd);
-
-            // rotl(...) + s[0]
-            *vector = _mm256_add_epi64(rotl, s0);
-
-            //         let t = self.s[1] << 17;
-            let s1 = _mm256_load_si256(transmute::<_, *const __m256i>(&self.s1));
-            let t = _mm256_sll_epi64(s1, _mm_cvtsi32_si128(17));
-
-            //         self.s[2] ^= self.s[0];
-            //         self.s[3] ^= self.s[1];
-            //         self.s[1] ^= self.s[2];
-            //         self.s[0] ^= self.s[3];
+            // self.s[2] ^= self.s[0];
+            // self.s[3] ^= self.s[1];
+            // self.s[1] ^= self.s[2];
+            // self.s[0] ^= self.s[3];
             self.s2 = _mm256_xor_si256(self.s2, self.s0);
             self.s3 = _mm256_xor_si256(self.s3, self.s1);
             self.s1 = _mm256_xor_si256(self.s1, self.s2);
             self.s0 = _mm256_xor_si256(self.s0, self.s3);
 
-            //         self.s[2] ^= t;
+            // self.s[2] ^= t;
             self.s2 = _mm256_xor_si256(self.s2, t);
 
-            //         self.s[3] = self.s[3].rotate_left(45);
+            // self.s[3] = self.s[3].rotate_left(45);
             self.s3 = rotate_left::<45>(self.s3);
         }
     }
@@ -181,7 +150,7 @@ impl SimdPrng for Xoshiro256PlusPlusX4 {
     #[cfg_attr(not(dasm), inline(always))]
     fn next_u64x4(&mut self, vector: &mut U64x4) {
         unsafe {
-            let mut v = _mm256_set1_epi64x(0);
+            let mut v = _mm256_setzero_si256();
             self.next_m256i(&mut v);
             _mm256_store_si256(transmute::<_, *mut __m256i>(vector), v);
         }
@@ -210,16 +179,6 @@ impl SimdPrng for Xoshiro256PlusPlusX4 {
         vector[1] = (v[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
         vector[2] = (v[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
         vector[3] = (v[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-    }
-}
-
-#[cfg_attr(dasm, inline(never))]
-#[cfg_attr(not(dasm), inline(always))]
-fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
-    unsafe {
-        // rotl: (x << k) | (x >> (64 - k)), k = 23
-        let rotl = _mm256_sll_epi64(x, _mm_cvtsi32_si128(K));
-        _mm256_or_si256(rotl, _mm256_srl_epi64(x, _mm_cvtsi32_si128(64 - K)))
     }
 }
 

@@ -16,6 +16,7 @@ use simd_prng::specific::avx2::*;
 
 const ITERATIONS: usize = 16;
 
+#[inline(always)]
 fn do_xoshiro_u64(rng: &mut Xoshiro256PlusPlus, data: &mut U64x4) {
     for _ in 0..ITERATIONS {
         let data = black_box(&mut *data);
@@ -25,12 +26,14 @@ fn do_xoshiro_u64(rng: &mut Xoshiro256PlusPlus, data: &mut U64x4) {
         data[3] = rng.next_u64();
     }
 }
+#[inline(always)]
 fn do_xoshiro_x4_u64(rng: &mut Xoshiro256PlusPlusX4, data: &mut U64x4) {
     for _ in 0..ITERATIONS {
         rng.next_u64x4(black_box(data));
     }
 }
 
+#[inline(always)]
 fn do_xoshiro_f64(rng: &mut Xoshiro256PlusPlus, data: &mut F64x4) {
     for _ in 0..ITERATIONS {
         let data = black_box(&mut *data);
@@ -40,6 +43,7 @@ fn do_xoshiro_f64(rng: &mut Xoshiro256PlusPlus, data: &mut F64x4) {
         data[3] = rng.gen_range(0.0..1.0);
     }
 }
+#[inline(always)]
 fn do_xoshiro_x4_f64(rng: &mut Xoshiro256PlusPlusX4, data: &mut F64x4) {
     for _ in 0..ITERATIONS {
         rng.next_f64x4(black_box(data));
