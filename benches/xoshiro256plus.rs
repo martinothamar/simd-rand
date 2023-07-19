@@ -12,7 +12,8 @@ use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand::Rng;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
-use simd_prng::specific::avx2::*;
+use simd_prng::specific::avx2::{*, SimdPrng};
+use simd_prng::specific::avx512::{*, SimdPrng as SimdPrngX8};
 
 const ITERATIONS: usize = 16;
 
@@ -49,9 +50,15 @@ fn do_xoshiro_x4_f64(rng: &mut Xoshiro256PlusX4, data: &mut F64x4) {
         rng.next_f64x4(black_box(data));
     }
 }
+#[inline(always)]
+fn do_xoshiro_x8_f64(rng: &mut Xoshiro256PlusX8, data: &mut F64x8) {
+    for _ in 0..(ITERATIONS / 2) {
+        rng.next_f64x8(black_box(data));
+    }
+}
 
 fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
-    let mut group = c.benchmark_group("xoshiro");
+    let mut group = c.benchmark_group("xoshiro256plus");
 
     group.throughput(Throughput::Bytes((ITERATIONS * mem::size_of::<U64x4>()) as u64));
 
@@ -66,6 +73,7 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
     let xoshiro_x4_u64_name = format!("Xoshiro256PlusX4 u64x4 - {suffix}");
     let xoshiro_f64_name = format!("Xoshiro256Plus f64x4 - {suffix}");
     let xoshiro_x4_f64_name = format!("Xoshiro256PlusX4 f64x4 - {suffix}");
+    let xoshiro_x8_f64_name = format!("Xoshiro256PlusX8 f64x8 - {suffix}");
 
     group.bench_function(xoshiro_u64_name, |b| {
         let mut rng: Xoshiro256Plus = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
@@ -91,6 +99,12 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
         let mut data: F64x4 = Default::default();
 
         b.iter(|| do_xoshiro_x4_f64(&mut rng, black_box(&mut data)))
+    });
+    group.bench_function(xoshiro_x8_f64_name, |b| {
+        let mut rng: Xoshiro256PlusX8 = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+        let mut data: F64x8 = Default::default();
+
+        b.iter(|| do_xoshiro_x8_f64(&mut rng, black_box(&mut data)))
     });
 
     group.finish();

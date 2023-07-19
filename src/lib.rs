@@ -1,3 +1,6 @@
+
+#![feature(stdsimd)]
+
 pub mod portable;
 pub mod specific;
 #[cfg(test)]
