@@ -30,7 +30,7 @@ rust_decimal_macros = "1.30.0"
 bench = false
 
 [[bench]]
-name = "comparison"
+name = "main"
 harness = false
 
 [[example]]

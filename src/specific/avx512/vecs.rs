@@ -59,3 +59,20 @@ impl Into<F64x8> for [f64; 8] {
         F64x8::new(self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{arch::x86_64::*, mem::size_of};
+
+    use serial_test::parallel;
+
+    use super::*;
+
+    #[test]
+    #[parallel]
+    fn size() {
+        assert_eq!(size_of::<__m512i>(), size_of::<U64x8>());
+        assert_eq!(size_of::<__m512d>(), size_of::<F64x8>());
+    }
+}
+

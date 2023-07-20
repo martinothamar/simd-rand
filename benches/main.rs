@@ -15,6 +15,7 @@ use rand_core::SeedableRng;
 use simd_rand::specific::avx2::*;
 
 mod specific;
+mod top;
 
 const ITERATIONS: usize = 8;
 
@@ -27,10 +28,15 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
     };
 
     if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
-        crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
+        // crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
     }
-    if cfg!(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq")) {
-        crate::specific::avx512::add_benchmarks::<_, ITERATIONS>(c, suffix);
+    if cfg!(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq"
+    )) {
+        // crate::specific::avx512::add_benchmarks::<_, ITERATIONS>(c, suffix);
+        crate::top::add_top_benchmark::<_, ITERATIONS>(c);
     }
 }
 
