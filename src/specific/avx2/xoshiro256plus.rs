@@ -113,3 +113,46 @@ impl SimdPrng for Xoshiro256PlusX4 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::mem;
+
+    use itertools::Itertools;
+    use num_traits::PrimInt;
+    use rand_core::{SeedableRng, RngCore};
+    use serial_test::parallel;
+
+    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_256};
+
+    use super::*;
+
+    #[test]
+    #[parallel]
+    fn reference() {
+        let seed: Xoshiro256PlusX4Seed = REF_SEED_256.into();
+        let mut rng = Xoshiro256PlusX4::from_seed(seed);
+        // These values were produced with the reference implementation:
+        // http://xoshiro.di.unimi.it/xoshiro256plusplus.c
+        #[rustfmt::skip]
+        let expected = [
+            5,
+            211106232532999,
+            211106635186183,
+            9223759065350669058,
+            9250833439874351877,
+            13862484359527728515,
+            2346507365006083650,
+            1168864526675804870,
+            34095955243042024,
+            3466914240207415127,
+        ];
+        for &e in &expected {
+            let mut mem = Default::default();
+            rng.next_u64x4(&mut mem);
+            for v in mem.into_iter() {
+                assert_eq!(v, e);
+            }
+        }
+    }
+}

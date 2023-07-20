@@ -124,17 +124,36 @@ mod tests {
     use rand_core::{SeedableRng, RngCore};
     use serial_test::parallel;
 
-    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE};
+    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_512};
 
     use super::*;
 
     #[test]
     #[parallel]
-    fn testing() {
-        let mut rng: Xoshiro256PlusX8 = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-        let mut data: F64x8 = Default::default();
-
-        rng.next_f64x8(&mut data);
-        assert!(data.into_iter().all(|v| v != 0.0));
+    fn reference() {
+        let seed: Xoshiro256PlusX8Seed = REF_SEED_512.into();
+        let mut rng = Xoshiro256PlusX8::from_seed(seed);
+        // These values were produced with the reference implementation:
+        // http://xoshiro.di.unimi.it/xoshiro256plusplus.c
+        #[rustfmt::skip]
+        let expected = [
+            5,
+            211106232532999,
+            211106635186183,
+            9223759065350669058,
+            9250833439874351877,
+            13862484359527728515,
+            2346507365006083650,
+            1168864526675804870,
+            34095955243042024,
+            3466914240207415127,
+        ];
+        for &e in &expected {
+            let mut mem = Default::default();
+            rng.next_u64x8(&mut mem);
+            for v in mem.into_iter() {
+                assert_eq!(v, e);
+            }
+        }
     }
 }

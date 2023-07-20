@@ -45,10 +45,6 @@ harness = false
 name = "xoshiro256plus"
 harness = false
 
-[[bench]]
-name = "scratch"
-harness = false
-
 [[example]]
 name = "dasm"
 path = "examples/_internal/dasm.rs"

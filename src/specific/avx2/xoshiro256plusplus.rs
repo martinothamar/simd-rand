@@ -123,14 +123,14 @@ mod tests {
     use rand_core::{SeedableRng, RngCore};
     use serial_test::parallel;
 
-    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE};
+    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_256};
 
     use super::*;
 
     #[test]
     #[parallel]
     fn reference() {
-        let seed: Xoshiro256PlusPlusX4Seed = REF_SEED.into();
+        let seed: Xoshiro256PlusPlusX4Seed = REF_SEED_256.into();
         let mut rng = Xoshiro256PlusPlusX4::from_seed(seed);
         // These values were produced with the reference implementation:
         // http://xoshiro.di.unimi.it/xoshiro256plusplus.c
@@ -250,24 +250,4 @@ mod tests {
         }
         println!("{output}");
     }
-    
-    #[rustfmt::skip]
-    const REF_SEED: [u8; 128] = [
-        1, 0, 0, 0, 0, 0, 0, 0,
-        1, 0, 0, 0, 0, 0, 0, 0,
-        1, 0, 0, 0, 0, 0, 0, 0,
-        1, 0, 0, 0, 0, 0, 0, 0,
-        2, 0, 0, 0, 0, 0, 0, 0, 
-        2, 0, 0, 0, 0, 0, 0, 0, 
-        2, 0, 0, 0, 0, 0, 0, 0, 
-        2, 0, 0, 0, 0, 0, 0, 0, 
-        3, 0, 0, 0, 0, 0, 0, 0,
-        3, 0, 0, 0, 0, 0, 0, 0,
-        3, 0, 0, 0, 0, 0, 0, 0,
-        3, 0, 0, 0, 0, 0, 0, 0,
-        4, 0, 0, 0, 0, 0, 0, 0,
-        4, 0, 0, 0, 0, 0, 0, 0,
-        4, 0, 0, 0, 0, 0, 0, 0,
-        4, 0, 0, 0, 0, 0, 0, 0,
-    ];
 }

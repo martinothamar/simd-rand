@@ -1,5 +1,6 @@
 {
     "recommendations": [
-        "dseight.disasexpl"
+        "dseight.disasexpl",
+        "ms-vscode.cpptools-extension-pack"
     ]
 }
