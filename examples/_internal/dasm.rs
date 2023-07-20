@@ -1,29 +1,21 @@
+#![feature(stdsimd)]
+
 use criterion::black_box;
 use rand_core::SeedableRng;
-use simd_prng::specific::avx2::*;
+use simd_prng::specific::avx512::*;
 use std::arch::x86_64::*;
 
 #[inline(never)]
-fn do_xoshiro_mm256d(rng: &mut Xoshiro256PlusPlusX4) -> __m256d {
+fn do_xoshiro_mm512d(rng: &mut Xoshiro256PlusX8) -> __m512d {
     unsafe {
-        let mut result = _mm256_set1_pd(0.0);
-        rng.next_m256d(&mut result);
-        result
-    }
-}
-
-#[inline(never)]
-fn do_xoshiro_mm256d_pure_avx(rng: &mut Xoshiro256PlusPlusX4) -> __m256d {
-    unsafe {
-        let mut result = _mm256_set1_pd(0.0);
-        rng.next_m256d_pure_avx(&mut result);
+        let mut result = _mm512_set1_pd(0.0);
+        rng.next_m512d(&mut result);
         result
     }
 }
 
 fn main() {
-    let mut rng = Xoshiro256PlusPlusX4::seed_from_u64(0);
+    let mut rng = Xoshiro256PlusX8::seed_from_u64(0);
 
-    black_box(do_xoshiro_mm256d(&mut rng));
-    black_box(do_xoshiro_mm256d_pure_avx(&mut rng));
+    black_box(do_xoshiro_mm512d(&mut rng));
 }

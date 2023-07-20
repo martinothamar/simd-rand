@@ -49,11 +49,7 @@ const fn get_buffered_state_layout<const BUFFER_SIZE: usize>() -> Result<Layout,
 impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     pub const LAYOUT: Layout = get_buffered_state_layout_unchecked::<BUFFER_SIZE>();
 
-    // For 'dasm' cfg, our intention is to analyze the generated assembly,
-    // so suggest that the function shouldn't be inlined
-    #[cfg_attr(dasm, inline(never))]
-    // For any other cfg this should be inlined, as it is in hotpath for Rng and RngCore traits
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn fill_bytes_arr<const N: usize>(&mut self, dest: &mut [u8; N]) {
         unsafe {
             let state = self.state.as_mut();
@@ -76,40 +72,21 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
         state.buffer_index
     }
 
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     pub fn next_f32(&mut self) -> f32 {
         let v = self.next_u32();
         (v >> 8) as f32 * (1.0f32 / (1u32 << 24) as f32)
     }
 
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     pub fn next_f64(&mut self) -> f64 {
         let v = self.next_u64();
         (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
     }
-    
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_m256d_pure_avx(&mut self, result: &mut __m256d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-        unsafe {
-            let mut v = _mm256_setzero_si256();
-            self.next_m256i(&mut v);
-
-            let lhs1 = _mm256_srl_epi64(v, _mm_cvtsi32_si128(11));
-            let lhs2 = super::u64_to_f64(lhs1);
-
-            let rhs = _mm256_set1_pd(1.1102230246251565E-16);
-            *result = _mm256_mul_pd(lhs2, rhs)
-        }
-    }
 }
 
 impl<const BUFFER_SIZE: usize> SimdPrng for Shishua<BUFFER_SIZE> {
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn next_m256i(&mut self, vector: &mut __m256i) {
         const SIZE: usize = mem::size_of::<__m256i>();
         unsafe {
@@ -124,46 +101,11 @@ impl<const BUFFER_SIZE: usize> SimdPrng for Shishua<BUFFER_SIZE> {
             state.buffer_index += SIZE;
         }
     }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_m256d(&mut self, result: &mut __m256d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-        unsafe {
-            let mut v = Default::default();
-            self.next_f64x4(&mut v);
-            
-            *result = _mm256_load_pd(v.as_ptr());
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_u64x4(&mut self, vector: &mut U64x4) {
-        unsafe {
-            let mut result = _mm256_setzero_si256();
-            self.next_m256i(&mut result);
-            _mm256_store_si256(transmute::<_, *mut __m256i>(vector), result);
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_f64x4(&mut self, vector: &mut F64x4) {
-        let mut v = Default::default();
-        self.next_u64x4(&mut v);
-
-        vector[0] = (v[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        vector[1] = (v[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        vector[2] = (v[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        vector[3] = (v[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-    }
 }
 
 impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
     type Seed = [u8; 32];
 
-    #[cfg_attr(dasm, inline(never))]
     fn from_seed(seed: Self::Seed) -> Self {
         assert!(
             get_buffered_state_layout::<BUFFER_SIZE>().is_ok(),
@@ -197,7 +139,6 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
 }
 
 impl<const BUFFER_SIZE: usize> Drop for Shishua<BUFFER_SIZE> {
-    #[cfg_attr(dasm, inline(never))]
     fn drop(&mut self) {
         let ptr = self.state.as_ptr();
         unsafe {
@@ -207,8 +148,7 @@ impl<const BUFFER_SIZE: usize> Drop for Shishua<BUFFER_SIZE> {
 }
 
 impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn next_u32(&mut self) -> u32 {
         let mut result: u32 = 0;
         let mut bytes = unsafe { mem::transmute::<_, &mut [u8; 4]>(&mut result) };
@@ -216,8 +156,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
         result
     }
 
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn next_u64(&mut self) -> u64 {
         let mut result: u64 = 0;
         let mut bytes = unsafe { mem::transmute::<_, &mut [u8; 8]>(&mut result) };
@@ -225,8 +164,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
         result
     }
 
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         let size = dest.len();
 
@@ -245,8 +183,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
         };
     }
 
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
         self.fill_bytes(dest);
         Ok(())
@@ -287,7 +224,6 @@ struct RawState {
 }
 
 impl RawState {
-    #[inline(never)] // This should be called rarely (only when rebuffering), so prefer not to inline
     unsafe fn prng_init(&mut self, seed: &[u64; 4]) {
         const STEPS: usize = 1;
         const ROUNDS: usize = 13;
@@ -328,7 +264,6 @@ impl RawState {
         }
     }
 
-    #[inline(never)] // This should be called rarely (only when rebuffering), so prefer not to inline
     unsafe fn prng_gen(&mut self, buf: &mut [u8]) {
         let mut o0 = self.output[0];
         let mut o1 = self.output[1];

@@ -1,6 +1,6 @@
 use std::{
-    arch::{x86_64::*, asm},
-    mem::{self, transmute},
+    arch::x86_64::*,
+    mem,
     ops::{Deref, DerefMut},
 };
 
@@ -88,8 +88,7 @@ impl SeedableRng for Xoshiro256PlusX8 {
 }
 
 impl SimdPrng for Xoshiro256PlusX8 {
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn next_m512i(&mut self, vector: &mut __m512i) {
         unsafe {
             // const uint64_t result = s[0] + s[3];
@@ -112,52 +111,6 @@ impl SimdPrng for Xoshiro256PlusX8 {
         
             // s[3] = rotl(s[3], 45);
             self.s3 = rotate_left::<45>(self.s3);
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_m512d(&mut self, result: &mut __m512d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-        unsafe {
-            let mut v = _mm512_setzero_si512();
-            self.next_m512i(&mut v);
-
-            let lhs1 = _mm512_srl_epi64(v, _mm_cvtsi32_si128(11));
-            let mut lhs2: __m512d;
-
-            // this should be exposed through the '_mm512_cvtepu64_pd' C/C++ intrinsic,
-            // but since I can't find this exposed in Rust anywhere,
-            // we're doing it the inline asm way here
-            // TODO: find out how to use the normal intrinsic from std::arch
-            asm!(
-                "vcvtuqq2pd {1}, {0}",
-                in(zmm_reg) lhs1,
-                out(zmm_reg) lhs2,
-            );
-
-            let rhs = _mm512_set1_pd(1.1102230246251565E-16);
-            *result = _mm512_mul_pd(lhs2, rhs)
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_u64x8(&mut self, vector: &mut U64x8) {
-        unsafe {
-            let mut v = _mm512_setzero_si512();
-            self.next_m512i(&mut v);
-            _mm512_store_epi64(transmute::<_, *mut i64>(vector), v);
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_f64x8(&mut self, vector: &mut F64x8) {
-        unsafe {
-            let mut v = _mm512_setzero_pd();
-            self.next_m512d(&mut v);
-            _mm512_store_pd(vector.as_mut_ptr(), v);
         }
     }
 }

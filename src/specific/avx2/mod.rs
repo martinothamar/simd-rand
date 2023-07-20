@@ -15,8 +15,7 @@ mod xoshiro256plus;
 // No direct conv intrinsic in AVX2, this hack is from
 // https://stackoverflow.com/questions/41144668/how-to-efficiently-perform-double-int64-conversions-with-sse-avx
 // Unfortunately not faster than just loading and operating on the scalars
-#[cfg_attr(dasm, inline(never))]
-#[cfg_attr(not(dasm), inline(always))]
+#[inline(always)]
 unsafe fn u64_to_f64(v: __m256i) -> __m256d {
     let magic_i_lo = _mm256_set1_epi64x(0x4330000000000000);
     let magic_i_hi32 = _mm256_set1_epi64x(0x4530000000000000);
@@ -53,8 +52,7 @@ fn read_u64_into_vec(src: &[u8], dst: &mut __m256i) {
     }
 }
 
-#[cfg_attr(dasm, inline(never))]
-#[cfg_attr(not(dasm), inline(always))]
+#[inline(always)]
 fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
     unsafe {
         // rotl: (x << k) | (x >> (64 - k))

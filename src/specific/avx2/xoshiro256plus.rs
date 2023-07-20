@@ -86,27 +86,8 @@ impl SeedableRng for Xoshiro256PlusX4 {
     }
 }
 
-impl Xoshiro256PlusX4 {
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    pub fn next_m256d_pure_avx(&mut self, result: &mut __m256d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-        unsafe {
-            let mut v = _mm256_setzero_si256();
-            self.next_m256i(&mut v);
-
-            let lhs1 = _mm256_srl_epi64(v, _mm_cvtsi32_si128(11));
-            let lhs2 = super::u64_to_f64(lhs1);
-
-            let rhs = _mm256_set1_pd(1.1102230246251565E-16);
-            *result = _mm256_mul_pd(lhs2, rhs)
-        }
-    }
-}
-
 impl SimdPrng for Xoshiro256PlusX4 {
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
+    #[inline(always)]
     fn next_m256i(&mut self, vector: &mut __m256i) {
         unsafe {
             // const uint64_t result = s[0] + s[3];
@@ -130,41 +111,5 @@ impl SimdPrng for Xoshiro256PlusX4 {
             // s[3] = rotl(s[3], 45);
             self.s3 = rotate_left::<45>(self.s3);
         }
-    }
-
-    // Unfortunately this is not fast enough,
-    // since there is no direct intrinsic for u64 -> f64 conversion (other than in avx512)
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_m256d(&mut self, result: &mut __m256d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-        unsafe {
-            let mut v = Default::default();
-            self.next_f64x4(&mut v);
-            
-            *result = _mm256_load_pd(v.as_ptr());
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_u64x4(&mut self, vector: &mut U64x4) {
-        unsafe {
-            let mut v = _mm256_setzero_si256();
-            self.next_m256i(&mut v);
-            _mm256_store_si256(transmute::<_, *mut __m256i>(vector), v);
-        }
-    }
-
-    #[cfg_attr(dasm, inline(never))]
-    #[cfg_attr(not(dasm), inline(always))]
-    fn next_f64x4(&mut self, vector: &mut F64x4) {
-        let mut v = Default::default();
-        self.next_u64x4(&mut v);
-
-        vector[0] = (v[0] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        vector[1] = (v[1] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        vector[2] = (v[2] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        vector[3] = (v[3] >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
     }
 }

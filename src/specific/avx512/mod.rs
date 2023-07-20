@@ -46,8 +46,7 @@ fn read_u64_into_vec(src: &[u8], dst: &mut __m512i) {
     }
 }
 
-#[cfg_attr(dasm, inline(never))]
-#[cfg_attr(not(dasm), inline(always))]
+#[inline(always)]
 fn rotate_left<const K: i32>(x: __m512i) -> __m512i {
     unsafe {
         // rotl: (x << k) | (x >> (64 - k))
