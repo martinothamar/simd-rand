@@ -4,7 +4,7 @@ static ALLOC: dhat::Alloc = dhat::Alloc;
 mod shishua {
     use rand_core::{RngCore, SeedableRng};
     use serial_test::serial;
-    use simd_prng::specific::avx2::{Shishua, DEFAULT_BUFFER_SIZE};
+    use simd_rand::specific::avx2::{Shishua, DEFAULT_BUFFER_SIZE};
 
     #[test]
     #[serial]

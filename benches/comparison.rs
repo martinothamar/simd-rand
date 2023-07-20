@@ -11,7 +11,7 @@ use criterion_perf_events::Perf;
 use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand_core::SeedableRng;
-use simd_prng::specific::avx2::*;
+use simd_rand::specific::avx2::*;
 
 const ITERATIONS: usize = 16;
 

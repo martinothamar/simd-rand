@@ -2,7 +2,7 @@
 
 use criterion::black_box;
 use rand_core::SeedableRng;
-use simd_prng::specific::avx512::*;
+use simd_rand::specific::avx512::*;
 use std::arch::x86_64::*;
 
 #[inline(never)]

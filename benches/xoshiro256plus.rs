@@ -12,8 +12,8 @@ use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand::Rng;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
-use simd_prng::specific::avx2::{*, SimdPrng};
-use simd_prng::specific::avx512::{*, SimdPrng as SimdPrngX8};
+use simd_rand::specific::avx2::{*, SimdPrng};
+use simd_rand::specific::avx512::{*, SimdPrng as SimdPrngX8};
 
 const ITERATIONS: usize = 16;
 
