@@ -6,13 +6,13 @@ use std::{
 // pub use shishua::*;
 pub use simdprng::*;
 pub use vecs::*;
-// pub use xoshiro256plusplus::*;
+pub use xoshiro256plusplus::*;
 pub use xoshiro256plus::*;
 
 // mod shishua;
 mod simdprng;
 mod vecs;
-// mod xoshiro256plusplus;
+mod xoshiro256plusplus;
 mod xoshiro256plus;
 
 #[inline(always)]

@@ -33,18 +33,6 @@ bench = false
 name = "comparison"
 harness = false
 
-[[bench]]
-name = "shishua"
-harness = false
-
-[[bench]]
-name = "xoshiro256plusplus"
-harness = false
-
-[[bench]]
-name = "xoshiro256plus"
-harness = false
-
 [[example]]
 name = "dasm"
 path = "examples/_internal/dasm.rs"
