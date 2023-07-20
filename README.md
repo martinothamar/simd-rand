@@ -19,7 +19,7 @@ Sources:
 ## Performance
 
 The top performing generator is currently Xoshiro256+ using AVX2 intrinsics.
-It is about 5x faster. The blow benchmarks generates `u64` numbers in a loop
+It is about 5x faster. The below benchmarks generates `u64` numbers in a loop
 
 ```
 top/Original/Xoshiro256+/64
