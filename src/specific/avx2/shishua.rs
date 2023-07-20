@@ -9,7 +9,6 @@ use std::iter::Iterator;
 use std::{alloc, mem};
 
 use super::simdprng::*;
-use super::vecs::*;
 
 pub const DEFAULT_BUFFER_SIZE: usize = 1024 * 32;
 
@@ -348,10 +347,11 @@ mod tests {
     use rand::Rng;
     use serial_test::parallel;
 
-    type Shishua = super::Shishua<DEFAULT_BUFFER_SIZE>;
+    type RngImpl = super::Shishua<DEFAULT_BUFFER_SIZE>;
 
     use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, FLOAT_RANGE};
 
+    use super::super::vecs::*;
     use super::*;
 
     #[test]
@@ -554,14 +554,14 @@ mod tests {
         unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_PI) }
     }
 
-    fn create_with_zero_seed() -> Shishua {
+    fn create_with_zero_seed() -> RngImpl {
         let seed = get_zero_seed();
-        Shishua::from_seed(*seed)
+        RngImpl::from_seed(*seed)
     }
 
-    fn create_with_predefined_seed() -> Shishua {
+    fn create_with_predefined_seed() -> RngImpl {
         let seed = get_predefined_seed();
-        Shishua::from_seed(*seed)
+        RngImpl::from_seed(*seed)
     }
 
     const SEED_ZERO: [u64; 4] = [

@@ -8,8 +8,7 @@ use rand_core::SeedableRng;
 
 use crate::specific::avx512::read_u64_into_vec;
 
-use super::{simdprng::*, rotate_left};
-use super::vecs::*;
+use super::{rotate_left, simdprng::*};
 
 pub struct Xoshiro256PlusX8Seed([u8; 256]);
 
@@ -96,7 +95,7 @@ impl SimdPrng for Xoshiro256PlusX8 {
 
             // const uint64_t t = s[1] << 17;
             let t = _mm512_sll_epi64(self.s1, _mm_cvtsi32_si128(17));
-        
+
             // s[2] ^= s[0];
             // s[3] ^= s[1];
             // s[1] ^= s[2];
@@ -105,10 +104,10 @@ impl SimdPrng for Xoshiro256PlusX8 {
             self.s3 = _mm512_xor_si512(self.s3, self.s1);
             self.s1 = _mm512_xor_si512(self.s1, self.s2);
             self.s0 = _mm512_xor_si512(self.s0, self.s3);
-        
+
             // s[2] ^= t;
             self.s2 = _mm512_xor_si512(self.s2, t);
-        
+
             // s[3] = rotl(s[3], 45);
             self.s3 = rotate_left::<45>(self.s3);
         }
@@ -117,22 +116,23 @@ impl SimdPrng for Xoshiro256PlusX8 {
 
 #[cfg(test)]
 mod tests {
-    use std::mem;
-
     use itertools::Itertools;
-    use num_traits::PrimInt;
-    use rand_core::{SeedableRng, RngCore};
+    use rand_core::{RngCore, SeedableRng};
     use serial_test::parallel;
 
     use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_512};
 
+    use super::super::vecs::*;
     use super::*;
+
+    type RngSeed = Xoshiro256PlusX8Seed;
+    type RngImpl = Xoshiro256PlusX8;
 
     #[test]
     #[parallel]
     fn reference() {
-        let seed: Xoshiro256PlusX8Seed = REF_SEED_512.into();
-        let mut rng = Xoshiro256PlusX8::from_seed(seed);
+        let seed: RngSeed = REF_SEED_512.into();
+        let mut rng = RngImpl::from_seed(seed);
         // These values were produced with the reference implementation:
         // http://xoshiro.di.unimi.it/xoshiro256plusplus.c
         #[rustfmt::skip]
@@ -155,5 +155,78 @@ mod tests {
                 assert_eq!(v, e);
             }
         }
+    }
+
+    #[test]
+    #[parallel]
+    fn sample_u64x8() {
+        let mut seed: RngSeed = Default::default();
+        rand::thread_rng().fill_bytes(&mut *seed);
+        let mut rng = RngImpl::from_seed(seed);
+
+        let mut values = Default::default();
+        rng.next_u64x8(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0));
+        assert!(values.iter().unique().count() == values.len());
+        println!("{values:?}");
+
+        let mut values = Default::default();
+        rng.next_u64x8(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0));
+        assert!(values.iter().unique().count() == values.len());
+        println!("{values:?}");
+    }
+
+    #[test]
+    #[parallel]
+    fn sample_f64x8() {
+        let mut seed: RngSeed = Default::default();
+        rand::thread_rng().fill_bytes(&mut *seed);
+        let mut rng = RngImpl::from_seed(seed);
+
+        let mut values = Default::default();
+        rng.next_f64x8(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0.0));
+        println!("{values:?}");
+
+        let mut values = Default::default();
+        rng.next_f64x8(&mut values);
+
+        assert!(values.iter().all(|&v| v != 0.0));
+        println!("{values:?}");
+    }
+
+    #[test]
+    #[parallel]
+    fn sample_f64x8_distribution() {
+        let mut seed: RngSeed = Default::default();
+        rand::thread_rng().fill_bytes(&mut *seed);
+        let mut rng = RngImpl::from_seed(seed);
+
+        let mut current: Option<F64x8> = None;
+        let mut current_index: usize = 0;
+
+        test_uniform_distribution::<10_000_000, f64>(
+            || match &current {
+                Some(vector) if current_index < 8 => {
+                    let result = vector[current_index];
+                    current_index += 1;
+                    return result;
+                }
+                _ => {
+                    let mut vector = Default::default();
+                    current_index = 0;
+                    rng.next_f64x8(&mut vector);
+                    let result = vector[current_index];
+                    current = Some(vector);
+                    current_index += 1;
+                    return result;
+                }
+            },
+            DOUBLE_RANGE,
+        );
     }
 }
