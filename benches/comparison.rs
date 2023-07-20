@@ -16,7 +16,7 @@ use simd_rand::specific::avx2::*;
 
 mod specific;
 
-const ITERATIONS: usize = 16;
+const ITERATIONS: usize = 8;
 
 fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
     let suffix = match T {
@@ -26,7 +26,12 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
         _ => unreachable!(),
     };
 
-    crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
+    if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
+        crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
+    }
+    if cfg!(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq")) {
+        crate::specific::avx512::add_benchmarks::<_, ITERATIONS>(c, suffix);
+    }
 }
 
 #[non_exhaustive]
