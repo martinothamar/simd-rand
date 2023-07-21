@@ -3,7 +3,7 @@ use std::{mem, arch::x86_64::*};
 use criterion::{measurement::Measurement, Criterion, Throughput, black_box, BenchmarkId};
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
-use simd_rand::specific::avx512::{U64x8, SimdPrng, Xoshiro256PlusX8};
+use simd_rand::specific::avx512::{U64x8, SimdRand, Xoshiro256PlusX8};
 
 #[inline(always)]
 fn execute_original<RNG: RngCore>(rng: &mut RNG, data: &mut U64x8, i: usize) {
@@ -16,7 +16,7 @@ fn execute_original<RNG: RngCore>(rng: &mut RNG, data: &mut U64x8, i: usize) {
 }
 
 #[inline(always)]
-fn execute_vectorized<RNG: SimdPrng>(rng: &mut RNG, data: &mut __m512i, i: usize) {
+fn execute_vectorized<RNG: SimdRand>(rng: &mut RNG, data: &mut __m512i, i: usize) {
     for _ in 0..i {
         rng.next_m512i(black_box(data));
     }

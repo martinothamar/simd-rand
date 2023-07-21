@@ -5,7 +5,7 @@ use std::{
 
 use super::vecs::*;
 
-pub trait SimdPrng {
+pub trait SimdRand {
     fn next_m256i(&mut self, vector: &mut __m256i);
 
     // Unfortunately this is not fast enough,

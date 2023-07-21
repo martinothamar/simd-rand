@@ -1,14 +1,14 @@
 use std::{
-    arch::x86_64::*,
     mem,
     ops::{Deref, DerefMut},
+    simd::u64x4,
 };
 
 use rand_core::SeedableRng;
 
-use crate::specific::avx2::read_u64_into_vec;
+use super::{read_u64_into_vec, rotate_left};
 
-use super::{rotate_left, simdrand::*};
+use super::SimdRand;
 
 pub struct Xoshiro256PlusX4Seed([u8; 128]);
 
@@ -56,12 +56,11 @@ impl AsMut<[u8]> for Xoshiro256PlusX4Seed {
     }
 }
 
-#[repr(align(32))]
 pub struct Xoshiro256PlusX4 {
-    s0: __m256i,
-    s1: __m256i,
-    s2: __m256i,
-    s3: __m256i,
+    s0: u64x4,
+    s1: u64x4,
+    s2: u64x4,
+    s3: u64x4,
 }
 
 impl SeedableRng for Xoshiro256PlusX4 {
@@ -69,48 +68,38 @@ impl SeedableRng for Xoshiro256PlusX4 {
 
     fn from_seed(seed: Self::Seed) -> Self {
         const SIZE: usize = mem::size_of::<u64>();
-        const LEN: usize = 4;
+        const LEN: usize = u64x4::LANES;
         const VECSIZE: usize = SIZE * LEN;
-        unsafe {
-            let mut s0: __m256i = _mm256_setzero_si256();
-            let mut s1: __m256i = _mm256_setzero_si256();
-            let mut s2: __m256i = _mm256_setzero_si256();
-            let mut s3: __m256i = _mm256_setzero_si256();
-            read_u64_into_vec(&seed[(VECSIZE * 0)..(VECSIZE * 1)], &mut s0);
-            read_u64_into_vec(&seed[(VECSIZE * 1)..(VECSIZE * 2)], &mut s1);
-            read_u64_into_vec(&seed[(VECSIZE * 2)..(VECSIZE * 3)], &mut s2);
-            read_u64_into_vec(&seed[(VECSIZE * 3)..(VECSIZE * 4)], &mut s3);
 
-            Self { s0, s1, s2, s3 }
-        }
+        let mut s0: u64x4 = Default::default();
+        let mut s1: u64x4 = Default::default();
+        let mut s2: u64x4 = Default::default();
+        let mut s3: u64x4 = Default::default();
+        read_u64_into_vec(&seed[(VECSIZE * 0)..(VECSIZE * 1)], &mut s0);
+        read_u64_into_vec(&seed[(VECSIZE * 1)..(VECSIZE * 2)], &mut s1);
+        read_u64_into_vec(&seed[(VECSIZE * 2)..(VECSIZE * 3)], &mut s2);
+        read_u64_into_vec(&seed[(VECSIZE * 3)..(VECSIZE * 4)], &mut s3);
+
+        Self { s0, s1, s2, s3 }
     }
 }
 
 impl SimdRand for Xoshiro256PlusX4 {
-    #[inline(always)]
-    fn next_m256i(&mut self, vector: &mut __m256i) {
-        unsafe {
-            // const uint64_t result = s[0] + s[3];
-            *vector = _mm256_add_epi64(self.s0, self.s3);
+    fn next_u64x4(&mut self) -> u64x4 {
+        let result = self.s0 + self.s3;
 
-            // const uint64_t t = s[1] << 17;
-            let t = _mm256_sll_epi64(self.s1, _mm_cvtsi32_si128(17));
+        let t = self.s1 << u64x4::splat(17);
 
-            // s[2] ^= s[0];
-            // s[3] ^= s[1];
-            // s[1] ^= s[2];
-            // s[0] ^= s[3];
-            self.s2 = _mm256_xor_si256(self.s2, self.s0);
-            self.s3 = _mm256_xor_si256(self.s3, self.s1);
-            self.s1 = _mm256_xor_si256(self.s1, self.s2);
-            self.s0 = _mm256_xor_si256(self.s0, self.s3);
+        self.s2 ^= self.s0;
+        self.s3 ^= self.s1;
+        self.s1 ^= self.s2;
+        self.s0 ^= self.s3;
 
-            // s[2] ^= t;
-            self.s2 = _mm256_xor_si256(self.s2, t);
+        self.s2 ^= t;
 
-            // s[3] = rotl(s[3], 45);
-            self.s3 = rotate_left::<45>(self.s3);
-        }
+        self.s3 = rotate_left::<45>(self.s3);
+
+        return result;
     }
 }
 
@@ -119,10 +108,10 @@ mod tests {
     use itertools::Itertools;
     use rand_core::{RngCore, SeedableRng};
     use serial_test::parallel;
+    use std::simd::*;
 
     use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_256};
 
-    use super::super::vecs::*;
     use super::*;
 
     type RngSeed = Xoshiro256PlusX4Seed;
@@ -148,10 +137,9 @@ mod tests {
             34095955243042024,
             3466914240207415127,
         ];
-        for &e in &expected {
-            let mut mem = Default::default();
-            rng.next_u64x4(&mut mem);
-            for v in mem.into_iter() {
+        for e in expected {
+            let mem = rng.next_u64x4();
+            for &v in mem.as_array().into_iter() {
                 assert_eq!(v, e);
             }
         }
@@ -164,15 +152,13 @@ mod tests {
         rand::thread_rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
-        let mut values = U64x4::new([0; 4]);
-        rng.next_u64x4(&mut values);
+        let values = *rng.next_u64x4().as_array();
 
         assert!(values.iter().all(|&v| v != 0));
         assert!(values.iter().unique().count() == values.len());
         println!("{values:?}");
 
-        let mut values = U64x4::new([0; 4]);
-        rng.next_u64x4(&mut values);
+        let values = *rng.next_u64x4().as_array();
 
         assert!(values.iter().all(|&v| v != 0));
         assert!(values.iter().unique().count() == values.len());
@@ -186,14 +172,12 @@ mod tests {
         rand::thread_rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
-        let mut values = F64x4::new([0.0; 4]);
-        rng.next_f64x4(&mut values);
+        let values = *rng.next_f64x4().as_array();
 
         assert!(values.iter().all(|&v| v != 0.0));
         println!("{values:?}");
 
-        let mut values = F64x4::new([0.0; 4]);
-        rng.next_f64x4(&mut values);
+        let values = *rng.next_f64x4().as_array();
 
         assert!(values.iter().all(|&v| v != 0.0));
         println!("{values:?}");
@@ -206,7 +190,7 @@ mod tests {
         rand::thread_rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
-        let mut current: Option<F64x4> = None;
+        let mut current: Option<f64x4> = None;
         let mut current_index: usize = 0;
 
         test_uniform_distribution::<10_000_000, f64>(
@@ -217,9 +201,8 @@ mod tests {
                     return result;
                 }
                 _ => {
-                    let mut vector = Default::default();
                     current_index = 0;
-                    rng.next_f64x4(&mut vector);
+                    let vector = rng.next_f64x4();
                     let result = vector[current_index];
                     current = Some(vector);
                     current_index += 1;

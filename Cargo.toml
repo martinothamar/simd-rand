@@ -14,7 +14,8 @@ codegen-units = 1
 rand_core = "0.6"
 
 [dev-dependencies]
-rand = { version = "0.8", features = ["small_rng"] }
+rand = { version = "0.8", features = ["small_rng", "simd_support"] }
+packed_simd_2 = { version = "0.3" }
 num-traits = "0.2"
 dhat = "0.3.2"
 criterion = { version = "0.5", features = ["html_reports"] }

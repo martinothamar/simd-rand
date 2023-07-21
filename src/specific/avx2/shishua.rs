@@ -8,7 +8,7 @@ use std::alloc::{Layout, LayoutError};
 use std::iter::Iterator;
 use std::{alloc, mem};
 
-use super::simdprng::*;
+use super::simdrand::*;
 
 pub const DEFAULT_BUFFER_SIZE: usize = 1024 * 32;
 
@@ -84,7 +84,7 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     }
 }
 
-impl<const BUFFER_SIZE: usize> SimdPrng for Shishua<BUFFER_SIZE> {
+impl<const BUFFER_SIZE: usize> SimdRand for Shishua<BUFFER_SIZE> {
     #[inline(always)]
     fn next_m256i(&mut self, vector: &mut __m256i) {
         const SIZE: usize = mem::size_of::<__m256i>();

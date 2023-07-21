@@ -25,7 +25,7 @@ fn add_m256i_benchmarks<M: Measurement, const ITERATIONS: usize>(
         group.throughput(Throughput::Bytes((iterations * mem::size_of::<__m256i>()) as u64));
 
         #[inline(always)]
-        fn execute<RNG: SimdPrng>(rng: &mut RNG, data: &mut __m256i, i: usize) {
+        fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m256i, i: usize) {
             for _ in 0..i {
                 rng.next_m256i(black_box(data));
             }
@@ -72,7 +72,7 @@ fn add_m256d_benchmarks<M: Measurement, const ITERATIONS: usize>(
         group.throughput(Throughput::Bytes((iterations * mem::size_of::<__m256d>()) as u64));
 
         #[inline(always)]
-        fn execute<RNG: SimdPrng>(rng: &mut RNG, data: &mut __m256d, i: usize) {
+        fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m256d, i: usize) {
             for _ in 0..i {
                 rng.next_m256d(black_box(data));
             }

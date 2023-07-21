@@ -23,7 +23,7 @@ fn add_m512i_benchmarks<M: Measurement, const ITERATIONS: usize>(
         group.throughput(Throughput::Bytes((iterations * mem::size_of::<__m512i>()) as u64));
 
         #[inline(always)]
-        fn execute<RNG: SimdPrng>(rng: &mut RNG, data: &mut __m512i, i: usize) {
+        fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m512i, i: usize) {
             for _ in 0..i {
                 rng.next_m512i(black_box(data));
             }
@@ -62,7 +62,7 @@ fn add_m512d_benchmarks<M: Measurement, const ITERATIONS: usize>(
         group.throughput(Throughput::Bytes((iterations * mem::size_of::<__m512d>()) as u64));
 
         #[inline(always)]
-        fn execute<RNG: SimdPrng>(rng: &mut RNG, data: &mut __m512d, i: usize) {
+        fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m512d, i: usize) {
             for _ in 0..i {
                 rng.next_m512d(black_box(data));
             }

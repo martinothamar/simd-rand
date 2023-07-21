@@ -8,7 +8,7 @@ use rand_core::SeedableRng;
 
 use crate::specific::avx512::read_u64_into_vec;
 
-use super::{rotate_left, simdprng::*};
+use super::{rotate_left, simdrand::*};
 
 pub struct Xoshiro256PlusPlusX8Seed([u8; 256]);
 
@@ -86,7 +86,7 @@ impl SeedableRng for Xoshiro256PlusPlusX8 {
     }
 }
 
-impl SimdPrng for Xoshiro256PlusPlusX8 {
+impl SimdRand for Xoshiro256PlusPlusX8 {
     #[inline(always)]
     fn next_m512i(&mut self, vector: &mut __m512i) {
         unsafe {

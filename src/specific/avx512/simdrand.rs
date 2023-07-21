@@ -5,7 +5,7 @@ use std::{
 
 use super::vecs::*;
 
-pub trait SimdPrng {
+pub trait SimdRand {
     fn next_m512i(&mut self, vector: &mut __m512i);
 
     #[inline(always)]

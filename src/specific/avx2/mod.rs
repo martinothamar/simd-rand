@@ -4,13 +4,13 @@ use std::{
 };
 
 pub use shishua::*;
-pub use simdprng::*;
+pub use simdrand::*;
 pub use vecs::*;
 pub use xoshiro256plus::*;
 pub use xoshiro256plusplus::*;
 
 mod shishua;
-mod simdprng;
+mod simdrand;
 mod vecs;
 mod xoshiro256plus;
 mod xoshiro256plusplus;
