@@ -97,7 +97,7 @@ impl SimdRand for Xoshiro256PlusX4 {
 
         self.s2 ^= t;
 
-        self.s3 = rotate_left::<45>(self.s3);
+        self.s3 = rotate_left(self.s3, 45);
 
         return result;
     }

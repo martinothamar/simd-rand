@@ -7,7 +7,7 @@ test:
 	cargo test && cargo test --release
 
 bench:
-	cargo bench -- $(F) --verbose
+	cargo bench -- "$(F)" --verbose
 
 stat: build
 	perf stat -d -d -d $(outbin)

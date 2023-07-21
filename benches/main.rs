@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
+#![feature(portable_simd)]
 #![feature(stdsimd)]
 
 use std::arch::x86_64::*;
@@ -14,6 +15,8 @@ use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand_core::SeedableRng;
 use simd_rand::specific::avx2::*;
 
+mod portable;
+mod scratch;
 mod specific;
 mod top;
 
@@ -26,6 +29,10 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
         Type::CYCLES => "Cycles",
         _ => unreachable!(),
     };
+
+    crate::scratch::add_benchmarks(c, suffix);
+
+    crate::portable::add_benchmarks::<_, ITERATIONS>(c, suffix);
 
     if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
         crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);

@@ -1,4 +1,9 @@
-use std::{mem, simd::u64x4};
+use std::{
+    fmt::Debug,
+    mem::{self, MaybeUninit},
+    ops::{BitOr, Shl, Shr, Sub},
+    simd::{LaneCount, Simd, SimdElement, SupportedLaneCount},
+};
 
 pub use simdrand::*;
 pub use xoshiro256plusx4::*;
@@ -7,21 +12,37 @@ mod simdrand;
 mod xoshiro256plusx4;
 
 #[inline(always)]
-fn read_u64_into_vec(src: &[u8], dst: &mut u64x4) {
+fn read_u64_into_vec<const N: usize>(src: &[u8], dst: &mut Simd<u64, N>)
+where
+    LaneCount<N>: SupportedLaneCount,
+{
     const SIZE: usize = mem::size_of::<u64>();
-    assert!(src.len() == SIZE * 4);
+    assert!(src.len() == SIZE * N);
 
-    dst[0] = u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap());
-    dst[1] = u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap());
-    dst[2] = u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap());
-    dst[3] = u64::from_le_bytes(src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap());
+    let mut scalars: [u64; N] = unsafe { MaybeUninit::uninit().assume_init() };
+
+    for i in 0..N {
+        scalars[i] = u64::from_le_bytes(src[(SIZE * i)..(SIZE * (i + 1))].try_into().unwrap());
+    }
+
+    *dst = Simd::<u64, N>::from_array(scalars);
 }
 
 #[inline(always)]
-fn rotate_left<const K: u64>(x: u64x4) -> u64x4 {
-    let k = u64x4::splat(K);
-    // rotl: (x << k) | (x >> (64 - k))
-    let left = x << k;
-    let right = x >> u64x4::splat(64 - K);
-    return left | right;
+// Generics in rust is great
+fn rotate_left<T, const N: usize>(x: Simd<T, N>, k: T) -> Simd<T, N>
+where
+    T: SimdElement + Sub<T, Output = T>,
+    LaneCount<N>: SupportedLaneCount,
+    usize: TryInto<T>,
+    <usize as TryInto<T>>::Error: Debug,
+    Simd<T, N>: Shl<Simd<T, N>, Output = Simd<T, N>>,
+    Simd<T, N>: Shr<Simd<T, N>, Output = Simd<T, N>>,
+    Simd<T, N>: BitOr<Simd<T, N>, Output = Simd<T, N>>,
+{
+    let bitsize = mem::size_of::<T>() * 8;
+    let kv = Simd::<T, N>::splat(k);
+    let left = x << kv;
+    let right = x >> Simd::<T, N>::splat(bitsize.try_into().unwrap() - k);
+    left | right
 }
