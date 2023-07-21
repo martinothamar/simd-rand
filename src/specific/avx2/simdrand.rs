@@ -61,6 +61,12 @@ unsafe fn m256i_to_m256d(v: __m256i) -> __m256d {
             "vcvtuqq2pd {1}, {0}",
             in(ymm_reg) v,
             out(ymm_reg) dst,
+            // PERF: 'nostack' tells the Rust compiler that our asm won't touch the stack.
+            // If we don't include this, the compiler might inject additional
+            // instructions to make the stack pointer 16byte aligned in accordance to x64 ABI.
+            // If we were to 'call' in our inline asm, it would have to push the 8byte return address
+            // onto the stack, so the stack would have to be 16byte aligned before this happened
+            options(nostack),
         );
         dst
     } else {

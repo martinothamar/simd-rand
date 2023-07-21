@@ -7,7 +7,7 @@ edition = "2021"
 panic = "abort"
 lto = true
 opt-level = 3
-debug = 2
+debug = "none"
 codegen-units = 1
 
 [dependencies]
