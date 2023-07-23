@@ -18,16 +18,35 @@ Sources:
 
 ## Performance
 
-The top performing generator is currently Xoshiro256+ using AVX2 intrinsics.
-It is about 5x faster. The below benchmarks generates `u64` numbers in a loop
+The top performing generator (on my current hardware) is currently Xoshiro256+ using AVX512 intrinsics.
+It is about 5.9x faster. The below benchmarks generates `u64x8` numbers in a loop.
+Note that the RandVectorized variant uses `simd_support` from the rand crate,
+but this doesn't actually vectorize random number generation.
+
+If you want to actually use these generators, you should benchmark them yourself on your own hardware. See the `bench` target in the [Makefile](/Makefile).
 
 ```
-top/Original/Xoshiro256+/64
-                        time:   [418.06 ns 419.05 ns 420.18 ns]
-                        thrpt:  [9.0788 GiB/s 9.1031 GiB/s 9.1248 GiB/s]
+top/Rand/Xoshiro256+/64 time:   [390.00 ns 393.60 ns 397.90 ns]
+                        thrpt:  [9.5872 GiB/s 9.6918 GiB/s 9.7812 GiB/s]
+slope  [390.00 ns 397.90 ns] R^2            [0.8089080 0.8052865]
+mean   [388.88 ns 394.12 ns] std. dev.      [9.3148 ns 17.684 ns]
+median [385.26 ns 390.14 ns] med. abs. dev. [6.5440 ns 12.296 ns]
+
+
+top/RandVectorized/Xoshiro256+/64
+                        time:   [470.69 ns 474.05 ns 477.66 ns]
+                        thrpt:  [7.9861 GiB/s 8.0470 GiB/s 8.1044 GiB/s]
+slope  [470.69 ns 477.66 ns] R^2            [0.8833014 0.8824255]
+mean   [471.13 ns 477.21 ns] std. dev.      [12.249 ns 18.496 ns]
+median [468.56 ns 474.69 ns] med. abs. dev. [9.4037 ns 16.385 ns]
+
+
 top/AVX512/Xoshiro256+/64
-                        time:   [75.274 ns 75.668 ns 76.059 ns]
-                        thrpt:  [50.155 GiB/s 50.413 GiB/s 50.677 GiB/s]
+                        time:   [66.718 ns 67.222 ns 67.722 ns]
+                        thrpt:  [56.329 GiB/s 56.747 GiB/s 57.176 GiB/s]
+slope  [66.718 ns 67.722 ns] R^2            [0.9055332 0.9056426]
+mean   [66.456 ns 67.282 ns] std. dev.      [1.8470 ns 2.3434 ns]
+median [66.435 ns 67.161 ns] med. abs. dev. [1.6376 ns 3.0408 ns]
 ```
 
 ### Benchmarks
