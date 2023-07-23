@@ -7,12 +7,14 @@ use std::{
 
 pub use simdrand::*;
 pub use xoshiro256plusx4::*;
+pub use xoshiro256plusx8::*;
 
 mod simdrand;
 mod xoshiro256plusx4;
+mod xoshiro256plusx8;
 
 #[inline(always)]
-fn read_u64_into_vec<const N: usize>(src: &[u8], dst: &mut Simd<u64, N>)
+fn read_u64_into_vec<const N: usize>(src: &[u8]) -> Simd<u64, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
@@ -25,7 +27,7 @@ where
         scalars[i] = u64::from_le_bytes(src[(SIZE * i)..(SIZE * (i + 1))].try_into().unwrap());
     }
 
-    *dst = Simd::<u64, N>::from_array(scalars);
+    Simd::<u64, N>::from_array(scalars)
 }
 
 #[inline(always)]
