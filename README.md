@@ -26,7 +26,8 @@ but this doesn't actually vectorize random number generation.
 If you want to actually use these generators, you should benchmark them yourself on your own hardware. See the `bench` target in the [Makefile](/Makefile).
 
 ```
-top/Rand/Xoshiro256+/64 time:   [390.00 ns 393.60 ns 397.90 ns]
+top/Rand/Xoshiro256+/64
+                        time:   [390.00 ns 393.60 ns 397.90 ns]
                         thrpt:  [9.5872 GiB/s 9.6918 GiB/s 9.7812 GiB/s]
 slope  [390.00 ns 397.90 ns] R^2            [0.8089080 0.8052865]
 mean   [388.88 ns 394.12 ns] std. dev.      [9.3148 ns 17.684 ns]
