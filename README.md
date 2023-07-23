@@ -2,7 +2,7 @@
 
 Provides SIMD implementations of common PRNGs in Rust. 
 Categories:
-- [`portable`] - TODO
+- [`portable`] - portable implementations using `std::simd` (nightly required) 
 - [`specific`] - implementations using architecture-specific hardware intrinsics
   - [`specific::avx2`] - AVX2 for x86_64 architecture (4 lanes for 64bit)
   - [`specific::avx512`] - AVX512 for x86_64 architecture (8 lanes for 64bit)
