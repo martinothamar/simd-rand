@@ -86,7 +86,7 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
 
 impl<const BUFFER_SIZE: usize> SimdRand for Shishua<BUFFER_SIZE> {
     #[inline(always)]
-    fn next_m256i(&mut self, vector: &mut __m256i) {
+    fn next_m256i(&mut self) -> __m256i {
         const SIZE: usize = mem::size_of::<__m256i>();
         unsafe {
             let state = self.state.as_mut();
@@ -95,9 +95,11 @@ impl<const BUFFER_SIZE: usize> SimdRand for Shishua<BUFFER_SIZE> {
 
             let src = &state.buffer.0[state.buffer_index];
 
-            *vector = _mm256_load_si256(transmute::<_, *const __m256i>(src));
+            let vector = _mm256_load_si256(transmute::<_, *const __m256i>(src));
 
             state.buffer_index += SIZE;
+
+            vector
         }
     }
 }
@@ -468,15 +470,13 @@ mod tests {
     fn sample_u64x4() {
         let mut rng = create_with_predefined_seed();
 
-        let mut values = U64x4::new([0; 4]);
-        rng.next_u64x4(&mut values);
+        let values = rng.next_u64x4();
 
         assert!(values.iter().all(|&v| v != 0));
         assert!(values.iter().unique().count() == values.len());
         println!("{values:?}");
 
-        let mut values = U64x4::new([0; 4]);
-        rng.next_u64x4(&mut values);
+        let values = rng.next_u64x4();
 
         assert!(values.iter().all(|&v| v != 0));
         assert!(values.iter().unique().count() == values.len());
@@ -488,14 +488,12 @@ mod tests {
     fn sample_f64x4() {
         let mut rng = create_with_predefined_seed();
 
-        let mut values = F64x4::new([0.0; 4]);
-        rng.next_f64x4(&mut values);
+        let values = rng.next_f64x4();
 
         assert!(values.iter().all(|&v| v != 0.0));
         println!("{values:?}");
 
-        let mut values = F64x4::new([0.0; 4]);
-        rng.next_f64x4(&mut values);
+        let values = rng.next_f64x4();
 
         assert!(values.iter().all(|&v| v != 0.0));
         println!("{values:?}");
@@ -525,9 +523,8 @@ mod tests {
                     return result;
                 }
                 _ => {
-                    let mut vector = Default::default();
                     current_index = 0;
-                    rng.next_f64x4(&mut vector);
+                    let vector = rng.next_f64x4();
                     let result = vector[current_index];
                     current = Some(vector);
                     current_index += 1;

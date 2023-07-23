@@ -6,14 +6,12 @@ use std::{
 use super::vecs::*;
 
 pub trait SimdRand {
-    fn next_m512i(&mut self, vector: &mut __m512i);
+    fn next_m512i(&mut self) -> __m512i;
 
     #[inline(always)]
-    fn next_m512d(&mut self, result: &mut __m512d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+    fn next_m512d(&mut self) -> __m512d {
         unsafe {
-            let mut v = _mm512_setzero_si512();
-            self.next_m512i(&mut v);
+            let v = self.next_m512i();
 
             let lhs = m512i_to_m512d(_mm512_srl_epi64(v, _mm_cvtsi32_si128(11)));
 
@@ -24,25 +22,27 @@ pub trait SimdRand {
             const RHS_FACTOR: [f64; 8] = [1.1102230246251565E-16; 8];
             const RHS: __m512d = unsafe { transmute::<[f64; 8], __m512d>(RHS_FACTOR) };
 
-            *result = _mm512_mul_pd(lhs, RHS)
+            _mm512_mul_pd(lhs, RHS)
         }
     }
 
     #[inline(always)]
-    fn next_u64x8(&mut self, vector: &mut U64x8) {
+    fn next_u64x8(&mut self) -> U64x8 {
         unsafe {
-            let mut v = _mm512_setzero_si512();
-            self.next_m512i(&mut v);
-            _mm512_store_epi64(transmute::<_, *mut i64>(vector), v);
+            let v = self.next_m512i();
+            let mut vector = Default::default();
+            _mm512_store_epi64(transmute::<_, *mut i64>(&mut vector), v);
+            vector
         }
     }
 
     #[inline(always)]
-    fn next_f64x8(&mut self, vector: &mut F64x8) {
+    fn next_f64x8(&mut self) -> F64x8 {
         unsafe {
-            let mut v = _mm512_setzero_pd();
-            self.next_m512d(&mut v);
+            let v = self.next_m512d();
+            let mut vector: F64x8 = Default::default();
             _mm512_store_pd(vector.as_mut_ptr(), v);
+            vector
         }
     }
 }

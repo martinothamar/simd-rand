@@ -27,7 +27,7 @@ fn add_m256i_benchmarks<M: Measurement, const ITERATIONS: usize>(
         #[inline(always)]
         fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m256i, i: usize) {
             for _ in 0..i {
-                rng.next_m256i(black_box(data));
+                *black_box(&mut *data) = rng.next_m256i();
             }
         }
 
@@ -74,7 +74,7 @@ fn add_m256d_benchmarks<M: Measurement, const ITERATIONS: usize>(
         #[inline(always)]
         fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m256d, i: usize) {
             for _ in 0..i {
-                rng.next_m256d(black_box(data));
+                *black_box(&mut *data) = rng.next_m256d();
             }
         }
 

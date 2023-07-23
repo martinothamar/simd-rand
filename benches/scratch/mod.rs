@@ -26,11 +26,7 @@ fn do_u64_portable<RNG: PortableSimdRand>(rng: &mut RNG) -> u64x4 {
 
 #[inline(always)]
 fn do_u64_specific<RNG: SpecificSimdRand>(rng: &mut RNG) -> __m256i {
-    unsafe {
-        let mut result = _mm256_setzero_si256();
-        rng.next_m256i(&mut result);
-        result
-    }
+    rng.next_m256i()
 }
 
 pub fn add_benchmarks<M: Measurement>(c: &mut Criterion<M>, suffix: &str) {

@@ -9,8 +9,7 @@ use simd_rand::specific::avx512::{U64x8, SimdRand, Xoshiro256PlusX8};
 fn execute_original<RNG: RngCore>(rng: &mut RNG, data: &mut U64x8, i: usize) {
     for _ in 0..i {
         for i in 0..8 {
-            let data = black_box(&mut *data);
-            data[i] = rng.next_u64();
+            black_box(&mut *data)[i] = rng.next_u64();
         }
     }
 }
@@ -18,7 +17,7 @@ fn execute_original<RNG: RngCore>(rng: &mut RNG, data: &mut U64x8, i: usize) {
 #[inline(always)]
 fn execute_vectorized<RNG: SimdRand>(rng: &mut RNG, data: &mut __m512i, i: usize) {
     for _ in 0..i {
-        rng.next_m512i(black_box(data));
+        *black_box(&mut *data) = rng.next_m512i();
     }
 }
 

@@ -71,27 +71,22 @@ impl SeedableRng for Xoshiro256PlusPlusX8 {
         const LEN: usize = 8;
         const VECSIZE: usize = SIZE * LEN;
         // TODO: implement "jumps" between lanes?
-        unsafe {
-            let mut s0: __m512i = _mm512_setzero_si512();
-            let mut s1: __m512i = _mm512_setzero_si512();
-            let mut s2: __m512i = _mm512_setzero_si512();
-            let mut s3: __m512i = _mm512_setzero_si512();
-            read_u64_into_vec(&seed[(VECSIZE * 0)..(VECSIZE * 1)], &mut s0);
-            read_u64_into_vec(&seed[(VECSIZE * 1)..(VECSIZE * 2)], &mut s1);
-            read_u64_into_vec(&seed[(VECSIZE * 2)..(VECSIZE * 3)], &mut s2);
-            read_u64_into_vec(&seed[(VECSIZE * 3)..(VECSIZE * 4)], &mut s3);
+        
+        let s0 = read_u64_into_vec(&seed[(VECSIZE * 0)..(VECSIZE * 1)]);
+        let s1 = read_u64_into_vec(&seed[(VECSIZE * 1)..(VECSIZE * 2)]);
+        let s2 = read_u64_into_vec(&seed[(VECSIZE * 2)..(VECSIZE * 3)]);
+        let s3 = read_u64_into_vec(&seed[(VECSIZE * 3)..(VECSIZE * 4)]);
 
-            Self { s0, s1, s2, s3 }
-        }
+        Self { s0, s1, s2, s3 }
     }
 }
 
 impl SimdRand for Xoshiro256PlusPlusX8 {
     #[inline(always)]
-    fn next_m512i(&mut self, vector: &mut __m512i) {
+    fn next_m512i(&mut self) -> __m512i {
         unsafe {
             // const uint64_t result = rotl(s[0] + s[3], 23) + s[0];
-            *vector = _mm512_add_epi64(rotate_left::<23>(_mm512_add_epi64(self.s0, self.s3)), self.s0);
+            let vector = _mm512_add_epi64(rotate_left::<23>(_mm512_add_epi64(self.s0, self.s3)), self.s0);
 
             // const uint64_t t = s[1] << 17;
             let t = _mm512_sll_epi64(self.s1, _mm_cvtsi32_si128(17));
@@ -110,6 +105,8 @@ impl SimdRand for Xoshiro256PlusPlusX8 {
 
             // s[3] = rotl(s[3], 45);
             self.s3 = rotate_left::<45>(self.s3);
+
+            vector
         }
     }
 }
@@ -142,8 +139,7 @@ mod tests {
             12406186145184390807, 15849039046786891736, 10450023813501588000,
         ];
         for &e in &expected {
-            let mut mem = Default::default();
-            rng.next_u64x8(&mut mem);
+            let mem = rng.next_u64x8();
             for v in mem.into_iter() {
                 assert_eq!(v, e);
             }
@@ -157,15 +153,13 @@ mod tests {
         rand::thread_rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
-        let mut values = Default::default();
-        rng.next_u64x8(&mut values);
+        let values = rng.next_u64x8();
 
         assert!(values.iter().all(|&v| v != 0));
         assert!(values.iter().unique().count() == values.len());
         println!("{values:?}");
 
-        let mut values = Default::default();
-        rng.next_u64x8(&mut values);
+        let values = rng.next_u64x8();
 
         assert!(values.iter().all(|&v| v != 0));
         assert!(values.iter().unique().count() == values.len());
@@ -179,14 +173,12 @@ mod tests {
         rand::thread_rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
-        let mut values = Default::default();
-        rng.next_f64x8(&mut values);
+        let values = rng.next_f64x8();
 
         assert!(values.iter().all(|&v| v != 0.0));
         println!("{values:?}");
 
-        let mut values = Default::default();
-        rng.next_f64x8(&mut values);
+        let values = rng.next_f64x8();
 
         assert!(values.iter().all(|&v| v != 0.0));
         println!("{values:?}");
@@ -210,9 +202,8 @@ mod tests {
                     return result;
                 }
                 _ => {
-                    let mut vector = Default::default();
                     current_index = 0;
-                    rng.next_f64x8(&mut vector);
+                    let vector = rng.next_f64x8();
                     let result = vector[current_index];
                     current = Some(vector);
                     current_index += 1;

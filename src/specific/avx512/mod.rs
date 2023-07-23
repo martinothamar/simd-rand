@@ -16,11 +16,11 @@ mod xoshiro256plusplus;
 mod xoshiro256plus;
 
 #[inline(always)]
-fn read_u64_into_vec(src: &[u8], dst: &mut __m512i) {
+fn read_u64_into_vec(src: &[u8]) -> __m512i {
     const SIZE: usize = mem::size_of::<u64>();
     assert!(src.len() == SIZE * 8);
     unsafe {
-        *dst = _mm512_set_epi64(
+        _mm512_set_epi64(
             transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
             transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
             transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),

@@ -25,7 +25,7 @@ fn add_m512i_benchmarks<M: Measurement, const ITERATIONS: usize>(
         #[inline(always)]
         fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m512i, i: usize) {
             for _ in 0..i {
-                rng.next_m512i(black_box(data));
+                *black_box(&mut *data) = rng.next_m512i();
             }
         }
 
@@ -64,7 +64,7 @@ fn add_m512d_benchmarks<M: Measurement, const ITERATIONS: usize>(
         #[inline(always)]
         fn execute<RNG: SimdRand>(rng: &mut RNG, data: &mut __m512d, i: usize) {
             for _ in 0..i {
-                rng.next_m512d(black_box(data));
+                *black_box(&mut *data) = rng.next_m512d();
             }
         }
 

@@ -6,17 +6,12 @@ use std::{
 use super::vecs::*;
 
 pub trait SimdRand {
-    fn next_m256i(&mut self, vector: &mut __m256i);
+    fn next_m256i(&mut self) -> __m256i;
 
-    // Unfortunately this is not fast enough,
-    // since there is no direct intrinsic for u64 -> f64 conversion (other than in avx512)
-    // TODO: if avx512, we can do better
     #[inline(always)]
-    fn next_m256d(&mut self, result: &mut __m256d) {
-        // (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+    fn next_m256d(&mut self) -> __m256d {
         unsafe {
-            let mut v = _mm256_setzero_si256();
-            self.next_m256i(&mut v);
+            let v = self.next_m256i();
 
             let lhs = m256i_to_m256d(_mm256_srl_epi64(v, _mm_cvtsi32_si128(11)));
 
@@ -27,25 +22,27 @@ pub trait SimdRand {
             const RHS_FACTOR: [f64; 4] = [1.1102230246251565E-16; 4];
             const RHS: __m256d = unsafe { transmute::<[f64; 4], __m256d>(RHS_FACTOR) };
 
-            *result = _mm256_mul_pd(lhs, RHS)
+            _mm256_mul_pd(lhs, RHS)
         }
     }
 
     #[inline(always)]
-    fn next_u64x4(&mut self, vector: &mut U64x4) {
+    fn next_u64x4(&mut self) -> U64x4 {
         unsafe {
-            let mut v = _mm256_setzero_si256();
-            self.next_m256i(&mut v);
-            _mm256_store_si256(transmute::<_, *mut __m256i>(vector), v);
+            let v = self.next_m256i();
+            let mut vector = Default::default();
+            _mm256_store_si256(transmute::<_, *mut __m256i>(&mut vector), v);
+            vector
         }
     }
 
     #[inline(always)]
-    fn next_f64x4(&mut self, vector: &mut F64x4) {
+    fn next_f64x4(&mut self) -> F64x4 {
         unsafe {
-            let mut v = _mm256_setzero_pd();
-            self.next_m256d(&mut v);
-            _mm256_store_pd(vector.as_mut_ptr(), v);
+            let v = self.next_m256d();
+            let mut vector = Default::default();
+            _mm256_store_pd(transmute::<_, *mut f64>(&mut vector), v);
+            vector
         }
     }
 }
