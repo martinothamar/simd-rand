@@ -7,7 +7,7 @@ Categories:
   - [`specific::avx2`] - AVX2 for x86_64 architecture (4 lanes for 64bit)
   - [`specific::avx512`] - AVX512 for x86_64 architecture (8 lanes for 64bit)
 
-This library is meant to be used in higly performance codepaths typically using
+This library is meant to be used in high performance codepaths typically using
 hardware intrisics to accelerate compute, for example 
 [Monte Carlo simulations](https://github.com/martinothamar/building-x-in-y/tree/main/monte-carlo-sim/rust).
 
