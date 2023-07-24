@@ -23,7 +23,7 @@ Sources:
 
 ## Usage
 
-```
+```toml
 [dependencies]
 simd_rand = { git = "https://github.com/martinothamar/simd-rand" }
 ```
