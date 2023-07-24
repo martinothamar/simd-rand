@@ -7,6 +7,11 @@ Categories:
   - [`specific::avx2`] - AVX2 for x86_64 architecture (4 lanes for 64bit)
   - [`specific::avx512`] - AVX512 for x86_64 architecture (8 lanes for 64bit)
 
+Vectorized PRNG implementations may perform anywhere from 4-6 times faster in my experience,
+of course very dependent on hardware used ("old" CPUs with AVX512 for example may have excessive thermal throttling).
+I'm no expert in statistical testing, but I have ran some of these through practrand using random bytes from the `rand` crate
+as seeding, and vectorized and non-vectorized implementations seemed to perform identically.
+
 This library is meant to be used in high performance codepaths typically using
 hardware intrisics to accelerate compute, for example 
 [Monte Carlo simulations](https://github.com/martinothamar/building-x-in-y/tree/main/monte-carlo-sim/rust).
@@ -72,3 +77,8 @@ rustup component add llvm-tools-preview
 ```
 
 Then you can run `make dasm`
+
+## TODO
+
+* Implement jumps between lanes for Xoshiro-variants
+* More PRNGs
