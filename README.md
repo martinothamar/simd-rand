@@ -21,6 +21,26 @@ This library is under active development. No version has been published to cargo
 Sources:
 * [PRNG shootout by Sebastiano Vigna](https://prng.di.unimi.it/)
 
+## Usage
+
+```
+[dependencies]
+simd_rand = { git = "https://github.com/martinothamar/simd-rand" }
+```
+
+```rust
+use rand_core::{RngCore, SeedableRng};
+use simd_rand::portable::*;
+
+fn main() {
+    let mut seed: Xoshiro256PlusPlusX8Seed = Default::default();
+    rand::thread_rng().fill_bytes(&mut *seed);
+    let mut rng = Xoshiro256PlusPlusX8::from_seed(seed);
+
+    let vector = rng.next_u64x8();
+}
+```
+
 ## Performance
 
 The top performing generator (on my current hardware) is currently Xoshiro256+ using AVX512 intrinsics.
@@ -82,3 +102,5 @@ Then you can run `make dasm`
 
 * Implement jumps between lanes for Xoshiro-variants
 * More PRNGs
+* More docs
+* Cleanup code around seeding
