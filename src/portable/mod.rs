@@ -1,15 +1,19 @@
 use std::{
     fmt::Debug,
-    mem::{self, MaybeUninit},
+    mem,
     ops::{BitOr, Shl, Shr, Sub},
     simd::{LaneCount, Simd, SimdElement, SupportedLaneCount},
 };
 
 pub use simdrand::*;
+pub use xoshiro256plusplusx4::*;
+pub use xoshiro256plusplusx8::*;
 pub use xoshiro256plusx4::*;
 pub use xoshiro256plusx8::*;
 
 mod simdrand;
+mod xoshiro256plusplusx4;
+mod xoshiro256plusplusx8;
 mod xoshiro256plusx4;
 mod xoshiro256plusx8;
 
@@ -21,7 +25,7 @@ where
     const SIZE: usize = mem::size_of::<u64>();
     assert!(src.len() == SIZE * N);
 
-    let mut scalars: [u64; N] = unsafe { MaybeUninit::uninit().assume_init() };
+    let mut scalars: [u64; N] = [0; N];
 
     for i in 0..N {
         scalars[i] = u64::from_le_bytes(src[(SIZE * i)..(SIZE * (i + 1))].try_into().unwrap());

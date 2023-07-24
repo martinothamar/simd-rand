@@ -43,3 +43,8 @@ bench = false
 name = "profile"
 path = "examples/_internal/profile.rs"
 bench = false
+
+[[example]]
+name = "practrand"
+path = "examples/_internal/practrand.rs"
+bench = false

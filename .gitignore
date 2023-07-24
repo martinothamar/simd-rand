@@ -22,4 +22,5 @@ Cargo.lock
 dhat-heap.json
 *.S
 
+external/PractRand/
 external/bin/
