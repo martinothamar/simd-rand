@@ -99,7 +99,7 @@ Then you can run `make dasm`
 
 ## TODO
 
-* Implement jumps between lanes for Xoshiro-variants
+* Implement jumps between lanes for Xoshiro-variants?
 * More PRNGs
 * More docs
 * Cleanup code around seeding
