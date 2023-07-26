@@ -18,8 +18,7 @@ hardware intrisics to accelerate compute, for example
 
 This library is under active development. No version has been published to cargo yet.
 
-Sources:
-* [PRNG shootout by Sebastiano Vigna](https://prng.di.unimi.it/)
+Choice of PRNGs, unvectorized sources and general advice has been taken from the great [PRNG shootout by Sebastiano Vigna](https://prng.di.unimi.it/).
 
 ## Usage
 
