@@ -8,25 +8,25 @@ use simd_rand::portable::*;
 use simd_rand::specific;
 use packed_simd_2::u64x8 as ps_u64x8;
 
-#[inline(never)]
+#[inline(always)]
 fn execute_rand<RNG: RngCore>(rng: &mut RNG, data: &mut u64x8) {
     for i in 0..8 {
         data[i] = rng.next_u64();
     }
 }
 
-#[inline(never)]
+#[inline(always)]
 fn execute_rand_vectorized<RNG: RngCore>(rng: &mut RNG, data: &mut ps_u64x8) {
     *data = rng.gen::<ps_u64x8>();
 }
 
-#[inline(never)]
+#[inline(always)]
 fn execute_vectorized_portable<RNG: SimdRandX8>(rng: &mut RNG, data: &mut u64x8) {
     *data = rng.next_u64x8();
 }
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq"))]
-#[inline(never)]
+#[inline(always)]
 fn execute_vectorized_specific<RNG: specific::avx512::SimdRand>(rng: &mut RNG, data: &mut __m512i) {
     *data = rng.next_m512i();
 }
@@ -62,9 +62,9 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
     });
     
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq"))]
-    let name = BenchmarkId::new(format!("Specific/Xoshiro256+X8"), iterations);
+    let name = BenchmarkId::new(format!("Specific/Xoshiro256+X8"), 1);
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq"))]
-    group.bench_with_input(name, &iterations, |b, i| unsafe {
+    group.bench_with_input(name, &1, |b, i| unsafe {
         let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data: __m512i = _mm512_setzero_si512();
 

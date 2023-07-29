@@ -54,8 +54,8 @@ In some contexts that may be useful.
 
 ## Performance
 
-The top performing generator (on my current hardware) is currently Xoshiro256+ using AVX512 intrinsics.
-It is about 5.9x faster. The below benchmarks generates `u64x8` numbers in a loop.
+The top performing generator (on my current hardware) is currently Xoshiro256+ using AVX512 instruction set.
+It is about 6x faster. The below benchmarks generates `u64x8` numbers.
 Note that the RandVectorized variant uses `simd_support` from the `rand` crate,
 but this doesn't actually vectorize random number generation.
 
@@ -65,28 +65,43 @@ There is a `portable` variant of Xoshiro256+ for u64x8/f64x8 as well, but in tho
 decides what to do with the vectors, whereas with AVX512 specific ones in the `specific` module will either not compile or run very fast.
 
 ```
-top/Rand/Xoshiro256+/64
-                        time:   [390.00 ns 393.60 ns 397.90 ns]
-                        thrpt:  [9.5872 GiB/s 9.6918 GiB/s 9.7812 GiB/s]
-slope  [390.00 ns 397.90 ns] R^2            [0.8089080 0.8052865]
-mean   [388.88 ns 394.12 ns] std. dev.      [9.3148 ns 17.684 ns]
-median [385.26 ns 390.14 ns] med. abs. dev. [6.5440 ns 12.296 ns]
+Top/Rand/Xoshiro256+/1  time:   [5.8505 ns 5.8653 ns 5.8823 ns]
+                        thrpt:  [10.133 GiB/s 10.162 GiB/s 10.188 GiB/s]
+Found 13 outliers among 100 measurements (13.00%)
+  8 (8.00%) high mild
+  5 (5.00%) high severe
+slope  [5.8505 ns 5.8823 ns] R^2            [0.9830550 0.9828000]
+mean   [5.8567 ns 5.8866 ns] std. dev.      [55.633 ps 96.630 ps]
+median [5.8421 ns 5.8533 ns] med. abs. dev. [23.662 ps 45.862 ps]
 
 
-top/RandVectorized/Xoshiro256+/64
-                        time:   [470.69 ns 474.05 ns 477.66 ns]
-                        thrpt:  [7.9861 GiB/s 8.0470 GiB/s 8.1044 GiB/s]
-slope  [470.69 ns 477.66 ns] R^2            [0.8833014 0.8824255]
-mean   [471.13 ns 477.21 ns] std. dev.      [12.249 ns 18.496 ns]
-median [468.56 ns 474.69 ns] med. abs. dev. [9.4037 ns 16.385 ns]
+Top/RandVectorized/Xoshiro256+/1
+                        time:   [7.1770 ns 7.1938 ns 7.2142 ns]
+                        thrpt:  [8.2621 GiB/s 8.2855 GiB/s 8.3050 GiB/s]
+Found 13 outliers among 100 measurements (13.00%)
+  6 (6.00%) high mild
+  7 (7.00%) high severe
+slope  [7.1770 ns 7.2142 ns] R^2            [0.9858523 0.9855185]
+mean   [7.1769 ns 7.2059 ns] std. dev.      [50.956 ps 94.011 ps]
+median [7.1633 ns 7.1748 ns] med. abs. dev. [20.377 ps 38.094 ps]
 
 
-top/AVX512/Xoshiro256+/64
-                        time:   [66.718 ns 67.222 ns 67.722 ns]
-                        thrpt:  [56.329 GiB/s 56.747 GiB/s 57.176 GiB/s]
-slope  [66.718 ns 67.722 ns] R^2            [0.9055332 0.9056426]
-mean   [66.456 ns 67.282 ns] std. dev.      [1.8470 ns 2.3434 ns]
-median [66.435 ns 67.161 ns] med. abs. dev. [1.6376 ns 3.0408 ns]
+Top/Portable/Xoshiro256+X8/1
+                        time:   [916.36 ps 920.53 ps 925.57 ps]
+                        thrpt:  [64.398 GiB/s 64.750 GiB/s 65.045 GiB/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+slope  [916.36 ps 925.57 ps] R^2            [0.9466915 0.9454417]
+mean   [916.46 ps 923.16 ps] std. dev.      [13.352 ps 21.906 ps]
+median [915.04 ps 925.21 ps] med. abs. dev. [12.841 ps 20.338 ps]
+
+
+Top/Specific/Xoshiro256+X8/1
+                        time:   [961.32 ps 965.08 ps 968.96 ps]
+                        thrpt:  [61.514 GiB/s 61.761 GiB/s 62.003 GiB/s]
+slope  [961.32 ps 968.96 ps] R^2            [0.9651056 0.9649879]
+mean   [963.76 ps 971.23 ps] std. dev.      [16.813 ps 21.217 ps]
+median [964.21 ps 975.76 ps] med. abs. dev. [16.026 ps 26.276 ps]
 ```
 
 ## Safety
