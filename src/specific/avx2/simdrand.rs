@@ -49,7 +49,7 @@ pub trait SimdRand {
 
 #[inline(always)]
 unsafe fn m256i_to_m256d(v: __m256i) -> __m256d {
-    if is_x86_feature_detected!("avx512dq") || is_x86_feature_detected!("avx512vl") {
+    if is_x86_feature_detected!("avx512dq") && is_x86_feature_detected!("avx512vl") {
         // With AVX512 DQ/VL we can use the below instruction
         // with both 512bit and 256bit vectors
         // see https://www.felixcloutier.com/x86/vcvtuqq2pd

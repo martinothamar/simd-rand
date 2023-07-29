@@ -5,7 +5,9 @@ Categories:
 - [`portable`] - portable implementations using `std::simd` (nightly required) 
 - [`specific`] - implementations using architecture-specific hardware intrinsics
   - [`specific::avx2`] - AVX2 for x86_64 architecture (4 lanes for 64bit)
+    - Requires `avx2` CPU flag, but has additional optimization if you have `avx512dq` and `avx512vl`
   - [`specific::avx512`] - AVX512 for x86_64 architecture (8 lanes for 64bit)
+    - Requires `avx512f`, `avx512dq` CPU flags
 
 Vectorized PRNG implementations may perform anywhere from 4-6 times faster in my experience,
 of course very dependent on hardware used ("old" CPUs with AVX512 for example may have excessive thermal throttling).
@@ -40,11 +42,21 @@ fn main() {
 }
 ```
 
+The `portable` module will be available on any architecture, e.g. even on x86_64 with only AVX2 you can still use `Xoshiro256PlusPluxX8` which uses
+8-lane/512bit vectors (u64x8 from `std::simd`). The compiler is able to make it reasonably fast even if using only 256bit wide registers (AVX2) in the generated code.
+
+The `specific` submodules (AVX2 and AVX512 currently) are only compiled in depending on target arch/features.
+
+In general, use the `portable` module. The only risk/drawback to using the `portable` module is that in principle
+the compiler isn't _forced_ to use the "optimal" instructions and registers for your hardware. In practice, it probably will though.
+In the `specific` submodules the respective hardware intrinsics are "hardcoded" so to speak so we always know what the generated code looks like.
+In some contexts that may be useful.
+
 ## Performance
 
 The top performing generator (on my current hardware) is currently Xoshiro256+ using AVX512 intrinsics.
 It is about 5.9x faster. The below benchmarks generates `u64x8` numbers in a loop.
-Note that the RandVectorized variant uses `simd_support` from the rand crate,
+Note that the RandVectorized variant uses `simd_support` from the `rand` crate,
 but this doesn't actually vectorize random number generation.
 
 If you want to actually use these generators, you should benchmark them yourself on your own hardware. See the `bench` target in the [Makefile](/Makefile).

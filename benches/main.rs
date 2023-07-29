@@ -13,7 +13,6 @@ use criterion_perf_events::Perf;
 use perfcnt::linux::HardwareEventType as Hardware;
 use perfcnt::linux::PerfCounterBuilderLinux as Builder;
 use rand_core::SeedableRng;
-use simd_rand::specific::avx2::*;
 
 mod portable;
 mod scratch;
@@ -34,17 +33,13 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
 
     crate::portable::add_benchmarks::<_, ITERATIONS>(c, suffix);
 
-    if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
-        crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
-    }
-    if cfg!(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512dq"
-    )) {
-        crate::specific::avx512::add_benchmarks::<_, ITERATIONS>(c, suffix);
-        crate::top::add_top_benchmark::<_, ITERATIONS>(c);
-    }
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+    crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
+        
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq"))]
+    crate::specific::avx512::add_benchmarks::<_, ITERATIONS>(c, suffix);
+    
+    crate::top::add_top_benchmark::<_, ITERATIONS>(c);
 }
 
 #[non_exhaustive]

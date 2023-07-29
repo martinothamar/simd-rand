@@ -25,6 +25,10 @@ dasm:
 	cargo objdump --example dasm --release -- \
 	-d -M intel > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
 
+dasmbench:
+	cargo objdump --bench main --release -- \
+	-d -M intel > target/release/bench.asm 2> target/release/bench.asm.log
+
 asm:
 	cargo rustc --release --example dasm -- --emit asm -C "llvm-args=-x86-asm-syntax=intel"
 
