@@ -6,14 +6,14 @@ use std::{
 // pub use shishua::*;
 pub use simdrand::*;
 pub use vecs::*;
-pub use xoshiro256plusplus::*;
 pub use xoshiro256plus::*;
+pub use xoshiro256plusplus::*;
 
 // mod shishua;
 mod simdrand;
 mod vecs;
-mod xoshiro256plusplus;
 mod xoshiro256plus;
+mod xoshiro256plusplus;
 
 #[inline(always)]
 fn read_u64_into_vec(src: &[u8]) -> __m512i {
@@ -30,15 +30,5 @@ fn read_u64_into_vec(src: &[u8]) -> __m512i {
             transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 6)..(SIZE * 7)].try_into().unwrap())),
             transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 7)..(SIZE * 8)].try_into().unwrap())),
         )
-    }
-}
-
-#[inline(always)]
-fn rotate_left<const K: i32>(x: __m512i) -> __m512i {
-    unsafe {
-        // rotl: (x << k) | (x >> (64 - k))
-        let left = _mm512_sll_epi64(x, _mm_cvtsi32_si128(K));
-        let right = _mm512_srl_epi64(x, _mm_cvtsi32_si128(64 - K));
-        _mm512_or_si512(left, right)
     }
 }

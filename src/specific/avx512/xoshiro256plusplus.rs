@@ -8,7 +8,7 @@ use rand_core::SeedableRng;
 
 use crate::specific::avx512::read_u64_into_vec;
 
-use super::{rotate_left, simdrand::*};
+use super::simdrand::*;
 
 pub struct Xoshiro256PlusPlusX8Seed([u8; 256]);
 
@@ -71,7 +71,7 @@ impl SeedableRng for Xoshiro256PlusPlusX8 {
         const LEN: usize = 8;
         const VECSIZE: usize = SIZE * LEN;
         // TODO: implement "jumps" between lanes?
-        
+
         let s0 = read_u64_into_vec(&seed[(VECSIZE * 0)..(VECSIZE * 1)]);
         let s1 = read_u64_into_vec(&seed[(VECSIZE * 1)..(VECSIZE * 2)]);
         let s2 = read_u64_into_vec(&seed[(VECSIZE * 2)..(VECSIZE * 3)]);
@@ -86,7 +86,7 @@ impl SimdRand for Xoshiro256PlusPlusX8 {
     fn next_m512i(&mut self) -> __m512i {
         unsafe {
             // const uint64_t result = rotl(s[0] + s[3], 23) + s[0];
-            let vector = _mm512_add_epi64(rotate_left::<23>(_mm512_add_epi64(self.s0, self.s3)), self.s0);
+            let vector = _mm512_add_epi64(_mm512_rol_epi64::<23>(_mm512_add_epi64(self.s0, self.s3)), self.s0);
 
             // const uint64_t t = s[1] << 17;
             let t = _mm512_slli_epi64::<17>(self.s1);
@@ -104,7 +104,7 @@ impl SimdRand for Xoshiro256PlusPlusX8 {
             self.s2 = _mm512_xor_si512(self.s2, t);
 
             // s[3] = rotl(s[3], 45);
-            self.s3 = rotate_left::<45>(self.s3);
+            self.s3 = _mm512_rol_epi64::<45>(self.s3);
 
             vector
         }

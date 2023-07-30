@@ -35,10 +35,15 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
 
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
     crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
-        
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq"))]
+
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq",
+        target_feature = "avx512vl"
+    ))]
     crate::specific::avx512::add_benchmarks::<_, ITERATIONS>(c, suffix);
-    
+
     crate::top::add_top_benchmark::<_, ITERATIONS>(c);
 }
 

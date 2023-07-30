@@ -75,4 +75,3 @@ mod tests {
         assert_eq!(size_of::<__m512d>(), size_of::<F64x8>());
     }
 }
-

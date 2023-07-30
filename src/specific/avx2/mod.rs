@@ -30,9 +30,17 @@ fn read_u64_into_vec(src: &[u8]) -> __m256i {
 }
 
 #[inline(always)]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl"))]
 fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
+    // rotl: (x << k) | (x >> (64 - k))
+    unsafe { _mm256_rol_epi64::<K>(x) }
+}
+
+#[inline(always)]
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512vl")))]
+fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
+    // rotl: (x << k) | (x >> (64 - k))
     unsafe {
-        // rotl: (x << k) | (x >> (64 - k))
         let left = _mm256_sll_epi64(x, _mm_cvtsi32_si128(K));
         let right = _mm256_srl_epi64(x, _mm_cvtsi32_si128(64 - K));
         _mm256_or_si256(left, right)

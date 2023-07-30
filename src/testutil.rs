@@ -64,20 +64,11 @@ where
 
     // If any of these metrics deviate by DIFF_LIMIT or more,
     // we should fail the test
-    assert!(
-        mean_difference <= DIFF_LIMIT,
-        "Mean difference was more than {DIFF_LIMIT:.5}: {mean_difference:.5}. Expected mean: {expected_mean:.6}, actual mean: {mean:.6}"
-    );
-    assert!(
-        variance_difference <= DIFF_LIMIT, 
-        "Variance difference was more than {DIFF_LIMIT:.5}: {variance_difference:.5}. Expected variance: {expected_variance:.6}, actual mean: {variance:.6}"
-    );
-    assert!(
-        stddev_difference <= DIFF_LIMIT, 
-        "Std deviation difference was more than {DIFF_LIMIT:.5}: {stddev_difference:.5}. Expected std deviation: {expected_stddev:.6}, actual mean: {stddev:.6}"
-    );
+    assert!(mean_difference <= DIFF_LIMIT,"Mean difference was more than {DIFF_LIMIT:.5}: {mean_difference:.5}. Expected mean: {expected_mean:.6}, actual mean: {mean:.6}");
+    assert!(variance_difference <= DIFF_LIMIT, "Variance difference was more than {DIFF_LIMIT:.5}: {variance_difference:.5}. Expected variance: {expected_variance:.6}, actual mean: {variance:.6}");
+    assert!(stddev_difference <= DIFF_LIMIT, "Std deviation difference was more than {DIFF_LIMIT:.5}: {stddev_difference:.5}. Expected std deviation: {expected_stddev:.6}, actual mean: {stddev:.6}");
 }
-    
+
 #[rustfmt::skip]
 pub(crate) const REF_SEED_256: [u8; 128] = [
     1, 0, 0, 0, 0, 0, 0, 0,
@@ -98,7 +89,6 @@ pub(crate) const REF_SEED_256: [u8; 128] = [
     4, 0, 0, 0, 0, 0, 0, 0,
 ];
 
-    
 #[rustfmt::skip]
 pub(crate) const REF_SEED_512: [u8; 256] = [
     1, 0, 0, 0, 0, 0, 0, 0,

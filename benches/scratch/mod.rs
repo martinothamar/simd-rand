@@ -2,7 +2,7 @@ use std::arch::x86_64::*;
 use std::{mem, simd::u64x8};
 
 use criterion::{black_box, measurement::Measurement, BenchmarkId, Criterion, Throughput};
-use rand_core::{SeedableRng, RngCore};
+use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
 use simd_rand::portable;
 use simd_rand::portable::*;
@@ -25,23 +25,13 @@ fn do_u64_baseline(rng: &mut Xoshiro256Plus) -> u64x8 {
 fn do_u64_portable_x4<RNG: SimdRandX4>(rng: &mut RNG) -> u64x8 {
     let a = rng.next_u64x4();
     let b = rng.next_u64x4();
-    u64x8::from_array([
-        a[0],
-        a[1],
-        a[2],
-        a[3],
-        b[0],
-        b[1],
-        b[2],
-        b[3],
-    ])
+    u64x8::from_array([a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3]])
 }
 
 #[inline(always)]
 fn do_u64_portable_x8<RNG: SimdRandX8>(rng: &mut RNG) -> u64x8 {
     rng.next_u64x8()
 }
-
 
 pub fn add_benchmarks<M: Measurement>(c: &mut Criterion<M>, suffix: &str) {
     let mut group = c.benchmark_group("Scratch");
