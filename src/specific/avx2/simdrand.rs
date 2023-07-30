@@ -13,7 +13,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m256i();
 
-            let lhs = m256i_to_m256d(_mm256_srl_epi64(v, _mm_cvtsi32_si128(11)));
+            let lhs = m256i_to_m256d(_mm256_srli_epi64::<11>(v));
 
             // PERF: This is precomputed based on the constants from the formula above
             // I found no other efficient (and succint) constant way of representing the RHS.
@@ -76,7 +76,7 @@ unsafe fn m256i_to_m256d(v: __m256i) -> __m256d {
         let magic_d_all = _mm256_castsi256_pd(magic_i_all);
 
         let v_lo = _mm256_blend_epi32(magic_i_lo, v, 0b01010101);
-        let v_hi = _mm256_srli_epi64(v, 32);
+        let v_hi = _mm256_srli_epi64::<32>(v);
         let v_hi = _mm256_xor_si256(v_hi, magic_i_hi32);
         let v_hi_dbl = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all);
         let result = _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));

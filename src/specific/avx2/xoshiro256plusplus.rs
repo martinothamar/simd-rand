@@ -86,7 +86,7 @@ impl SimdRand for Xoshiro256PlusPlusX4 {
         unsafe {
             let vector = _mm256_add_epi64(rotate_left::<23>(_mm256_add_epi64(self.s0, self.s3)), self.s0);
 
-            let t = _mm256_sll_epi64(self.s1, _mm_cvtsi32_si128(17));
+            let t = _mm256_slli_epi64::<17>(self.s1);
 
             self.s2 = _mm256_xor_si256(self.s2, self.s0);
             self.s3 = _mm256_xor_si256(self.s3, self.s1);

@@ -302,10 +302,10 @@ impl RawState {
             s3 = _mm256_add_epi64(s3, counter);
             counter = _mm256_add_epi64(counter, increment);
 
-            u0 = _mm256_srli_epi64(s0, 1);
-            u1 = _mm256_srli_epi64(s1, 3);
-            u2 = _mm256_srli_epi64(s2, 1);
-            u3 = _mm256_srli_epi64(s3, 3);
+            u0 = _mm256_srli_epi64::<1>(s0);
+            u1 = _mm256_srli_epi64::<3>(s1);
+            u2 = _mm256_srli_epi64::<1>(s2);
+            u3 = _mm256_srli_epi64::<3>(s3);
             t0 = _mm256_permutevar8x32_epi32(s0, shu0);
             t1 = _mm256_permutevar8x32_epi32(s1, shu1);
             t2 = _mm256_permutevar8x32_epi32(s2, shu0);

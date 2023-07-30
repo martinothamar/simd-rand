@@ -89,7 +89,7 @@ impl SimdRand for Xoshiro256PlusPlusX8 {
             let vector = _mm512_add_epi64(rotate_left::<23>(_mm512_add_epi64(self.s0, self.s3)), self.s0);
 
             // const uint64_t t = s[1] << 17;
-            let t = _mm512_sll_epi64(self.s1, _mm_cvtsi32_si128(17));
+            let t = _mm512_slli_epi64::<17>(self.s1);
 
             // s[2] ^= s[0];
             // s[3] ^= s[1];

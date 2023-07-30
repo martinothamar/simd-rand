@@ -64,7 +64,7 @@
 //! There is a `portable` variant of Xoshiro256+ for u64x8/f64x8 as well, but in those cases no guarantees are made about performance. The compiler
 //! decides what to do with the vectors, whereas with AVX512 specific ones in the `specific` module will either not compile or run very fast.
 //! 
-//! ```
+//! ```ignore
 //! Top/Rand/Xoshiro256+/1  time:   [5.8505 ns 5.8653 ns 5.8823 ns]
 //!                         thrpt:  [10.133 GiB/s 10.162 GiB/s 10.188 GiB/s]
 //! Found 13 outliers among 100 measurements (13.00%)

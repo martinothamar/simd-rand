@@ -13,7 +13,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m512i();
 
-            let lhs = m512i_to_m512d(_mm512_srl_epi64(v, _mm_cvtsi32_si128(11)));
+            let lhs = m512i_to_m512d(_mm512_srli_epi64::<11>(v));
 
             // PERF: This is precomputed based on the constants from the formula above
             // I found no other efficient (and succint) constant way of representing the RHS.
