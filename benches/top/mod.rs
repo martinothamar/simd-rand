@@ -1,7 +1,7 @@
 use std::{arch::x86_64::*, mem, simd::u64x8};
 
 use criterion::{black_box, measurement::Measurement, BenchmarkId, Criterion, Throughput};
-use packed_simd_2::u64x8 as ps_u64x8;
+// use packed_simd::u64x8 as ps_u64x8;
 use rand::Rng;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
@@ -15,10 +15,10 @@ fn execute_rand<RNG: RngCore>(rng: &mut RNG, data: &mut u64x8) {
     }
 }
 
-#[inline(always)]
-fn execute_rand_vectorized<RNG: RngCore>(rng: &mut RNG, data: &mut ps_u64x8) {
-    *data = rng.gen::<ps_u64x8>();
-}
+// #[inline(always)]
+// fn execute_rand_vectorized<RNG: RngCore>(rng: &mut RNG, data: &mut ps_u64x8) {
+//     *data = rng.gen::<ps_u64x8>();
+// }
 
 #[inline(always)]
 fn execute_vectorized_portable<RNG: SimdRandX8>(rng: &mut RNG, data: &mut u64x8) {
@@ -50,13 +50,13 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         b.iter(|| execute_rand(&mut rng, black_box(&mut data)))
     });
 
-    let name = BenchmarkId::new(format!("RandVectorized/Xoshiro256+"), 1);
-    group.bench_with_input(name, &1, |b, i| {
-        let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-        let mut data = Default::default();
+    // let name = BenchmarkId::new(format!("RandVectorized/Xoshiro256+"), 1);
+    // group.bench_with_input(name, &1, |b, i| {
+    //     let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    //     let mut data = Default::default();
 
-        b.iter(|| execute_rand_vectorized(&mut rng, black_box(&mut data)))
-    });
+    //     b.iter(|| execute_rand_vectorized(&mut rng, black_box(&mut data)))
+    // });
 
     let name = BenchmarkId::new(format!("Portable/Xoshiro256+X8"), 1);
     group.bench_with_input(name, &1, |b, i| {

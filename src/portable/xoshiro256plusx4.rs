@@ -66,7 +66,7 @@ impl SeedableRng for Xoshiro256PlusX4 {
 
     fn from_seed(seed: Self::Seed) -> Self {
         const SIZE: usize = mem::size_of::<u64>();
-        const LEN: usize = u64x4::LANES;
+        const LEN: usize = u64x4::LEN;
         const VECSIZE: usize = SIZE * LEN;
 
         let s0 = read_u64_into_vec(&seed[(VECSIZE * 0)..(VECSIZE * 1)]);

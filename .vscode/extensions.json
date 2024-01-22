@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "dseight.disasexpl",
-        "ms-vscode.cpptools-extension-pack"
+        "ms-vscode.cpptools-extension-pack",
+        "rust-lang.rust-analyzer"
     ]
 }
