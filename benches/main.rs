@@ -2,7 +2,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![feature(portable_simd)]
-#![feature(stdsimd)]
+#![feature(stdarch_x86_avx512)]
 
 use std::arch::x86_64::*;
 use std::mem;

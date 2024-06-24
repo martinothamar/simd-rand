@@ -113,10 +113,10 @@
 //!
 //! There is also some inline assembly used, where the C-style intrinsics haven't been exposed as Rust APIs in `std::arch`.
 
-// stdsimd featuer is required for some of the AVX512 intrinsisc
+// stdarch_x86_avx512 feature is required for some of the AVX512 intrinsisc
 #![cfg_attr(
     all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512dq"),
-    feature(stdsimd)
+    feature(stdarch_x86_avx512)
 )]
 #![feature(portable_simd)]
 

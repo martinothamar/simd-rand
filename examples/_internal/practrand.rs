@@ -3,7 +3,7 @@
 #![allow(unused_variables)]
 #![allow(unused_mut)]
 #![feature(portable_simd)]
-#![feature(stdsimd)]
+#![feature(stdarch_x86_avx512)]
 
 use std::io::{ErrorKind, Write};
 
