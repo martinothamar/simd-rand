@@ -1,7 +1,15 @@
 bindir := ./target/release/examples
 outbin := ${bindir}/profile
+TARGET := x86_64-unknown-linux-gnu
+RUSTFLAGS_AVX512 := -C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl
 
 all: run
+
+fmt:
+	cargo fmt
+
+lint:
+	RUSTFLAGS="$(RUSTFLAGS_AVX512)" cargo clippy --all-targets --target $(TARGET) -- -D warnings
 
 test:
 	cargo test && cargo test --release

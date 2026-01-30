@@ -18,8 +18,7 @@ mod xoshiro256plusx4;
 mod xoshiro256plusx8;
 
 #[inline(always)]
-fn read_u64_into_vec<const N: usize>(src: &[u8]) -> Simd<u64, N>
-{
+fn read_u64_into_vec<const N: usize>(src: &[u8]) -> Simd<u64, N> {
     const SIZE: usize = mem::size_of::<u64>();
     assert!(src.len() == SIZE * N);
 
