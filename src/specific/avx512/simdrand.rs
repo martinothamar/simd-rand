@@ -1,7 +1,4 @@
-use std::{
-    arch::{asm, x86_64::*},
-    mem::transmute,
-};
+use std::{arch::x86_64::*, mem::transmute};
 
 use super::vecs::*;
 
@@ -13,7 +10,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m512i();
 
-            let lhs = m512i_to_m512d(_mm512_srli_epi64::<11>(v));
+            let lhs = _mm512_cvtepu64_pd(_mm512_srli_epi64::<11>(v));
 
             // PERF: This is precomputed based on the constants from the formula above
             // I found no other efficient (and succint) constant way of representing the RHS.
@@ -44,29 +41,5 @@ pub trait SimdRand {
             _mm512_store_pd(vector.as_mut_ptr(), v);
             vector
         }
-    }
-}
-
-#[inline(always)]
-unsafe fn m512i_to_m512d(src: __m512i) -> __m512d {
-    // this should be exposed through the '_mm512_cvtepu64_pd' C/C++ intrinsic,
-    // but since I can't find this exposed in Rust anywhere,
-    // we're doing it the inline asm way here
-    // TODO: find out what happened in std::arch
-    // SAFETY: requires AVX512; this module is only compiled with those target features.
-    unsafe {
-        let mut dst: __m512d;
-        asm!(
-            "vcvtuqq2pd {1}, {0}",
-            in(zmm_reg) src,
-            out(zmm_reg) dst,
-            // PERF: 'nostack' tells the Rust compiler that our asm won't touch the stack.
-            // If we don't include this, the compiler might inject additional
-            // instructions to make the stack pointer 16byte aligned in accordance to x64 ABI.
-            // If we were to 'call' in our inline asm, it would have to push the 8byte return address
-            // onto the stack, so the stack would have to be 16byte aligned before this happened
-            options(nostack),
-        );
-        dst
     }
 }
