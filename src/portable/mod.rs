@@ -2,7 +2,7 @@ use std::{
     fmt::Debug,
     mem,
     ops::{BitOr, Shl, Shr, Sub},
-    simd::{LaneCount, Simd, SimdElement, SupportedLaneCount},
+    simd::{Simd, SimdElement},
 };
 
 pub use simdrand::*;
@@ -19,8 +19,6 @@ mod xoshiro256plusx8;
 
 #[inline(always)]
 fn read_u64_into_vec<const N: usize>(src: &[u8]) -> Simd<u64, N>
-where
-    LaneCount<N>: SupportedLaneCount,
 {
     const SIZE: usize = mem::size_of::<u64>();
     assert!(src.len() == SIZE * N);
@@ -39,7 +37,6 @@ where
 fn rotate_left<T, const N: usize>(x: Simd<T, N>, k: T) -> Simd<T, N>
 where
     T: SimdElement + Sub<T, Output = T>,
-    LaneCount<N>: SupportedLaneCount,
     usize: TryInto<T>,
     <usize as TryInto<T>>::Error: Debug,
     Simd<T, N>: Shl<Simd<T, N>, Output = Simd<T, N>>,
