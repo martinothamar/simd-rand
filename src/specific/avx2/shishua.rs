@@ -347,7 +347,6 @@ mod tests {
     use itertools::Itertools;
     use rand::Rng;
     use rand_core::TryRngCore;
-    use serial_test::parallel;
 
     type RngImpl = super::Shishua<DEFAULT_BUFFER_SIZE>;
 
@@ -357,7 +356,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[parallel]
     fn alignment() {
         assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>().is_multiple_of(32));
 
@@ -368,7 +366,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn reference_zero() {
         unsafe {
             let mut state: RawState = mem::zeroed();
@@ -381,7 +378,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn reference_pi() {
         unsafe {
             let mut state: RawState = mem::zeroed();
@@ -394,7 +390,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn construction_zero_seed() {
         let mut rng = create_with_zero_seed();
         assert!(rng.buffer_index() == 0);
@@ -403,7 +398,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn construction_predefined_seed() {
         let mut rng = create_with_predefined_seed();
         assert!(rng.buffer_index() == 0);
@@ -412,7 +406,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     #[should_panic]
     fn construction_invalid_size_power() {
         let seed = get_predefined_seed();
@@ -421,7 +414,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     #[should_panic]
     fn construction_invalid_size_small() {
         let seed = get_predefined_seed();
@@ -430,7 +422,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u32() {
         let mut rng = create_with_zero_seed();
 
@@ -438,7 +429,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u64() {
         let mut rng = create_with_zero_seed();
 
@@ -446,7 +436,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f64() {
         let mut rng = create_with_zero_seed();
 
@@ -455,7 +444,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f32() {
         let mut rng = create_with_zero_seed();
 
@@ -464,7 +452,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u64x4() {
         let mut rng = create_with_predefined_seed();
 
@@ -482,7 +469,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f64x4() {
         let mut rng = create_with_predefined_seed();
 
@@ -498,7 +484,7 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f64_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -506,7 +492,7 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f64x4_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -534,7 +520,7 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f32_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -606,7 +592,6 @@ mod tests {
     ];
 
     #[test]
-    #[parallel]
     fn fill_bytes_matches_reference_vectors() {
         const REF_BYTES: usize = 512;
         let seed_zero = get_zero_seed();
@@ -623,7 +608,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn fill_bytes_matches_next_u64_stream() {
         const REF_BYTES: usize = 512;
         let seed = get_predefined_seed();
@@ -653,7 +637,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn fill_bytes_chunking_is_deterministic() {
         // Mix sizes to hit alignment and boundary splits.
         let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255, 1000];
@@ -685,7 +668,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn non_default_buffer_sizes_are_deterministic() {
         let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255];
         let total_bytes = 2048;
@@ -707,7 +689,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn try_fill_bytes_matches_fill_bytes() {
         const TRY_FILL_LEN: usize = 256;
         let seed = get_zero_seed();

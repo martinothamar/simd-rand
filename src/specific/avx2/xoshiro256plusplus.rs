@@ -117,7 +117,6 @@ mod tests {
     use itertools::Itertools;
     use num_traits::PrimInt;
     use rand_core::{RngCore, SeedableRng};
-    use serial_test::parallel;
 
     use crate::testutil::{DOUBLE_RANGE, REF_SEED_256, test_uniform_distribution};
 
@@ -128,7 +127,6 @@ mod tests {
     type RngImpl = Xoshiro256PlusPlusX4;
 
     #[test]
-    #[parallel]
     fn reference() {
         let seed: RngSeed = REF_SEED_256.into();
         let mut rng = RngImpl::from_seed(seed);
@@ -149,7 +147,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u64x4() {
         let mut seed: RngSeed = Default::default();
         rand::rng().fill_bytes(&mut *seed);
@@ -169,7 +166,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f64x4() {
         let mut seed: RngSeed = Default::default();
         rand::rng().fill_bytes(&mut *seed);
@@ -187,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f64x4_distribution() {
         let mut seed: RngSeed = Default::default();
         rand::rng().fill_bytes(&mut *seed);
@@ -217,7 +213,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn bitfiddling() {
         let v = 0b0000_0000_0000_0000_0000_0000_0000_0001_u32;
         print(v);

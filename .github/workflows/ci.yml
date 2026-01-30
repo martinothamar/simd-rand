@@ -60,7 +60,10 @@ jobs:
           toolchain: nightly
           targets: x86_64-unknown-linux-gnu
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
-      - run: cargo test --target $TARGET --release ${{ matrix.cargo-args }}
+      - uses: taiki-e/install-action@a362280ea100b5bb920cf9040c038ce9a50c7943 # v2.67.16
+        with:
+          tool: nextest
+      - run: cargo nextest run --target $TARGET --release ${{ matrix.cargo-args }}
         env:
           RUSTFLAGS: ${{ matrix.rustflags }}
 

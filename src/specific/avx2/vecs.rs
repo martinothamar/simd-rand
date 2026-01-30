@@ -64,12 +64,9 @@ impl From<[f64; 4]> for F64x4 {
 mod tests {
     use std::{arch::x86_64::*, mem::size_of};
 
-    use serial_test::parallel;
-
     use super::*;
 
     #[test]
-    #[parallel]
     fn size() {
         assert_eq!(size_of::<__m256i>(), size_of::<U64x4>());
         assert_eq!(size_of::<__m256d>(), size_of::<F64x4>());
