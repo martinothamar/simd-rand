@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # First Friday of each month at 18:00 UTC
+    - cron: "0 18 1-7 * 5"
+
+env:
+  CARGO_TERM_COLOR: always
+  # Explicit target so RUSTFLAGS don't apply to build scripts/proc-macros
+  TARGET: x86_64-unknown-linux-gnu
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
+        with:
+          toolchain: nightly
+          targets: x86_64-unknown-linux-gnu
+          components: rustfmt, clippy
+
+      - run: cargo fmt --check
+
+      - run: cargo clippy --all-targets --target $TARGET -- -D warnings
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl"
+
+      - run: cargo test --target $TARGET
+      - run: cargo test --target $TARGET --release
+
+      - run: cargo test --target $TARGET
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
+      - run: cargo test --target $TARGET --release
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
+
+      - run: cargo build --all-targets --target $TARGET
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl"
