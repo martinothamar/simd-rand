@@ -14,6 +14,9 @@ lint:
 test:
 	cargo test && cargo test --release
 
+test-miri:
+	cargo +nightly miri test -p simd_rand -- portable
+
 bench:
 	cargo bench -- "$(F)" --verbose
 
