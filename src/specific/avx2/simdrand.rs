@@ -1,7 +1,4 @@
-use std::{
-    arch::{asm, x86_64::*},
-    mem::transmute,
-};
+use std::{arch::x86_64::*, mem::transmute};
 
 use super::vecs::*;
 
@@ -50,25 +47,7 @@ pub trait SimdRand {
 #[inline(always)]
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512dq", target_feature = "avx512vl"))]
 unsafe fn m256i_to_m256d(v: __m256i) -> __m256d {
-    // With AVX512 DQ/VL we can use the below instruction
-    // with both 512bit and 256bit vectors
-    // see https://www.felixcloutier.com/x86/vcvtuqq2pd
-    // SAFETY: requires AVX512DQ/VL; the cfg gate ensures the instruction is valid.
-    unsafe {
-        let mut dst: __m256d;
-        asm!(
-            "vcvtuqq2pd {1}, {0}",
-            in(ymm_reg) v,
-            out(ymm_reg) dst,
-            // PERF: 'nostack' tells the Rust compiler that our asm won't touch the stack.
-            // If we don't include this, the compiler might inject additional
-            // instructions to make the stack pointer 16byte aligned in accordance to x64 ABI.
-            // If we were to 'call' in our inline asm, it would have to push the 8byte return address
-            // onto the stack, so the stack would have to be 16byte aligned before this happened
-            options(nostack),
-        );
-        dst
-    }
+    unsafe { _mm256_cvtepu64_pd(v) }
 }
 
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512dq", target_feature = "avx512vl")))]
