@@ -27,11 +27,11 @@ where
     for _ in 0..SAMPLES {
         let value: Decimal = f().try_into().unwrap();
         assert!(value >= range.start && value < range.end);
-        sum = sum + value;
+        sum += value;
         dist.push(value);
     }
 
-    let samples_divisor: Decimal = SAMPLES.try_into().unwrap();
+    let samples_divisor: Decimal = SAMPLES.into();
 
     let mean: Decimal = sum / samples_divisor;
 

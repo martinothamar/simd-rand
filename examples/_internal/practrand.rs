@@ -30,7 +30,7 @@ fn main() {
     let mut rng_simd = RngVecImpl::from_seed(seed);
 
     let mut buffer: Buf = Buf([0u64; 512]);
-    let bytes = unsafe { mem::transmute::<_, &[u8; mem::size_of::<Buf>()]>(&buffer) };
+    let bytes = unsafe { mem::transmute::<&Buf, &[u8; mem::size_of::<Buf>()]>(&buffer) };
 
     loop {
         if USE_SIMD {

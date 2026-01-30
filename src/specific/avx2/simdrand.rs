@@ -31,7 +31,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m256i();
             let mut vector = Default::default();
-            _mm256_store_si256(transmute::<_, *mut __m256i>(&mut vector), v);
+            _mm256_store_si256(&mut vector as *mut U64x4 as *mut __m256i, v);
             vector
         }
     }
@@ -41,7 +41,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m256d();
             let mut vector = Default::default();
-            _mm256_store_pd(transmute::<_, *mut f64>(&mut vector), v);
+            _mm256_store_pd(&mut vector as *mut F64x4 as *mut f64, v);
             vector
         }
     }

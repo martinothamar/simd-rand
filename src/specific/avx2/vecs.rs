@@ -35,9 +35,9 @@ impl DerefMut for U64x4 {
     }
 }
 
-impl Into<U64x4> for [u64; 4] {
-    fn into(self) -> U64x4 {
-        U64x4::new(self)
+impl From<[u64; 4]> for U64x4 {
+    fn from(val: [u64; 4]) -> Self {
+        U64x4::new(val)
     }
 }
 
@@ -54,9 +54,9 @@ impl DerefMut for F64x4 {
     }
 }
 
-impl Into<F64x4> for [f64; 4] {
-    fn into(self) -> F64x4 {
-        F64x4::new(self)
+impl From<[f64; 4]> for F64x4 {
+    fn from(val: [f64; 4]) -> Self {
+        F64x4::new(val)
     }
 }
 

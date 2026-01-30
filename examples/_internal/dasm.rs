@@ -24,7 +24,6 @@ use simd_rand::specific::avx512::SimdRand as SpecificSimdRandX8;
 /// This is a small binary meant to aid in analyzing generated code
 /// For example to see differences between portable and specific code,
 /// and simd_rand and rand code
-
 #[inline(never)]
 fn do_u64x4_baseline<RNG: RngCore>(rng: &mut RNG) -> u64x4 {
     u64x4::from_array([rng.next_u64(), rng.next_u64(), rng.next_u64(), rng.next_u64()])

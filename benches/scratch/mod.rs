@@ -36,7 +36,7 @@ fn do_u64_portable_x8<RNG: SimdRandX8>(rng: &mut RNG) -> u64x8 {
 pub fn add_benchmarks<M: Measurement>(c: &mut Criterion<M>, suffix: &str) {
     let mut group = c.benchmark_group("Scratch");
 
-    group.throughput(Throughput::Bytes((1 * mem::size_of::<u64x8>()) as u64));
+    group.throughput(Throughput::Bytes(mem::size_of::<u64x8>() as u64));
 
     let name = BenchmarkId::new(format!("Baseline/Xoshiro256+/{suffix}"), "1");
     group.bench_with_input(name, &1, |b, _| {
