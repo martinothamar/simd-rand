@@ -29,12 +29,8 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl"
 
-      - run: cargo test --target $TARGET
       - run: cargo test --target $TARGET --release
 
-      - run: cargo test --target $TARGET
-        env:
-          RUSTFLAGS: "-C target-feature=+avx2"
       - run: cargo test --target $TARGET --release
         env:
           RUSTFLAGS: "-C target-feature=+avx2"
