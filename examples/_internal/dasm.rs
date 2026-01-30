@@ -1,4 +1,3 @@
-#![feature(stdarch_x86_avx512)]
 #![feature(portable_simd)]
 
 use std::arch::x86_64::*;
