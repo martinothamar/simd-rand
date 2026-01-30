@@ -604,6 +604,123 @@ mod tests {
         0xb0, 0x54, 0x03, 0xa7, 0x50, 0xec, 0x93, 0x8f,
     ];
 
+    #[test]
+    #[parallel]
+    fn fill_bytes_matches_reference_vectors() {
+        const REF_BYTES: usize = 512;
+        let seed_zero = get_zero_seed();
+        let mut rng_zero = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed_zero);
+        let mut buf_zero = [0u8; REF_BYTES];
+        rng_zero.fill_bytes(&mut buf_zero);
+        assert_eq!(buf_zero, SEED_ZERO_EXPECTED);
+
+        let seed_pi = get_predefined_seed();
+        let mut rng_pi = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed_pi);
+        let mut buf_pi = [0u8; REF_BYTES];
+        rng_pi.fill_bytes(&mut buf_pi);
+        assert_eq!(buf_pi, SEED_PI_EXPECTED);
+    }
+
+    #[test]
+    #[parallel]
+    fn fill_bytes_matches_next_u64_stream() {
+        const REF_BYTES: usize = 512;
+        let seed = get_predefined_seed();
+        let mut rng_words = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
+        let mut rng_bytes = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
+
+        let from_words = read_with_next_u64(&mut rng_words, REF_BYTES);
+
+        let mut from_bytes = vec![0u8; REF_BYTES];
+        rng_bytes.fill_bytes(&mut from_bytes);
+
+        assert_eq!(from_words, from_bytes);
+    }
+
+    fn read_with_next_u64<const N: usize>(rng: &mut super::Shishua<N>, total_bytes: usize) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(total_bytes);
+        let mut remaining = total_bytes;
+        while remaining >= 8 {
+            bytes.extend_from_slice(&rng.next_u64().to_le_bytes());
+            remaining -= 8;
+        }
+        if remaining > 0 {
+            let v = rng.next_u64().to_le_bytes();
+            bytes.extend_from_slice(&v[..remaining]);
+        }
+        bytes
+    }
+
+    #[test]
+    #[parallel]
+    fn fill_bytes_chunking_is_deterministic() {
+        // Mix sizes to hit alignment and boundary splits.
+        let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255, 1000];
+        // Ensure at least one rebuffer with the default size.
+        let total_bytes = DEFAULT_BUFFER_SIZE + 500;
+        let seed = get_zero_seed();
+
+        assert_chunked_deterministic::<DEFAULT_BUFFER_SIZE>(seed, total_bytes, &chunk_sizes);
+    }
+
+    fn read_with_chunks<const N: usize>(
+        rng: &mut super::Shishua<N>,
+        total_bytes: usize,
+        chunk_sizes: &[usize],
+    ) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(total_bytes);
+        let mut offset = 0;
+        let mut chunk_idx = 0;
+        while offset < total_bytes {
+            let remaining = total_bytes - offset;
+            let chunk = chunk_sizes[chunk_idx % chunk_sizes.len()].min(remaining).min(N);
+            let start = bytes.len();
+            bytes.resize(start + chunk, 0);
+            rng.fill_bytes(&mut bytes[start..start + chunk]);
+            offset += chunk;
+            chunk_idx += 1;
+        }
+        bytes
+    }
+
+    #[test]
+    #[parallel]
+    fn non_default_buffer_sizes_are_deterministic() {
+        let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255];
+        let total_bytes = 2048;
+        let seed = get_predefined_seed();
+
+        assert_chunked_deterministic::<256>(seed, total_bytes, &chunk_sizes);
+        assert_chunked_deterministic::<512>(seed, total_bytes, &chunk_sizes);
+        assert_chunked_deterministic::<1024>(seed, total_bytes, &chunk_sizes);
+    }
+
+    fn assert_chunked_deterministic<const N: usize>(seed: &[u8; 32], total_bytes: usize, chunk_sizes: &[usize]) {
+        let mut rng_a = super::Shishua::<N>::from_seed(*seed);
+        let mut rng_b = super::Shishua::<N>::from_seed(*seed);
+
+        let bytes_a = read_with_chunks(&mut rng_a, total_bytes, chunk_sizes);
+        let bytes_b = read_with_chunks(&mut rng_b, total_bytes, chunk_sizes);
+
+        assert_eq!(bytes_a, bytes_b);
+    }
+
+    #[test]
+    #[parallel]
+    fn try_fill_bytes_matches_fill_bytes() {
+        const TRY_FILL_LEN: usize = 256;
+        let seed = get_zero_seed();
+        let mut rng_try = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
+        let mut rng_fill = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
+
+        let mut buf_try = [0u8; TRY_FILL_LEN];
+        let mut buf_fill = [0u8; TRY_FILL_LEN];
+        assert!(rng_try.try_fill_bytes(&mut buf_try).is_ok());
+        rng_fill.fill_bytes(&mut buf_fill);
+
+        assert_eq!(buf_try, buf_fill);
+    }
+
     const SEED_PI_EXPECTED: [u8; 512] = [
         0xfa, 0x62, 0xa9, 0x26, 0xdc, 0x1f, 0xbf, 0x00, 0xf1, 0x3c, 0xe8, 0x68, 0x45, 0x9b, 0x6f, 0x74, 0x4b, 0xbf,
         0x2b, 0x57, 0x50, 0x5e, 0xd8, 0x16, 0x0e, 0x4e, 0xd9, 0x2a, 0x2e, 0xf6, 0x96, 0x5c, 0x01, 0xb5, 0xc9, 0xe7,
