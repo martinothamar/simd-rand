@@ -180,6 +180,7 @@ mod tests {
 
     #[test]
     #[parallel]
+    #[cfg_attr(miri, ignore)]
     fn sample_f64x4_distribution() {
         let mut seed: RngSeed = Default::default();
         rand::thread_rng().fill_bytes(&mut *seed);
