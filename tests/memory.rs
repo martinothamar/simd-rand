@@ -13,8 +13,7 @@ mod shishua {
         let start_stats = dhat::HeapStats::get();
         {
             let mut rng: Shishua<DEFAULT_BUFFER_SIZE> = Shishua::seed_from_u64(0);
-            let n = rng.next_u32();
-            assert!(n >= u32::MIN && n <= u32::MAX);
+            let _n = rng.next_u32();
 
             let end_stats = dhat::HeapStats::get();
             dhat::assert_eq!(

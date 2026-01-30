@@ -31,7 +31,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m512i();
             let mut vector = Default::default();
-            _mm512_store_epi64(transmute::<_, *mut i64>(&mut vector), v);
+            _mm512_store_epi64(&mut vector as *mut U64x8 as *mut i64, v);
             vector
         }
     }

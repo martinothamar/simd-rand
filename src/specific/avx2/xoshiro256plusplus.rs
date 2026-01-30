@@ -18,16 +18,16 @@ impl Xoshiro256PlusPlusX4Seed {
     }
 }
 
-impl Into<Xoshiro256PlusPlusX4Seed> for [u8; 128] {
-    fn into(self) -> Xoshiro256PlusPlusX4Seed {
-        Xoshiro256PlusPlusX4Seed::new(self)
+impl From<[u8; 128]> for Xoshiro256PlusPlusX4Seed {
+    fn from(val: [u8; 128]) -> Self {
+        Xoshiro256PlusPlusX4Seed::new(val)
     }
 }
 
-impl Into<Xoshiro256PlusPlusX4Seed> for Vec<u8> {
-    fn into(self) -> Xoshiro256PlusPlusX4Seed {
-        assert!(self.len() == 128);
-        Xoshiro256PlusPlusX4Seed::new(self.try_into().unwrap())
+impl From<Vec<u8>> for Xoshiro256PlusPlusX4Seed {
+    fn from(val: Vec<u8>) -> Self {
+        assert!(val.len() == 128);
+        Xoshiro256PlusPlusX4Seed::new(val.try_into().unwrap())
     }
 }
 
@@ -66,6 +66,7 @@ impl AsMut<[u8]> for Xoshiro256PlusPlusX4Seed {
 impl SeedableRng for Xoshiro256PlusPlusX4 {
     type Seed = Xoshiro256PlusPlusX4Seed;
 
+    #[allow(clippy::identity_op, clippy::erasing_op)]
     fn from_seed(seed: Self::Seed) -> Self {
         const SIZE: usize = mem::size_of::<u64>();
         const LEN: usize = 4;
@@ -193,7 +194,7 @@ mod tests {
                 Some(vector) if current_index < 4 => {
                     let result = vector[current_index];
                     current_index += 1;
-                    return result;
+                    result
                 }
                 _ => {
                     current_index = 0;
@@ -201,7 +202,7 @@ mod tests {
                     let result = vector[current_index];
                     current = Some(vector);
                     current_index += 1;
-                    return result;
+                    result
                 }
             },
             DOUBLE_RANGE,
@@ -211,7 +212,7 @@ mod tests {
     #[test]
     #[parallel]
     fn bitfiddling() {
-        let v = 0b00000000_00000000_00000000_000000001u32;
+        let v = 0b0000_0000_0000_0000_0000_0000_0000_0001_u32;
         print(v);
     }
 

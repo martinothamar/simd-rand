@@ -12,6 +12,7 @@ mod vecs;
 mod xoshiro256plus;
 mod xoshiro256plusplus;
 
+#[allow(clippy::identity_op, clippy::erasing_op)]
 #[inline(always)]
 fn read_u64_into_vec(src: &[u8]) -> __m256i {
     const SIZE: usize = mem::size_of::<u64>();

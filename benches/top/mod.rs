@@ -41,7 +41,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
 
     group.throughput(Throughput::Bytes(mem::size_of::<u64x8>() as u64));
 
-    let name = BenchmarkId::new(format!("Rand/Xoshiro256+"), 1);
+    let name = BenchmarkId::new("Rand/Xoshiro256+".to_string(), 1);
 
     group.bench_with_input(name, &1, |b, i| {
         let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
@@ -58,7 +58,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
     //     b.iter(|| execute_rand_vectorized(&mut rng, black_box(&mut data)))
     // });
 
-    let name = BenchmarkId::new(format!("Portable/Xoshiro256+X8"), 1);
+    let name = BenchmarkId::new("Portable/Xoshiro256+X8".to_string(), 1);
     group.bench_with_input(name, &1, |b, i| {
         let mut rng = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data = Default::default();
@@ -72,7 +72,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         target_feature = "avx512dq",
         target_feature = "avx512vl"
     ))]
-    let name = BenchmarkId::new(format!("Specific/Xoshiro256+X8"), 1);
+    let name = BenchmarkId::new("Specific/Xoshiro256+X8".to_string(), 1);
     #[cfg(all(
         target_arch = "x86_64",
         target_feature = "avx512f",

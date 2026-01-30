@@ -16,16 +16,16 @@ impl Xoshiro256PlusPlusX4Seed {
     }
 }
 
-impl Into<Xoshiro256PlusPlusX4Seed> for [u8; 128] {
-    fn into(self) -> Xoshiro256PlusPlusX4Seed {
-        Xoshiro256PlusPlusX4Seed::new(self)
+impl From<[u8; 128]> for Xoshiro256PlusPlusX4Seed {
+    fn from(val: [u8; 128]) -> Self {
+        Xoshiro256PlusPlusX4Seed::new(val)
     }
 }
 
-impl Into<Xoshiro256PlusPlusX4Seed> for Vec<u8> {
-    fn into(self) -> Xoshiro256PlusPlusX4Seed {
-        assert!(self.len() == 128);
-        Xoshiro256PlusPlusX4Seed::new(self.try_into().unwrap())
+impl From<Vec<u8>> for Xoshiro256PlusPlusX4Seed {
+    fn from(val: Vec<u8>) -> Self {
+        assert!(val.len() == 128);
+        Xoshiro256PlusPlusX4Seed::new(val.try_into().unwrap())
     }
 }
 
@@ -64,6 +64,7 @@ pub struct Xoshiro256PlusPlusX4 {
 impl SeedableRng for Xoshiro256PlusPlusX4 {
     type Seed = Xoshiro256PlusPlusX4Seed;
 
+    #[allow(clippy::identity_op, clippy::erasing_op)]
     fn from_seed(seed: Self::Seed) -> Self {
         const SIZE: usize = mem::size_of::<u64>();
         const LEN: usize = u64x4::LEN;
@@ -93,7 +94,7 @@ impl SimdRandX4 for Xoshiro256PlusPlusX4 {
 
         self.s3 = rotate_left(self.s3, 45);
 
-        return result;
+        result
     }
 }
 
@@ -126,7 +127,7 @@ mod tests {
         ];
         for e in expected {
             let mem = rng.next_u64x4();
-            for &v in mem.as_array().into_iter() {
+            for &v in mem.as_array().iter() {
                 assert_eq!(v, e);
             }
         }
@@ -185,7 +186,7 @@ mod tests {
                 Some(vector) if current_index < 4 => {
                     let result = vector[current_index];
                     current_index += 1;
-                    return result;
+                    result
                 }
                 _ => {
                     current_index = 0;
@@ -193,7 +194,7 @@ mod tests {
                     let result = vector[current_index];
                     current = Some(vector);
                     current_index += 1;
-                    return result;
+                    result
                 }
             },
             DOUBLE_RANGE,

@@ -1,4 +1,3 @@
-use std::mem::transmute;
 use std::ptr::NonNull;
 use std::{arch::x86_64::*, mem::size_of};
 
@@ -31,8 +30,6 @@ pub const DEFAULT_BUFFER_SIZE: usize = 1024 * 32;
 /// One example is elision of bounds check in the hotpath of extracting random bytes
 /// from the buffer. The library is in a single file so feel free to check and
 /// provide feedback.
-///
-
 pub struct Shishua<const BUFFER_SIZE: usize = DEFAULT_BUFFER_SIZE> {
     state: NonNull<BufferedState<BUFFER_SIZE>>,
 }
@@ -95,7 +92,7 @@ impl<const BUFFER_SIZE: usize> SimdRand for Shishua<BUFFER_SIZE> {
 
             let src = &state.buffer.0[state.buffer_index];
 
-            let vector = _mm256_load_si256(transmute::<_, *const __m256i>(src));
+            let vector = _mm256_load_si256(src as *const u8 as *const __m256i);
 
             state.buffer_index += SIZE;
 
@@ -129,7 +126,9 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
             let mut iseed = [0; 4];
             read_u64_into(&seed[..], iseed.as_mut_slice());
 
-            buffered_state.state.prng_init(mem::transmute::<_, &[_; 4]>(&iseed));
+            buffered_state
+                .state
+                .prng_init(mem::transmute::<&[u64; 4], &[u64; 4]>(&iseed));
             buffered_state.rebuffer();
 
             NonNull::new_unchecked(ptr)
@@ -152,16 +151,16 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
     #[inline(always)]
     fn next_u32(&mut self) -> u32 {
         let mut result: u32 = 0;
-        let mut bytes = unsafe { mem::transmute::<_, &mut [u8; 4]>(&mut result) };
-        self.fill_bytes_arr(&mut bytes);
+        let bytes = unsafe { mem::transmute::<&mut u32, &mut [u8; 4]>(&mut result) };
+        self.fill_bytes_arr(bytes);
         result
     }
 
     #[inline(always)]
     fn next_u64(&mut self) -> u64 {
         let mut result: u64 = 0;
-        let mut bytes = unsafe { mem::transmute::<_, &mut [u8; 8]>(&mut result) };
-        self.fill_bytes_arr(&mut bytes);
+        let bytes = unsafe { mem::transmute::<&mut u64, &mut [u8; 8]>(&mut result) };
+        self.fill_bytes_arr(bytes);
         result
     }
 
@@ -289,11 +288,11 @@ impl RawState {
 
         let increment = _mm256_set_epi64x(1, 3, 5, 7);
 
-        assert!(buf.len() % 128 == 0);
+        assert!(buf.len().is_multiple_of(128));
 
         let buf_ptr = buf.as_mut_ptr();
         for i in (0..buf.len()).step_by(128) {
-            _mm256_storeu_si256(buf_ptr.add(i + 0) as *mut __m256i, o0);
+            _mm256_storeu_si256(buf_ptr.add(i) as *mut __m256i, o0);
             _mm256_storeu_si256(buf_ptr.add(i + 32) as *mut __m256i, o1);
             _mm256_storeu_si256(buf_ptr.add(i + 64) as *mut __m256i, o2);
             _mm256_storeu_si256(buf_ptr.add(i + 96) as *mut __m256i, o3);
@@ -359,7 +358,7 @@ mod tests {
     #[test]
     #[parallel]
     fn alignment() {
-        assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>() % 32 == 0);
+        assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>().is_multiple_of(32));
 
         let rng = create_with_zero_seed();
         let state = unsafe { rng.state.as_ref() };
@@ -434,8 +433,7 @@ mod tests {
     fn sample_u32() {
         let mut rng = create_with_zero_seed();
 
-        let n = rng.next_u32();
-        assert!(n >= u32::MIN && n <= u32::MAX);
+        let _n = rng.next_u32();
     }
 
     #[test]
@@ -443,8 +441,7 @@ mod tests {
     fn sample_u64() {
         let mut rng = create_with_zero_seed();
 
-        let n = rng.next_u64();
-        assert!(n >= u64::MIN && n <= u64::MAX);
+        let _n = rng.next_u64();
     }
 
     #[test]
@@ -520,7 +517,7 @@ mod tests {
                 Some(vector) if current_index < 4 => {
                     let result = vector[current_index];
                     current_index += 1;
-                    return result;
+                    result
                 }
                 _ => {
                     current_index = 0;
@@ -528,7 +525,7 @@ mod tests {
                     let result = vector[current_index];
                     current = Some(vector);
                     current_index += 1;
-                    return result;
+                    result
                 }
             },
             DOUBLE_RANGE,
