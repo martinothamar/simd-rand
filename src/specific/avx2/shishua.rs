@@ -182,12 +182,6 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
             state.buffer_index += size;
         };
     }
-
-    #[inline(always)]
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        self.fill_bytes(dest);
-        Ok(())
-    }
 }
 
 struct BufferedState<const BUFFER_SIZE: usize> {
@@ -228,109 +222,115 @@ impl RawState {
         const STEPS: usize = 1;
         const ROUNDS: usize = 13;
 
-        *self = mem::zeroed();
-        let mut buf: [u8; 128 * STEPS] = [0; 128 * STEPS];
+        // SAFETY: `RawState` is plain data; zeroed is a valid initial state for shishua.
+        unsafe {
+            *self = mem::zeroed();
+            let mut buf: [u8; 128 * STEPS] = [0; 128 * STEPS];
 
-        self.state[0] = _mm256_set_epi64x(
-            u64::cast_signed(PHI[3]),
-            u64::cast_signed(PHI[2]) ^ seed[1] as i64,
-            u64::cast_signed(PHI[1]),
-            u64::cast_signed(PHI[0]) ^ seed[0] as i64,
-        );
-        self.state[1] = _mm256_set_epi64x(
-            u64::cast_signed(PHI[7]),
-            u64::cast_signed(PHI[6]) ^ seed[3] as i64,
-            u64::cast_signed(PHI[5]),
-            u64::cast_signed(PHI[4]) ^ seed[2] as i64,
-        );
-        self.state[2] = _mm256_set_epi64x(
-            u64::cast_signed(PHI[11]),
-            u64::cast_signed(PHI[10]) ^ seed[3] as i64,
-            u64::cast_signed(PHI[9]),
-            u64::cast_signed(PHI[8]) ^ seed[2] as i64,
-        );
-        self.state[3] = _mm256_set_epi64x(
-            u64::cast_signed(PHI[15]),
-            u64::cast_signed(PHI[14]) ^ seed[1] as i64,
-            u64::cast_signed(PHI[13]),
-            u64::cast_signed(PHI[12]) ^ seed[0] as i64,
-        );
-        for _ in 0..ROUNDS {
-            Self::prng_gen(self, &mut buf[..]);
-            self.state[0] = self.output[3];
-            self.state[1] = self.output[2];
-            self.state[2] = self.output[1];
-            self.state[3] = self.output[0];
+            self.state[0] = _mm256_set_epi64x(
+                u64::cast_signed(PHI[3]),
+                u64::cast_signed(PHI[2]) ^ seed[1] as i64,
+                u64::cast_signed(PHI[1]),
+                u64::cast_signed(PHI[0]) ^ seed[0] as i64,
+            );
+            self.state[1] = _mm256_set_epi64x(
+                u64::cast_signed(PHI[7]),
+                u64::cast_signed(PHI[6]) ^ seed[3] as i64,
+                u64::cast_signed(PHI[5]),
+                u64::cast_signed(PHI[4]) ^ seed[2] as i64,
+            );
+            self.state[2] = _mm256_set_epi64x(
+                u64::cast_signed(PHI[11]),
+                u64::cast_signed(PHI[10]) ^ seed[3] as i64,
+                u64::cast_signed(PHI[9]),
+                u64::cast_signed(PHI[8]) ^ seed[2] as i64,
+            );
+            self.state[3] = _mm256_set_epi64x(
+                u64::cast_signed(PHI[15]),
+                u64::cast_signed(PHI[14]) ^ seed[1] as i64,
+                u64::cast_signed(PHI[13]),
+                u64::cast_signed(PHI[12]) ^ seed[0] as i64,
+            );
+            for _ in 0..ROUNDS {
+                Self::prng_gen(self, &mut buf[..]);
+                self.state[0] = self.output[3];
+                self.state[1] = self.output[2];
+                self.state[2] = self.output[1];
+                self.state[3] = self.output[0];
+            }
         }
     }
 
     unsafe fn prng_gen(&mut self, buf: &mut [u8]) {
-        let mut o0 = self.output[0];
-        let mut o1 = self.output[1];
-        let mut o2 = self.output[2];
-        let mut o3 = self.output[3];
-        let mut s0 = self.state[0];
-        let mut s1 = self.state[1];
-        let mut s2 = self.state[2];
-        let mut s3 = self.state[3];
-        let mut t0: __m256i;
-        let mut t1: __m256i;
-        let mut t2: __m256i;
-        let mut t3: __m256i;
-        let mut u0: __m256i;
-        let mut u1: __m256i;
-        let mut u2: __m256i;
-        let mut u3: __m256i;
-        let mut counter = self.counter;
-
-        let shu0 = _mm256_set_epi32(4, 3, 2, 1, 0, 7, 6, 5);
-        let shu1 = _mm256_set_epi32(2, 1, 0, 7, 6, 5, 4, 3);
-
-        let increment = _mm256_set_epi64x(1, 3, 5, 7);
-
         assert!(buf.len().is_multiple_of(128));
 
-        let buf_ptr = buf.as_mut_ptr();
-        for i in (0..buf.len()).step_by(128) {
-            _mm256_storeu_si256(buf_ptr.add(i) as *mut __m256i, o0);
-            _mm256_storeu_si256(buf_ptr.add(i + 32) as *mut __m256i, o1);
-            _mm256_storeu_si256(buf_ptr.add(i + 64) as *mut __m256i, o2);
-            _mm256_storeu_si256(buf_ptr.add(i + 96) as *mut __m256i, o3);
+        // SAFETY: caller guarantees AVX2 is available and `buf` is writable.
+        unsafe {
+            let mut o0 = self.output[0];
+            let mut o1 = self.output[1];
+            let mut o2 = self.output[2];
+            let mut o3 = self.output[3];
+            let mut s0 = self.state[0];
+            let mut s1 = self.state[1];
+            let mut s2 = self.state[2];
+            let mut s3 = self.state[3];
+            let mut t0: __m256i;
+            let mut t1: __m256i;
+            let mut t2: __m256i;
+            let mut t3: __m256i;
+            let mut u0: __m256i;
+            let mut u1: __m256i;
+            let mut u2: __m256i;
+            let mut u3: __m256i;
+            let mut counter = self.counter;
 
-            s1 = _mm256_add_epi64(s1, counter);
-            s3 = _mm256_add_epi64(s3, counter);
-            counter = _mm256_add_epi64(counter, increment);
+            let shu0 = _mm256_set_epi32(4, 3, 2, 1, 0, 7, 6, 5);
+            let shu1 = _mm256_set_epi32(2, 1, 0, 7, 6, 5, 4, 3);
 
-            u0 = _mm256_srli_epi64::<1>(s0);
-            u1 = _mm256_srli_epi64::<3>(s1);
-            u2 = _mm256_srli_epi64::<1>(s2);
-            u3 = _mm256_srli_epi64::<3>(s3);
-            t0 = _mm256_permutevar8x32_epi32(s0, shu0);
-            t1 = _mm256_permutevar8x32_epi32(s1, shu1);
-            t2 = _mm256_permutevar8x32_epi32(s2, shu0);
-            t3 = _mm256_permutevar8x32_epi32(s3, shu1);
+            let increment = _mm256_set_epi64x(1, 3, 5, 7);
 
-            s0 = _mm256_add_epi64(t0, u0);
-            s1 = _mm256_add_epi64(t1, u1);
-            s2 = _mm256_add_epi64(t2, u2);
-            s3 = _mm256_add_epi64(t3, u3);
+            let buf_ptr = buf.as_mut_ptr();
+            for i in (0..buf.len()).step_by(128) {
+                _mm256_storeu_si256(buf_ptr.add(i) as *mut __m256i, o0);
+                _mm256_storeu_si256(buf_ptr.add(i + 32) as *mut __m256i, o1);
+                _mm256_storeu_si256(buf_ptr.add(i + 64) as *mut __m256i, o2);
+                _mm256_storeu_si256(buf_ptr.add(i + 96) as *mut __m256i, o3);
 
-            // Two orthogonally grown pieces evolving independently, XORed.
-            o0 = _mm256_xor_si256(u0, t1);
-            o1 = _mm256_xor_si256(u2, t3);
-            o2 = _mm256_xor_si256(s0, s3);
-            o3 = _mm256_xor_si256(s2, s1);
+                s1 = _mm256_add_epi64(s1, counter);
+                s3 = _mm256_add_epi64(s3, counter);
+                counter = _mm256_add_epi64(counter, increment);
+
+                u0 = _mm256_srli_epi64::<1>(s0);
+                u1 = _mm256_srli_epi64::<3>(s1);
+                u2 = _mm256_srli_epi64::<1>(s2);
+                u3 = _mm256_srli_epi64::<3>(s3);
+                t0 = _mm256_permutevar8x32_epi32(s0, shu0);
+                t1 = _mm256_permutevar8x32_epi32(s1, shu1);
+                t2 = _mm256_permutevar8x32_epi32(s2, shu0);
+                t3 = _mm256_permutevar8x32_epi32(s3, shu1);
+
+                s0 = _mm256_add_epi64(t0, u0);
+                s1 = _mm256_add_epi64(t1, u1);
+                s2 = _mm256_add_epi64(t2, u2);
+                s3 = _mm256_add_epi64(t3, u3);
+
+                // Two orthogonally grown pieces evolving independently, XORed.
+                o0 = _mm256_xor_si256(u0, t1);
+                o1 = _mm256_xor_si256(u2, t3);
+                o2 = _mm256_xor_si256(s0, s3);
+                o3 = _mm256_xor_si256(s2, s1);
+            }
+
+            self.output[0] = o0;
+            self.output[1] = o1;
+            self.output[2] = o2;
+            self.output[3] = o3;
+            self.state[0] = s0;
+            self.state[1] = s1;
+            self.state[2] = s2;
+            self.state[3] = s3;
+            self.counter = counter;
         }
-
-        self.output[0] = o0;
-        self.output[1] = o1;
-        self.output[2] = o2;
-        self.output[3] = o3;
-        self.state[0] = s0;
-        self.state[1] = s1;
-        self.state[2] = s2;
-        self.state[3] = s3;
-        self.counter = counter;
     }
 }
 
@@ -346,17 +346,16 @@ const PHI: [u64; 16] = [
 mod tests {
     use itertools::Itertools;
     use rand::Rng;
-    use serial_test::parallel;
+    use rand_core::TryRngCore;
 
     type RngImpl = super::Shishua<DEFAULT_BUFFER_SIZE>;
 
-    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, FLOAT_RANGE};
+    use crate::testutil::{DOUBLE_RANGE, FLOAT_RANGE, test_uniform_distribution};
 
     use super::super::vecs::*;
     use super::*;
 
     #[test]
-    #[parallel]
     fn alignment() {
         assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>().is_multiple_of(32));
 
@@ -367,7 +366,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn reference_zero() {
         unsafe {
             let mut state: RawState = mem::zeroed();
@@ -380,7 +378,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn reference_pi() {
         unsafe {
             let mut state: RawState = mem::zeroed();
@@ -393,25 +390,22 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn construction_zero_seed() {
         let mut rng = create_with_zero_seed();
         assert!(rng.buffer_index() == 0);
-        let v = rng.gen_range(DOUBLE_RANGE);
+        let v = rng.random_range(DOUBLE_RANGE);
         assert!(DOUBLE_RANGE.contains(&v) && v != 0.0);
     }
 
     #[test]
-    #[parallel]
     fn construction_predefined_seed() {
         let mut rng = create_with_predefined_seed();
         assert!(rng.buffer_index() == 0);
-        let v = rng.gen_range(DOUBLE_RANGE);
+        let v = rng.random_range(DOUBLE_RANGE);
         assert!(DOUBLE_RANGE.contains(&v) && v != 0.0);
     }
 
     #[test]
-    #[parallel]
     #[should_panic]
     fn construction_invalid_size_power() {
         let seed = get_predefined_seed();
@@ -420,7 +414,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     #[should_panic]
     fn construction_invalid_size_small() {
         let seed = get_predefined_seed();
@@ -429,7 +422,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u32() {
         let mut rng = create_with_zero_seed();
 
@@ -437,7 +429,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u64() {
         let mut rng = create_with_zero_seed();
 
@@ -445,25 +436,22 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f64() {
         let mut rng = create_with_zero_seed();
 
-        let n = rng.gen_range(DOUBLE_RANGE);
+        let n = rng.random_range(DOUBLE_RANGE);
         assert!(DOUBLE_RANGE.contains(&n));
     }
 
     #[test]
-    #[parallel]
     fn sample_f32() {
         let mut rng = create_with_zero_seed();
 
-        let n = rng.gen_range(FLOAT_RANGE);
+        let n = rng.random_range(FLOAT_RANGE);
         assert!(FLOAT_RANGE.contains(&n));
     }
 
     #[test]
-    #[parallel]
     fn sample_u64x4() {
         let mut rng = create_with_predefined_seed();
 
@@ -481,7 +469,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f64x4() {
         let mut rng = create_with_predefined_seed();
 
@@ -497,15 +484,15 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f64_distribution() {
         let mut rng = create_with_zero_seed();
 
-        test_uniform_distribution::<10_000_000, f64>(|| rng.gen_range(DOUBLE_RANGE), DOUBLE_RANGE);
+        test_uniform_distribution::<10_000_000, f64>(|| rng.random_range(DOUBLE_RANGE), DOUBLE_RANGE);
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f64x4_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -533,11 +520,11 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f32_distribution() {
         let mut rng = create_with_zero_seed();
 
-        tests::test_uniform_distribution::<10_000_000, f32>(|| rng.gen_range(FLOAT_RANGE), FLOAT_RANGE);
+        tests::test_uniform_distribution::<10_000_000, f32>(|| rng.random_range(FLOAT_RANGE), FLOAT_RANGE);
     }
 
     fn get_zero_seed() -> &'static [u8; 32] {
@@ -605,7 +592,6 @@ mod tests {
     ];
 
     #[test]
-    #[parallel]
     fn fill_bytes_matches_reference_vectors() {
         const REF_BYTES: usize = 512;
         let seed_zero = get_zero_seed();
@@ -622,7 +608,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn fill_bytes_matches_next_u64_stream() {
         const REF_BYTES: usize = 512;
         let seed = get_predefined_seed();
@@ -652,7 +637,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn fill_bytes_chunking_is_deterministic() {
         // Mix sizes to hit alignment and boundary splits.
         let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255, 1000];
@@ -684,7 +668,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn non_default_buffer_sizes_are_deterministic() {
         let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255];
         let total_bytes = 2048;
@@ -706,7 +689,6 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn try_fill_bytes_matches_fill_bytes() {
         const TRY_FILL_LEN: usize = 256;
         let seed = get_zero_seed();

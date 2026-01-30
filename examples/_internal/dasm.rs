@@ -1,11 +1,5 @@
 #![feature(portable_simd)]
 
-use std::arch::x86_64::*;
-use std::simd::f64x4;
-use std::simd::u64x4;
-use std::simd::u64x8;
-
-use criterion::black_box;
 use rand_core::RngCore;
 use rand_core::SeedableRng;
 use simd_rand::portable;
@@ -20,6 +14,11 @@ use simd_rand::specific::avx2::SimdRand as SpecificSimdRandX4;
     target_feature = "avx512vl"
 ))]
 use simd_rand::specific::avx512::SimdRand as SpecificSimdRandX8;
+use std::arch::x86_64::*;
+use std::hint::black_box;
+use std::simd::f64x4;
+use std::simd::u64x4;
+use std::simd::u64x8;
 
 /// This is a small binary meant to aid in analyzing generated code
 /// For example to see differences between portable and specific code,

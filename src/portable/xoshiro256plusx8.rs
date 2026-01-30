@@ -6,8 +6,9 @@ use std::{
 
 use rand_core::SeedableRng;
 
-use super::{read_u64_into_vec, rotate_left, SimdRandX8};
+use super::{SimdRandX8, read_u64_into_vec, rotate_left};
 
+#[derive(Clone)]
 pub struct Xoshiro256PlusX8Seed([u8; 256]);
 
 impl Xoshiro256PlusX8Seed {
@@ -45,6 +46,12 @@ impl DerefMut for Xoshiro256PlusX8Seed {
 impl Default for Xoshiro256PlusX8Seed {
     fn default() -> Xoshiro256PlusX8Seed {
         Xoshiro256PlusX8Seed([0; 256])
+    }
+}
+
+impl AsRef<[u8]> for Xoshiro256PlusX8Seed {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 
@@ -102,10 +109,9 @@ impl SimdRandX8 for Xoshiro256PlusX8 {
 mod tests {
     use itertools::Itertools;
     use rand_core::{RngCore, SeedableRng};
-    use serial_test::parallel;
     use std::simd::*;
 
-    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_512};
+    use crate::testutil::{DOUBLE_RANGE, REF_SEED_512, test_uniform_distribution};
 
     use super::*;
 
@@ -113,7 +119,6 @@ mod tests {
     type RngImpl = Xoshiro256PlusX8;
 
     #[test]
-    #[parallel]
     fn reference() {
         let seed: RngSeed = REF_SEED_512.into();
         let mut rng = RngImpl::from_seed(seed);
@@ -141,10 +146,9 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u64x8() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let values = *rng.next_u64x8().as_array();
@@ -161,10 +165,9 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f64x4() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let values = *rng.next_f64x8().as_array();
@@ -179,11 +182,11 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     #[cfg_attr(miri, ignore)]
     fn sample_f64x4_distribution() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let mut current: Option<f64x8> = None;

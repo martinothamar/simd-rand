@@ -10,6 +10,7 @@ use crate::specific::avx512::read_u64_into_vec;
 
 use super::simdrand::*;
 
+#[derive(Clone)]
 pub struct Xoshiro256PlusX8Seed([u8; 256]);
 
 impl Xoshiro256PlusX8Seed {
@@ -54,6 +55,12 @@ pub struct Xoshiro256PlusX8 {
 impl Default for Xoshiro256PlusX8Seed {
     fn default() -> Xoshiro256PlusX8Seed {
         Xoshiro256PlusX8Seed([0; 256])
+    }
+}
+
+impl AsRef<[u8]> for Xoshiro256PlusX8Seed {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 
@@ -116,9 +123,8 @@ impl SimdRand for Xoshiro256PlusX8 {
 mod tests {
     use itertools::Itertools;
     use rand_core::{RngCore, SeedableRng};
-    use serial_test::parallel;
 
-    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_512};
+    use crate::testutil::{DOUBLE_RANGE, REF_SEED_512, test_uniform_distribution};
 
     use super::super::vecs::*;
     use super::*;
@@ -127,7 +133,6 @@ mod tests {
     type RngImpl = Xoshiro256PlusX8;
 
     #[test]
-    #[parallel]
     fn reference() {
         let seed: RngSeed = REF_SEED_512.into();
         let mut rng = RngImpl::from_seed(seed);
@@ -155,10 +160,9 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_u64x8() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let values = rng.next_u64x8();
@@ -175,10 +179,9 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
     fn sample_f64x8() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let values = rng.next_f64x8();
@@ -193,10 +196,10 @@ mod tests {
     }
 
     #[test]
-    #[parallel]
+    #[cfg_attr(debug_assertions, ignore)]
     fn sample_f64x8_distribution() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let mut current: Option<F64x8> = None;

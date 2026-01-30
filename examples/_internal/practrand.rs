@@ -25,7 +25,7 @@ fn main() {
     let mut out = stdout.lock();
 
     let mut seed: RngVecSeed = Default::default();
-    rand::thread_rng().fill_bytes(&mut *seed);
+    rand::rng().fill_bytes(&mut *seed);
     let mut rng_baseline = RngBaseline::from_seed(seed[0..32].try_into().unwrap());
     let mut rng_simd = RngVecImpl::from_seed(seed);
 

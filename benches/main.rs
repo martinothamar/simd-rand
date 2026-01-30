@@ -7,11 +7,9 @@ use std::arch::x86_64::*;
 use std::mem;
 
 use criterion::measurement::Measurement;
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
-use criterion_perf_events::Perf;
-use perfcnt::linux::HardwareEventType as Hardware;
-use perfcnt::linux::PerfCounterBuilderLinux as Builder;
+use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use rand_core::SeedableRng;
+use std::hint::black_box;
 
 mod portable;
 mod scratch;

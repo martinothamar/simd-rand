@@ -35,7 +35,7 @@ use simd_rand::portable::*;
 
 fn main() {
     let mut seed: Xoshiro256PlusPlusX8Seed = Default::default();
-    rand::thread_rng().fill_bytes(&mut *seed);
+    rand::rng().fill_bytes(&mut *seed);
     let mut rng = Xoshiro256PlusPlusX8::from_seed(seed);
 
     let vector = rng.next_u64x8();
