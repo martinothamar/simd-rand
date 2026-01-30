@@ -1,7 +1,4 @@
-use std::{
-    arch::x86_64::*,
-    mem::{self, transmute},
-};
+use std::{arch::x86_64::*, mem};
 
 pub use shishua::*;
 pub use simdrand::*;
@@ -21,10 +18,10 @@ fn read_u64_into_vec(src: &[u8]) -> __m256i {
     assert!(src.len() == SIZE * 4);
     unsafe {
         _mm256_set_epi64x(
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),
-            transmute::<_, i64>(u64::from_le_bytes(src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap())),
+            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
+            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
+            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),
+            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap())),
         )
     }
 }

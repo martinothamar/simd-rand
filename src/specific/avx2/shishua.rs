@@ -233,28 +233,28 @@ impl RawState {
         let mut buf: [u8; 128 * STEPS] = [0; 128 * STEPS];
 
         self.state[0] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(PHI[3]),
-            mem::transmute::<u64, i64>(PHI[2]) ^ seed[1] as i64,
-            mem::transmute::<u64, i64>(PHI[1]),
-            mem::transmute::<u64, i64>(PHI[0]) ^ seed[0] as i64,
+            u64::cast_signed(PHI[3]),
+            u64::cast_signed(PHI[2]) ^ seed[1] as i64,
+            u64::cast_signed(PHI[1]),
+            u64::cast_signed(PHI[0]) ^ seed[0] as i64,
         );
         self.state[1] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(PHI[7]),
-            mem::transmute::<u64, i64>(PHI[6]) ^ seed[3] as i64,
-            mem::transmute::<u64, i64>(PHI[5]),
-            mem::transmute::<u64, i64>(PHI[4]) ^ seed[2] as i64,
+            u64::cast_signed(PHI[7]),
+            u64::cast_signed(PHI[6]) ^ seed[3] as i64,
+            u64::cast_signed(PHI[5]),
+            u64::cast_signed(PHI[4]) ^ seed[2] as i64,
         );
         self.state[2] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(PHI[11]),
-            mem::transmute::<u64, i64>(PHI[10]) ^ seed[3] as i64,
-            mem::transmute::<u64, i64>(PHI[9]),
-            mem::transmute::<u64, i64>(PHI[8]) ^ seed[2] as i64,
+            u64::cast_signed(PHI[11]),
+            u64::cast_signed(PHI[10]) ^ seed[3] as i64,
+            u64::cast_signed(PHI[9]),
+            u64::cast_signed(PHI[8]) ^ seed[2] as i64,
         );
         self.state[3] = _mm256_set_epi64x(
-            mem::transmute::<u64, i64>(PHI[15]),
-            mem::transmute::<u64, i64>(PHI[14]) ^ seed[1] as i64,
-            mem::transmute::<u64, i64>(PHI[13]),
-            mem::transmute::<u64, i64>(PHI[12]) ^ seed[0] as i64,
+            u64::cast_signed(PHI[15]),
+            u64::cast_signed(PHI[14]) ^ seed[1] as i64,
+            u64::cast_signed(PHI[13]),
+            u64::cast_signed(PHI[12]) ^ seed[0] as i64,
         );
         for _ in 0..ROUNDS {
             Self::prng_gen(self, &mut buf[..]);
