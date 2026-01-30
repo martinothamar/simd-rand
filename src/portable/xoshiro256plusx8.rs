@@ -182,8 +182,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(debug_assertions, ignore)]
-    #[cfg_attr(miri, ignore)]
+    #[cfg_attr(any(debug_assertions, miri), ignore)]
     fn sample_f64x4_distribution() {
         let mut seed: RngSeed = Default::default();
         rand::rng().fill_bytes(&mut *seed);
