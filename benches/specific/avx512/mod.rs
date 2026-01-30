@@ -1,8 +1,9 @@
 use std::{arch::x86_64::*, mem};
 
-use criterion::{black_box, measurement::Measurement, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
 use rand_core::SeedableRng;
 use simd_rand::specific::avx512::*;
+use std::hint::black_box;
 
 pub fn add_benchmarks<M: Measurement, const ITERATIONS: usize>(c: &mut Criterion<M>, suffix: &str) {
     let group_prefix = "AVX512";

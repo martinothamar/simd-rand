@@ -1,8 +1,9 @@
 use std::{mem, simd::u64x4, simd::u64x8};
 
-use criterion::{black_box, measurement::Measurement, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
 use rand_core::SeedableRng;
 use simd_rand::portable::{SimdRandX4, SimdRandX8, Xoshiro256PlusX4, Xoshiro256PlusX8};
+use std::hint::black_box;
 
 pub fn add_benchmarks<M: Measurement, const ITERATIONS: usize>(c: &mut Criterion<M>, suffix: &str) {
     let group_prefix = "Portable";

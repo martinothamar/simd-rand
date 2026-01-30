@@ -1,6 +1,7 @@
 use std::{arch::x86_64::*, mem, simd::u64x8};
 
-use criterion::{black_box, measurement::Measurement, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
+use std::hint::black_box;
 // use packed_simd::u64x8 as ps_u64x8;
 use rand::Rng;
 use rand_core::{RngCore, SeedableRng};

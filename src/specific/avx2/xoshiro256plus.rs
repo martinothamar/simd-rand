@@ -10,6 +10,7 @@ use crate::specific::avx2::read_u64_into_vec;
 
 use super::{rotate_left, simdrand::*};
 
+#[derive(Clone)]
 pub struct Xoshiro256PlusX4Seed([u8; 128]);
 
 impl Xoshiro256PlusX4Seed {
@@ -47,6 +48,12 @@ impl DerefMut for Xoshiro256PlusX4Seed {
 impl Default for Xoshiro256PlusX4Seed {
     fn default() -> Xoshiro256PlusX4Seed {
         Xoshiro256PlusX4Seed([0; 128])
+    }
+}
+
+impl AsRef<[u8]> for Xoshiro256PlusX4Seed {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 
@@ -110,7 +117,7 @@ mod tests {
     use rand_core::{RngCore, SeedableRng};
     use serial_test::parallel;
 
-    use crate::testutil::{test_uniform_distribution, DOUBLE_RANGE, REF_SEED_256};
+    use crate::testutil::{DOUBLE_RANGE, REF_SEED_256, test_uniform_distribution};
 
     use super::super::vecs::*;
     use super::*;
@@ -150,7 +157,7 @@ mod tests {
     #[parallel]
     fn sample_u64x4() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let values = rng.next_u64x4();
@@ -170,7 +177,7 @@ mod tests {
     #[parallel]
     fn sample_f64x4() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let values = rng.next_f64x4();
@@ -188,7 +195,7 @@ mod tests {
     #[parallel]
     fn sample_f64x4_distribution() {
         let mut seed: RngSeed = Default::default();
-        rand::thread_rng().fill_bytes(&mut *seed);
+        rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
         let mut current: Option<F64x4> = None;

@@ -1,8 +1,9 @@
 use std::{arch::x86_64::*, mem};
 
-use criterion::{black_box, measurement::Measurement, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
 use rand_core::SeedableRng;
 use simd_rand::specific::avx2::*;
+use std::hint::black_box;
 
 type Shishua = simd_rand::specific::avx2::Shishua<DEFAULT_BUFFER_SIZE>;
 

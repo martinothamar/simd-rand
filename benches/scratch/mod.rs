@@ -1,11 +1,12 @@
 use std::arch::x86_64::*;
 use std::{mem, simd::u64x8};
 
-use criterion::{black_box, measurement::Measurement, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
 use simd_rand::portable;
 use simd_rand::portable::*;
+use std::hint::black_box;
 
 #[inline(always)]
 fn do_u64_baseline(rng: &mut Xoshiro256Plus) -> u64x8 {
