@@ -9,11 +9,22 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
   # Explicit target so RUSTFLAGS don't apply to build scripts/proc-macros
   TARGET: x86_64-unknown-linux-gnu
 
 jobs:
-  ci:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - run: cargo fmt --check
+
+  clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -21,24 +32,61 @@ jobs:
         with:
           toolchain: nightly
           targets: x86_64-unknown-linux-gnu
-          components: rustfmt, clippy, miri
-
-      - run: cargo fmt --check
-
+          components: clippy
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
       - run: cargo clippy --all-targets --target $TARGET -- -D warnings
         env:
           RUSTFLAGS: "-C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl"
 
-      - run: cargo test --target $TARGET --release
-
-      - run: cargo test --target $TARGET --release
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: baseline
+            rustflags: ""
+            cargo-args: "--lib"
+          - name: avx2
+            rustflags: "-C target-feature=+avx2"
+            cargo-args: ""
+    name: test (${{ matrix.name }})
+    env:
+      CARGO_PROFILE_RELEASE_LTO: "false"
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
+        with:
+          toolchain: nightly
+          targets: x86_64-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+      - run: cargo test --target $TARGET --release ${{ matrix.cargo-args }}
         env:
-          RUSTFLAGS: "-C target-feature=+avx2"
+          RUSTFLAGS: ${{ matrix.rustflags }}
 
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
+        with:
+          toolchain: nightly
+          targets: x86_64-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
       - run: cargo build --all-targets --target $TARGET
         env:
           RUSTFLAGS: "-C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl"
 
+  test-miri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
+        with:
+          toolchain: nightly
+          targets: x86_64-unknown-linux-gnu
+          components: miri
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
       - run: cargo miri test --target $TARGET --lib -- portable
         env:
           MIRIFLAGS: "-Zmiri-disable-isolation"
