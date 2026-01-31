@@ -12,6 +12,7 @@ use super::simdrand::*;
 pub const DEFAULT_BUFFER_SIZE: usize = 1024 * 32;
 
 /// Shishua is a fast, vectorized, buffered PRNG.
+///
 /// When initialized, it will seed its state of size `BUFFER_SIZE` (32k by default).
 /// When sampling, if enough randomness is buffered, it will just extract your T from the buffered bytes.
 /// When all the buffered randomness is spent, it will rebuffer using vectorized instructions
@@ -63,21 +64,30 @@ impl<const BUFFER_SIZE: usize> Shishua<BUFFER_SIZE> {
     }
 
     #[inline(always)]
-    pub fn buffer_index(&self) -> usize {
+    #[must_use]
+    pub const fn buffer_index(&self) -> usize {
         let state = unsafe { self.state.as_ref() };
         state.buffer_index
     }
 
+    // Vigna's recommended conversion adapted for f32: (x >> 8) * 2^-24 (https://prng.di.unimi.it/)
     #[inline(always)]
     pub fn next_f32(&mut self) -> f32 {
         let v = self.next_u32();
-        (v >> 8) as f32 * (1.0f32 / (1u32 << 24) as f32)
+        #[allow(clippy::cast_precision_loss)]
+        {
+            (v >> 8) as f32 * (1.0f32 / (1u32 << 24) as f32)
+        }
     }
 
+    // Vigna's recommended conversion: (x >> 11) * 2^-53 (https://prng.di.unimi.it/)
     #[inline(always)]
     pub fn next_f64(&mut self) -> f64 {
         let v = self.next_u64();
-        (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+        #[allow(clippy::cast_precision_loss)]
+        {
+            (v >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
+        }
     }
 }
 
@@ -92,7 +102,9 @@ impl<const BUFFER_SIZE: usize> SimdRand for Shishua<BUFFER_SIZE> {
 
             let src = &state.buffer.0[state.buffer_index];
 
-            let vector = _mm256_load_si256(src as *const u8 as *const __m256i);
+            // Buffer is allocated with __m256i alignment; u8 pointer cast is safe
+            #[allow(clippy::cast_ptr_alignment)]
+            let vector = _mm256_load_si256(std::ptr::from_ref(src).cast::<__m256i>());
 
             state.buffer_index += SIZE;
 
@@ -119,16 +131,14 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
         );
 
         let ptr = unsafe {
-            let ptr = alloc::alloc(Self::LAYOUT) as *mut BufferedState<BUFFER_SIZE>;
+            let ptr = alloc::alloc(Self::LAYOUT).cast::<BufferedState<BUFFER_SIZE>>();
 
             let buffered_state = ptr.as_mut().expect("Failed to allocate state for Shishua");
 
             let mut iseed = [0; 4];
             read_u64_into(&seed[..], iseed.as_mut_slice());
 
-            buffered_state
-                .state
-                .prng_init(mem::transmute::<&[u64; 4], &[u64; 4]>(&iseed));
+            buffered_state.state.prng_init(&iseed);
             buffered_state.rebuffer();
 
             NonNull::new_unchecked(ptr)
@@ -142,7 +152,7 @@ impl<const BUFFER_SIZE: usize> Drop for Shishua<BUFFER_SIZE> {
     fn drop(&mut self) {
         let ptr = self.state.as_ptr();
         unsafe {
-            alloc::dealloc(ptr as *mut u8, Self::LAYOUT);
+            alloc::dealloc(ptr.cast::<u8>(), Self::LAYOUT);
         }
     }
 }
@@ -151,7 +161,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
     #[inline(always)]
     fn next_u32(&mut self) -> u32 {
         let mut result: u32 = 0;
-        let bytes = unsafe { mem::transmute::<&mut u32, &mut [u8; 4]>(&mut result) };
+        let bytes = unsafe { &mut *std::ptr::from_mut(&mut result).cast::<[u8; 4]>() };
         self.fill_bytes_arr(bytes);
         result
     }
@@ -159,7 +169,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
     #[inline(always)]
     fn next_u64(&mut self) -> u64 {
         let mut result: u64 = 0;
-        let bytes = unsafe { mem::transmute::<&mut u64, &mut [u8; 8]>(&mut result) };
+        let bytes = unsafe { &mut *std::ptr::from_mut(&mut result).cast::<[u8; 8]>() };
         self.fill_bytes_arr(bytes);
         result
     }
@@ -218,6 +228,8 @@ struct RawState {
 }
 
 impl RawState {
+    // Wrapping u64→i64 is intentional; SHISHUA uses signed arithmetic on seed values
+    #[allow(clippy::cast_possible_wrap)]
     unsafe fn prng_init(&mut self, seed: &[u64; 4]) {
         const STEPS: usize = 1;
         const ROUNDS: usize = 13;
@@ -261,6 +273,8 @@ impl RawState {
         }
     }
 
+    // Buffer is allocated with __m256i alignment; u8 pointer cast is safe
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn prng_gen(&mut self, buf: &mut [u8]) {
         assert!(buf.len().is_multiple_of(128));
 
@@ -291,10 +305,10 @@ impl RawState {
 
             let buf_ptr = buf.as_mut_ptr();
             for i in (0..buf.len()).step_by(128) {
-                _mm256_storeu_si256(buf_ptr.add(i) as *mut __m256i, o0);
-                _mm256_storeu_si256(buf_ptr.add(i + 32) as *mut __m256i, o1);
-                _mm256_storeu_si256(buf_ptr.add(i + 64) as *mut __m256i, o2);
-                _mm256_storeu_si256(buf_ptr.add(i + 96) as *mut __m256i, o3);
+                _mm256_storeu_si256(buf_ptr.add(i).cast::<__m256i>(), o0);
+                _mm256_storeu_si256(buf_ptr.add(i + 32).cast::<__m256i>(), o1);
+                _mm256_storeu_si256(buf_ptr.add(i + 64).cast::<__m256i>(), o2);
+                _mm256_storeu_si256(buf_ptr.add(i + 96).cast::<__m256i>(), o3);
 
                 s1 = _mm256_add_epi64(s1, counter);
                 s3 = _mm256_add_epi64(s3, counter);
@@ -406,7 +420,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "power of 2")]
     fn construction_invalid_size_power() {
         let seed = get_predefined_seed();
         let rng = super::Shishua::<127>::from_seed(*seed);
@@ -414,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "must be >= 256")]
     fn construction_invalid_size_small() {
         let seed = get_predefined_seed();
         let rng = super::Shishua::<128>::from_seed(*seed);
@@ -484,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(debug_assertions, ignore)]
+    #[cfg_attr(debug_assertions, ignore = "distribution test requires release mode")]
     fn sample_f64_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -492,7 +506,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(debug_assertions, ignore)]
+    #[cfg_attr(debug_assertions, ignore = "distribution test requires release mode")]
     fn sample_f64x4_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -520,7 +534,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(debug_assertions, ignore)]
+    #[cfg_attr(debug_assertions, ignore = "distribution test requires release mode")]
     fn sample_f32_distribution() {
         let mut rng = create_with_zero_seed();
 
@@ -528,11 +542,11 @@ mod tests {
     }
 
     fn get_zero_seed() -> &'static [u8; 32] {
-        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_ZERO) }
+        unsafe { &*std::ptr::from_ref(&SEED_ZERO).cast::<[u8; 32]>() }
     }
 
     fn get_predefined_seed() -> &'static [u8; 32] {
-        unsafe { std::mem::transmute::<_, &[u8; 4 * 8]>(&SEED_PI) }
+        unsafe { &*std::ptr::from_ref(&SEED_PI).cast::<[u8; 32]>() }
     }
 
     fn create_with_zero_seed() -> RngImpl {

@@ -5,6 +5,7 @@ use super::vecs::*;
 pub trait SimdRand {
     fn next_m512i(&mut self) -> __m512i;
 
+    #[allow(clippy::items_after_statements)]
     #[inline(always)]
     fn next_m512d(&mut self) -> __m512d {
         unsafe {
@@ -27,8 +28,8 @@ pub trait SimdRand {
     fn next_u64x8(&mut self) -> U64x8 {
         unsafe {
             let v = self.next_m512i();
-            let mut vector = Default::default();
-            _mm512_store_epi64(&mut vector as *mut U64x8 as *mut i64, v);
+            let mut vector = U64x8::default();
+            _mm512_store_epi64(std::ptr::from_mut(&mut vector).cast::<i64>(), v);
             vector
         }
     }
@@ -37,7 +38,7 @@ pub trait SimdRand {
     fn next_f64x8(&mut self) -> F64x8 {
         unsafe {
             let v = self.next_m512d();
-            let mut vector: F64x8 = Default::default();
+            let mut vector = F64x8::default();
             _mm512_store_pd(vector.as_mut_ptr(), v);
             vector
         }

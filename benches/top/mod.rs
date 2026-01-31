@@ -50,25 +50,25 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
 
     group.bench_with_input(name, &1, |b, i| {
         let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-        let mut data = Default::default();
+        let mut data = u64x8::default();
 
-        b.iter(|| execute_rand(&mut rng, black_box(&mut data)))
+        b.iter(|| execute_rand(&mut rng, black_box(&mut data)));
     });
 
     // let name = BenchmarkId::new(format!("RandVectorized/Xoshiro256+"), 1);
     // group.bench_with_input(name, &1, |b, i| {
     //     let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-    //     let mut data = Default::default();
+    //     let mut data = u64x8::default();
 
-    //     b.iter(|| execute_rand_vectorized(&mut rng, black_box(&mut data)))
+    //     b.iter(|| execute_rand_vectorized(&mut rng, black_box(&mut data)));
     // });
 
     let name = BenchmarkId::new("Portable/Xoshiro256+X8".to_string(), 1);
     group.bench_with_input(name, &1, |b, i| {
         let mut rng = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-        let mut data = Default::default();
+        let mut data = u64x8::default();
 
-        b.iter(|| execute_vectorized_portable(&mut rng, black_box(&mut data)))
+        b.iter(|| execute_vectorized_portable(&mut rng, black_box(&mut data)));
     });
 
     #[cfg(all(
@@ -90,7 +90,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
         let mut data: __m512i = _mm512_setzero_si512();
 
-        b.iter(|| execute_vectorized_specific(&mut rng, black_box(&mut data)))
+        b.iter(|| execute_vectorized_specific(&mut rng, black_box(&mut data)));
     });
 
     group.finish();

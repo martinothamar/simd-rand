@@ -11,6 +11,7 @@ pub fn add_benchmarks<M: Measurement, const ITERATIONS: usize>(c: &mut Criterion
     add_m512d_benchmarks::<_, ITERATIONS>(c, group_prefix, suffix);
 }
 
+#[allow(clippy::items_after_statements)]
 fn add_m512i_benchmarks<M: Measurement, const ITERATIONS: usize>(
     c: &mut Criterion<M>,
     group_prefix: &str,
@@ -35,7 +36,7 @@ fn add_m512i_benchmarks<M: Measurement, const ITERATIONS: usize>(
             let mut rng = Xoshiro256PlusPlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
             let mut data: __m512i = _mm512_setzero_si512();
 
-            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)))
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
         });
 
         let name = BenchmarkId::new(format!("Xoshiro256+/{suffix}"), iterations);
@@ -43,13 +44,14 @@ fn add_m512i_benchmarks<M: Measurement, const ITERATIONS: usize>(
             let mut rng = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
             let mut data: __m512i = _mm512_setzero_si512();
 
-            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)))
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
         });
     }
 
     group.finish();
 }
 
+#[allow(clippy::items_after_statements)]
 fn add_m512d_benchmarks<M: Measurement, const ITERATIONS: usize>(
     c: &mut Criterion<M>,
     group_prefix: &str,
@@ -74,7 +76,7 @@ fn add_m512d_benchmarks<M: Measurement, const ITERATIONS: usize>(
             let mut rng = Xoshiro256PlusPlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
             let mut data: __m512d = _mm512_setzero_pd();
 
-            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)))
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
         });
 
         let name = BenchmarkId::new(format!("Xoshiro256+/{suffix}"), iterations);
@@ -82,7 +84,7 @@ fn add_m512d_benchmarks<M: Measurement, const ITERATIONS: usize>(
             let mut rng = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
             let mut data: __m512d = _mm512_setzero_pd();
 
-            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)))
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
         });
     }
 

@@ -3,6 +3,8 @@ use std::simd::{f64x4, f64x8, u64x4, u64x8};
 pub trait SimdRandX4 {
     fn next_u64x4(&mut self) -> u64x4;
 
+    // Vigna's recommended conversion: (x >> 11) * 2^-53 (https://prng.di.unimi.it/)
+    #[allow(clippy::cast_precision_loss)]
     #[inline(always)]
     fn next_f64x4(&mut self) -> f64x4 {
         let v = self.next_u64x4();
@@ -19,6 +21,8 @@ pub trait SimdRandX4 {
 pub trait SimdRandX8 {
     fn next_u64x8(&mut self) -> u64x8;
 
+    // Vigna's recommended conversion: (x >> 11) * 2^-53 (https://prng.di.unimi.it/)
+    #[allow(clippy::cast_precision_loss)]
     #[inline(always)]
     fn next_f64x8(&mut self) -> f64x8 {
         let v = self.next_u64x8();

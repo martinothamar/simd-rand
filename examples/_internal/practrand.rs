@@ -23,13 +23,13 @@ fn main() {
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
 
-    let mut seed: RngVecSeed = Default::default();
+    let mut seed = RngVecSeed::default();
     rand::rng().fill_bytes(&mut *seed);
     let mut rng_baseline = RngBaseline::from_seed(seed[0..32].try_into().unwrap());
     let mut rng_simd = RngVecImpl::from_seed(seed);
 
     let mut buffer: Buf = Buf([0u64; 512]);
-    let bytes = unsafe { mem::transmute::<&Buf, &[u8; mem::size_of::<Buf>()]>(&buffer) };
+    let bytes = unsafe { &*std::ptr::from_ref(&buffer).cast::<[u8; mem::size_of::<Buf>()]>() };
 
     loop {
         if USE_SIMD {
@@ -49,6 +49,6 @@ fn main() {
             Ok(()) => {}
             // Err(e) if e.kind() == ErrorKind::BrokenPipe => return,
             Err(e) => panic!("Failed: {e}"),
-        };
+        }
     }
 }

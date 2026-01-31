@@ -4,9 +4,9 @@
 //! Categories:
 //! - [`portable`] - portable implementations using `std::simd` (feature `portable`, nightly required)
 //! - [`specific`] - implementations using architecture-specific hardware intrinsics
-//!   - [`specific::avx2`] - AVX2 for x86_64 architecture (4 lanes for 64bit)
+//!   - [`specific::avx2`] - AVX2 for `x86_64` architecture (4 lanes for 64bit)
 //!     - Requires `avx2` CPU flag, but has additional optimization if you have `avx512dq` and `avx512vl`
-//!   - [`specific::avx512`] - AVX512 for x86_64 architecture (8 lanes for 64bit)
+//!   - [`specific::avx512`] - AVX512 for `x86_64` architecture (8 lanes for 64bit)
 //!     - Requires `avx512f`, `avx512dq` CPU flags
 //!
 //! Vectorized PRNG implementations may perform anywhere from 4-6 times faster in my experience,
@@ -40,7 +40,7 @@
 //! use rand_core::{RngCore, SeedableRng};
 //! use simd_rand::portable::*;
 //!
-//! let mut seed: Xoshiro256PlusPlusX8Seed = Default::default();
+//! let mut seed = Xoshiro256PlusPlusX8Seed::default();
 //! rand::rng().fill_bytes(&mut *seed);
 //! let mut rng = Xoshiro256PlusPlusX8::from_seed(seed);
 //!
@@ -50,7 +50,7 @@
 //! # fn main() {}
 //! ```
 //!
-//! The `portable` module will be available on any architecture, e.g. even on x86_64 with only AVX2 you can still use `Xoshiro256PlusPluxX8` which uses
+//! The `portable` module will be available on any architecture, e.g. even on `x86_64` with only AVX2 you can still use `Xoshiro256PlusPluxX8` which uses
 //! 8-lane/512bit vectors (u64x8 from `std::simd`). The compiler is able to make it reasonably fast even if using only 256bit wide registers (AVX2) in the generated code.
 //!
 //! The `specific` submodules (AVX2 and AVX512 currently) are only compiled in depending on target arch/features.
@@ -64,7 +64,7 @@
 //!
 //! The top performing generator (on my current hardware) is currently Xoshiro256+ using AVX512 intrinsics.
 //! It is about 5.9x faster. The below benchmarks generates `u64x8` numbers.
-//! Note that the RandVectorized variant uses `simd_support` from the `rand` crate,
+//! Note that the `RandVectorized` variant uses `simd_support` from the `rand` crate,
 //! but this doesn't actually vectorize random number generation.
 //!
 //! If you want to actually use these generators, you should benchmark them yourself on your own hardware. See the `bench` target in the [Makefile](/Makefile).
@@ -136,4 +136,5 @@ pub mod specific;
         all(feature = "specific", any(target_feature = "avx2", target_feature = "avx512f"))
     )
 ))]
+#[cfg(test)]
 mod testutil;

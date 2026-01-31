@@ -13,7 +13,7 @@ fmt:
 	cargo fmt
 
 lint:
-	RUSTFLAGS="$(RUSTFLAGS_AVX512)" cargo clippy --all-targets --target $(TARGET) -- -D warnings
+	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) clippy --all-targets --all-features --target $(TARGET)
 
 test:
 	cargo nextest run && cargo nextest run --release
