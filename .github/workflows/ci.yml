@@ -12,6 +12,8 @@ env:
   CARGO_INCREMENTAL: 0
   # Explicit target so RUSTFLAGS don't apply to build scripts/proc-macros
   TARGET: x86_64-unknown-linux-gnu
+  # Max seconds for example runs that loop or write forever
+  TIMEOUT: 5
 
 jobs:
   fmt:
@@ -95,6 +97,44 @@ jobs:
       - run: cargo +${{ matrix.toolchain }} build --all-targets ${{ matrix.cargo-args }} --target $TARGET
         env:
           RUSTFLAGS: "-C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl"
+
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
+        with:
+          toolchain: nightly
+          targets: x86_64-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+      - run: cargo +nightly build --examples --release --features portable,specific --target $TARGET
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
+      - run: timeout $TIMEOUT cargo +nightly run --example dasm --release --features portable,specific --target $TARGET || [ $? -eq 124 ]
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
+      - run: timeout $TIMEOUT cargo +nightly run --example profile --release --features portable --target $TARGET || [ $? -eq 124 ]
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
+      - run: timeout -s KILL $TIMEOUT cargo +nightly run --example practrand --release --features portable --target $TARGET > /dev/null || [ $? -eq 137 ]
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
+        with:
+          toolchain: nightly
+          targets: x86_64-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+      - run: cargo +nightly build --benches --release --features portable --target $TARGET
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
+      - run: cargo +nightly bench --features portable --target $TARGET -- "Top" --warm-up-time 1 --measurement-time 1 --sample-size 10
+        env:
+          RUSTFLAGS: "-C target-feature=+avx2"
 
   test-miri:
     runs-on: ubuntu-latest
