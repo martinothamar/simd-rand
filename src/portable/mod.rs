@@ -32,7 +32,8 @@ fn read_u64_into_vec<const N: usize>(src: &[u8]) -> Simd<u64, N> {
 }
 
 #[inline(always)]
-// Generics in rust is great
+// Multiple trait bounds on T are required; clippy sees them as repetition
+#[allow(clippy::type_repetition_in_bounds)]
 fn rotate_left<T, const N: usize>(x: Simd<T, N>, k: T) -> Simd<T, N>
 where
     T: SimdElement + Sub<T, Output = T>,

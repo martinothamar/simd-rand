@@ -43,19 +43,19 @@ pub fn add_benchmarks<M: Measurement>(c: &mut Criterion<M>, suffix: &str) {
     group.bench_with_input(name, &1, |b, _| {
         let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
 
-        b.iter(|| do_u64_baseline(&mut rng))
+        b.iter(|| do_u64_baseline(&mut rng));
     });
     let name = BenchmarkId::new(format!("Portable/Xoshiro256+X4/{suffix}"), "1");
     group.bench_with_input(name, &1, |b, _| {
         let mut rng = portable::Xoshiro256PlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
 
-        b.iter(|| do_u64_portable_x4(&mut rng))
+        b.iter(|| do_u64_portable_x4(&mut rng));
     });
     let name = BenchmarkId::new(format!("Portable/Xoshiro256+X8/{suffix}"), "1");
     group.bench_with_input(name, &1, |b, _| {
         let mut rng = portable::Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
 
-        b.iter(|| do_u64_portable_x8(&mut rng))
+        b.iter(|| do_u64_portable_x8(&mut rng));
     });
 
     group.finish();

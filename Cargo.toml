@@ -19,6 +19,25 @@ default = ["specific"]
 specific = []
 portable = []
 
+[lints.rust]
+warnings = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+# RNG constants are well-known hex values; separators hurt pattern recognition
+unreadable_literal = "allow"
+# Critical for SIMD codegen — these functions must be inlined
+inline_always = "allow"
+# Package metadata not needed yet
+cargo_common_metadata = "allow"
+# Seed From impls intentionally panic on invalid input
+fallible_impl_from = "allow"
+# SIMD code imports dozens of intrinsics; explicit imports would be unwieldy
+wildcard_imports = "allow"
+
 [dev-dependencies]
 rand = { version = "0.9", features = ["small_rng"] }
 # packed_simd = { version = "0.3" }

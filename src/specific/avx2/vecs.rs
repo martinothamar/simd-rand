@@ -10,14 +10,16 @@ pub struct F64x4([f64; 4]);
 
 impl U64x4 {
     #[inline(always)]
-    pub fn new(values: [u64; 4]) -> Self {
+    #[must_use]
+    pub const fn new(values: [u64; 4]) -> Self {
         Self(values)
     }
 }
 
 impl F64x4 {
     #[inline(always)]
-    pub fn new(values: [f64; 4]) -> Self {
+    #[must_use]
+    pub const fn new(values: [f64; 4]) -> Self {
         Self(values)
     }
 }
@@ -37,7 +39,7 @@ impl DerefMut for U64x4 {
 
 impl From<[u64; 4]> for U64x4 {
     fn from(val: [u64; 4]) -> Self {
-        U64x4::new(val)
+        Self::new(val)
     }
 }
 
@@ -56,7 +58,7 @@ impl DerefMut for F64x4 {
 
 impl From<[f64; 4]> for F64x4 {
     fn from(val: [f64; 4]) -> Self {
-        F64x4::new(val)
+        Self::new(val)
     }
 }
 

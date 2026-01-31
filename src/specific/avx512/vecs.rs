@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Eq)]
 #[repr(align(64))]
 pub struct U64x8([u64; 8]);
 
@@ -10,14 +10,16 @@ pub struct F64x8([f64; 8]);
 
 impl U64x8 {
     #[inline(always)]
-    pub fn new(values: [u64; 8]) -> Self {
+    #[must_use]
+    pub const fn new(values: [u64; 8]) -> Self {
         Self(values)
     }
 }
 
 impl F64x8 {
     #[inline(always)]
-    pub fn new(values: [f64; 8]) -> Self {
+    #[must_use]
+    pub const fn new(values: [f64; 8]) -> Self {
         Self(values)
     }
 }
@@ -37,7 +39,7 @@ impl DerefMut for U64x8 {
 
 impl From<[u64; 8]> for U64x8 {
     fn from(val: [u64; 8]) -> Self {
-        U64x8::new(val)
+        Self::new(val)
     }
 }
 
@@ -56,7 +58,7 @@ impl DerefMut for F64x8 {
 
 impl From<[f64; 8]> for F64x8 {
     fn from(val: [f64; 8]) -> Self {
-        F64x8::new(val)
+        Self::new(val)
     }
 }
 

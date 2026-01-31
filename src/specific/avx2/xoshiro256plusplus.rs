@@ -14,21 +14,22 @@ use super::{rotate_left, simdrand::*};
 pub struct Xoshiro256PlusPlusX4Seed([u8; 128]);
 
 impl Xoshiro256PlusPlusX4Seed {
-    pub fn new(seed: [u8; 128]) -> Self {
+    #[must_use]
+    pub const fn new(seed: [u8; 128]) -> Self {
         Self(seed)
     }
 }
 
 impl From<[u8; 128]> for Xoshiro256PlusPlusX4Seed {
     fn from(val: [u8; 128]) -> Self {
-        Xoshiro256PlusPlusX4Seed::new(val)
+        Self::new(val)
     }
 }
 
 impl From<Vec<u8>> for Xoshiro256PlusPlusX4Seed {
     fn from(val: Vec<u8>) -> Self {
         assert!(val.len() == 128);
-        Xoshiro256PlusPlusX4Seed::new(val.try_into().unwrap())
+        Self::new(val.try_into().unwrap())
     }
 }
 
@@ -53,8 +54,8 @@ pub struct Xoshiro256PlusPlusX4 {
     s3: __m256i,
 }
 impl Default for Xoshiro256PlusPlusX4Seed {
-    fn default() -> Xoshiro256PlusPlusX4Seed {
-        Xoshiro256PlusPlusX4Seed([0; 128])
+    fn default() -> Self {
+        Self([0; 128])
     }
 }
 
@@ -140,15 +141,15 @@ mod tests {
         ];
         for &e in &expected {
             let mem = rng.next_u64x4();
-            for v in mem.into_iter() {
-                assert_eq!(v, e);
+            for v in &*mem {
+                assert_eq!(*v, e);
             }
         }
     }
 
     #[test]
     fn sample_u64x4() {
-        let mut seed: RngSeed = Default::default();
+        let mut seed = RngSeed::default();
         rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
@@ -167,7 +168,7 @@ mod tests {
 
     #[test]
     fn sample_f64x4() {
-        let mut seed: RngSeed = Default::default();
+        let mut seed = RngSeed::default();
         rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
@@ -183,9 +184,9 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(debug_assertions, ignore)]
+    #[cfg_attr(debug_assertions, ignore = "distribution test requires release mode")]
     fn sample_f64x4_distribution() {
-        let mut seed: RngSeed = Default::default();
+        let mut seed = RngSeed::default();
         rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
@@ -218,6 +219,7 @@ mod tests {
         print(v);
     }
 
+    #[allow(clippy::items_after_statements)]
     fn print<T>(v: T)
     where
         T: PrimInt + ToString,

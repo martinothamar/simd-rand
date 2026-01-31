@@ -12,21 +12,22 @@ use super::{SimdRandX8, read_u64_into_vec, rotate_left};
 pub struct Xoshiro256PlusX8Seed([u8; 256]);
 
 impl Xoshiro256PlusX8Seed {
-    pub fn new(seed: [u8; 256]) -> Self {
+    #[must_use]
+    pub const fn new(seed: [u8; 256]) -> Self {
         Self(seed)
     }
 }
 
 impl From<[u8; 256]> for Xoshiro256PlusX8Seed {
     fn from(val: [u8; 256]) -> Self {
-        Xoshiro256PlusX8Seed::new(val)
+        Self::new(val)
     }
 }
 
 impl From<Vec<u8>> for Xoshiro256PlusX8Seed {
     fn from(val: Vec<u8>) -> Self {
         assert!(val.len() == 256);
-        Xoshiro256PlusX8Seed::new(val.try_into().unwrap())
+        Self::new(val.try_into().unwrap())
     }
 }
 
@@ -44,8 +45,8 @@ impl DerefMut for Xoshiro256PlusX8Seed {
 }
 
 impl Default for Xoshiro256PlusX8Seed {
-    fn default() -> Xoshiro256PlusX8Seed {
-        Xoshiro256PlusX8Seed([0; 256])
+    fn default() -> Self {
+        Self([0; 256])
     }
 }
 
@@ -139,7 +140,7 @@ mod tests {
         ];
         for e in expected {
             let mem = rng.next_u64x8();
-            for &v in mem.as_array().iter() {
+            for &v in mem.as_array() {
                 assert_eq!(v, e);
             }
         }
@@ -147,7 +148,7 @@ mod tests {
 
     #[test]
     fn sample_u64x8() {
-        let mut seed: RngSeed = Default::default();
+        let mut seed = RngSeed::default();
         rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
@@ -166,7 +167,7 @@ mod tests {
 
     #[test]
     fn sample_f64x4() {
-        let mut seed: RngSeed = Default::default();
+        let mut seed = RngSeed::default();
         rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 
@@ -182,9 +183,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(any(debug_assertions, miri), ignore)]
+    #[cfg_attr(
+        any(debug_assertions, miri),
+        ignore = "distribution test requires release mode and real RNG"
+    )]
     fn sample_f64x4_distribution() {
-        let mut seed: RngSeed = Default::default();
+        let mut seed = RngSeed::default();
         rand::rng().fill_bytes(&mut *seed);
         let mut rng = RngImpl::from_seed(seed);
 

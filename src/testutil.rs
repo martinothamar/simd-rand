@@ -5,11 +5,12 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
 
-pub(crate) const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
+pub const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
 #[cfg(feature = "specific")]
-pub(crate) const FLOAT_RANGE: Range<f32> = 0.0f32..1.0f32;
+pub const FLOAT_RANGE: Range<f32> = 0.0f32..1.0f32;
 
-pub(crate) fn test_uniform_distribution<const SAMPLES: usize, T>(mut f: impl FnMut() -> T, range: Range<T>)
+#[allow(clippy::items_after_statements)]
+pub fn test_uniform_distribution<const SAMPLES: usize, T>(mut f: impl FnMut() -> T, range: Range<T>)
 where
     T: Num + NumCast + Display + TryInto<Decimal>,
     <T as TryInto<Decimal>>::Error: Debug,
@@ -80,7 +81,7 @@ where
 }
 
 #[rustfmt::skip]
-pub(crate) const REF_SEED_256: [u8; 128] = [
+pub const REF_SEED_256: [u8; 128] = [
     1, 0, 0, 0, 0, 0, 0, 0,
     1, 0, 0, 0, 0, 0, 0, 0,
     1, 0, 0, 0, 0, 0, 0, 0,
@@ -99,8 +100,10 @@ pub(crate) const REF_SEED_256: [u8; 128] = [
     4, 0, 0, 0, 0, 0, 0, 0,
 ];
 
+// Used by portable x8 and specific avx512 tests
+#[cfg(any(feature = "portable", all(target_feature = "avx512f", target_feature = "avx512dq", target_feature = "avx512vl")))]
 #[rustfmt::skip]
-pub(crate) const REF_SEED_512: [u8; 256] = [
+pub const REF_SEED_512: [u8; 256] = [
     1, 0, 0, 0, 0, 0, 0, 0,
     1, 0, 0, 0, 0, 0, 0, 0,
     1, 0, 0, 0, 0, 0, 0, 0,
