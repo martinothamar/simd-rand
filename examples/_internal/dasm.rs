@@ -1,10 +1,8 @@
-#![feature(portable_simd)]
+#![cfg_attr(feature = "portable", feature(portable_simd))]
 
-use rand_core::RngCore;
-use rand_core::SeedableRng;
+use rand_core::{RngCore, SeedableRng};
 use simd_rand::portable;
-use simd_rand::portable::SimdRandX4 as PortableSimdRandX4;
-use simd_rand::portable::SimdRandX8 as PortableSimdRandX8;
+use simd_rand::portable::{SimdRandX4 as PortableSimdRandX4, SimdRandX8 as PortableSimdRandX8};
 use simd_rand::specific;
 use simd_rand::specific::avx2::SimdRand as SpecificSimdRandX4;
 #[cfg(all(
@@ -16,9 +14,7 @@ use simd_rand::specific::avx2::SimdRand as SpecificSimdRandX4;
 use simd_rand::specific::avx512::SimdRand as SpecificSimdRandX8;
 use std::arch::x86_64::*;
 use std::hint::black_box;
-use std::simd::f64x4;
-use std::simd::u64x4;
-use std::simd::u64x8;
+use std::simd::{f64x4, u64x4, u64x8};
 
 /// This is a small binary meant to aid in analyzing generated code
 /// For example to see differences between portable and specific code,

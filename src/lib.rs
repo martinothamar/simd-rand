@@ -2,7 +2,7 @@
 //!
 //! Provides SIMD implementations of common PRNGs in Rust.
 //! Categories:
-//! - [`portable`] - portable implementations using `std::simd` (nightly required)
+//! - [`portable`] - portable implementations using `std::simd` (feature `portable`, nightly required)
 //! - [`specific`] - implementations using architecture-specific hardware intrinsics
 //!   - [`specific::avx2`] - AVX2 for x86_64 architecture (4 lanes for 64bit)
 //!     - Requires `avx2` CPU flag, but has additional optimization if you have `avx512dq` and `avx512vl`
@@ -26,20 +26,28 @@
 //!
 //! ```toml
 //! [dependencies]
-//! simd_rand = { git = "https://github.com/martinothamar/simd-rand" }
+//! simd_rand = "0.1"
+//! ```
+//!
+//! ```toml
+//! [dependencies]
+//! simd_rand = { version = "0.1", features = ["portable"] }
 //! ```
 //!
 //! ```rust
+//! # #[cfg(feature = "portable")]
+//! # fn main() {
 //! use rand_core::{RngCore, SeedableRng};
 //! use simd_rand::portable::*;
 //!
-//! fn main() {
-//!     let mut seed: Xoshiro256PlusPlusX8Seed = Default::default();
-//!     rand::rng().fill_bytes(&mut *seed);
-//!     let mut rng = Xoshiro256PlusPlusX8::from_seed(seed);
+//! let mut seed: Xoshiro256PlusPlusX8Seed = Default::default();
+//! rand::rng().fill_bytes(&mut *seed);
+//! let mut rng = Xoshiro256PlusPlusX8::from_seed(seed);
 //!
-//!     let vector = rng.next_u64x8();
-//! }
+//! let vector = rng.next_u64x8();
+//! # }
+//! # #[cfg(not(feature = "portable"))]
+//! # fn main() {}
 //! ```
 //!
 //! The `portable` module will be available on any architecture, e.g. even on x86_64 with only AVX2 you can still use `Xoshiro256PlusPluxX8` which uses
@@ -113,10 +121,19 @@
 //!
 //! There is also some inline assembly used, where the C-style intrinsics haven't been exposed as Rust APIs in `std::arch`.
 
-#![feature(portable_simd)]
+// Portable SIMD is nightly; keep stable builds working by gating the feature.
+#![cfg_attr(feature = "portable", feature(portable_simd))]
 
+#[cfg(feature = "portable")]
 pub mod portable;
+#[cfg(feature = "specific")]
 pub mod specific;
 
-#[cfg(test)]
+#[cfg(all(
+    test,
+    any(
+        feature = "portable",
+        all(feature = "specific", any(target_feature = "avx2", target_feature = "avx512f"))
+    )
+))]
 mod testutil;

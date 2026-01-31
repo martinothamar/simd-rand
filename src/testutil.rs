@@ -6,6 +6,7 @@ use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
 
 pub(crate) const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
+#[cfg(feature = "specific")]
 pub(crate) const FLOAT_RANGE: Range<f32> = 0.0f32..1.0f32;
 
 pub(crate) fn test_uniform_distribution<const SAMPLES: usize, T>(mut f: impl FnMut() -> T, range: Range<T>)

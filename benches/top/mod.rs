@@ -1,4 +1,4 @@
-use std::{arch::x86_64::*, mem, simd::u64x8};
+use std::{mem, simd::u64x8};
 
 use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
 use std::hint::black_box;
@@ -7,7 +7,10 @@ use rand::Rng;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
 use simd_rand::portable::*;
+#[cfg(feature = "specific")]
 use simd_rand::specific;
+#[cfg(all(feature = "specific", target_arch = "x86_64"))]
+use std::arch::x86_64::*;
 
 #[inline(always)]
 fn execute_rand<RNG: RngCore>(rng: &mut RNG, data: &mut u64x8) {
@@ -27,6 +30,7 @@ fn execute_vectorized_portable<RNG: SimdRandX8>(rng: &mut RNG, data: &mut u64x8)
 }
 
 #[cfg(all(
+    feature = "specific",
     target_arch = "x86_64",
     target_feature = "avx512f",
     target_feature = "avx512dq",
@@ -68,6 +72,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
     });
 
     #[cfg(all(
+        feature = "specific",
         target_arch = "x86_64",
         target_feature = "avx512f",
         target_feature = "avx512dq",
@@ -75,6 +80,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
     ))]
     let name = BenchmarkId::new("Specific/Xoshiro256+X8".to_string(), 1);
     #[cfg(all(
+        feature = "specific",
         target_arch = "x86_64",
         target_feature = "avx512f",
         target_feature = "avx512dq",

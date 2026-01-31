@@ -2,6 +2,7 @@ bindir := ./target/release/examples
 outbin := ${bindir}/profile
 TARGET := x86_64-unknown-linux-gnu
 RUSTFLAGS_AVX512 := -C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl
+CARGO_NIGHTLY := cargo +nightly
 
 all: run
 
@@ -18,16 +19,16 @@ test:
 	cargo nextest run && cargo nextest run --release
 
 test-miri:
-	cargo +nightly miri test -p simd_rand -- portable
+	$(CARGO_NIGHTLY) miri test -p simd_rand --no-default-features --features portable --lib
 
 bench:
-	cargo bench -- "$(F)" --verbose
+	$(CARGO_NIGHTLY) bench --features portable -- "$(F)" --verbose
 
 stat: build
 	perf stat -d -d -d $(outbin)
 
 build:
-	cargo build --release --example profile
+	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) build --all-targets --all-features
 
 check:
 	cargo check
@@ -36,18 +37,18 @@ run: build
 	$(outbin)
 
 dasm:
-	cargo objdump --example dasm --release -- \
+	$(CARGO_NIGHTLY) objdump --example dasm --features portable --release -- \
 	-d -M intel > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
 
 dasmbench:
-	cargo objdump --bench main --release -- \
+	$(CARGO_NIGHTLY) objdump --bench main --features portable --release -- \
 	-d -M intel > target/release/bench.asm 2> target/release/bench.asm.log
 
 asm:
-	cargo rustc --release --example dasm -- --emit asm -C "llvm-args=-x86-asm-syntax=intel"
+	$(CARGO_NIGHTLY) rustc --release --example dasm --features portable -- --emit asm -C "llvm-args=-x86-asm-syntax=intel"
 
 dasmexp: dasm
-	cargo rustc --release --bin dasm -- --emit asm=/dev/stdout | c++filt > src/bin/dasm.S
+	$(CARGO_NIGHTLY) rustc --release --example dasm --features portable -- --emit asm=/dev/stdout | c++filt > $(bindir)/dasm.S
 
 # Tested on Ubuntu 22 with bash - run this as a one-off
 # may need to fix the compiler warning for RNG_test.cpp (I segfaulted otherwise)
@@ -63,7 +64,7 @@ getpractrand:
 	popd
 
 practrand:
-	cargo build --example practrand --release && ./target/release/examples/practrand | ./external/PractRand/RNG_test stdin64 -multithreaded
+	$(CARGO_NIGHTLY) build --example practrand --features portable --release && ./target/release/examples/practrand | ./external/PractRand/RNG_test stdin64 -multithreaded
 
 clean:
 	cargo clean --release && cargo clean

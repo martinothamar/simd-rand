@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-#![feature(portable_simd)]
+#![cfg_attr(feature = "portable", feature(portable_simd))]
 
 use std::arch::x86_64::*;
 use std::mem;
@@ -13,6 +13,7 @@ use std::hint::black_box;
 
 mod portable;
 mod scratch;
+#[cfg(feature = "specific")]
 mod specific;
 mod top;
 
@@ -30,10 +31,11 @@ fn bench<M: Measurement, const T: u8>(c: &mut Criterion<M>) {
 
     crate::portable::add_benchmarks::<_, ITERATIONS>(c, suffix);
 
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+    #[cfg(all(feature = "specific", target_arch = "x86_64", target_feature = "avx2"))]
     crate::specific::avx2::add_benchmarks::<_, ITERATIONS>(c, suffix);
 
     #[cfg(all(
+        feature = "specific",
         target_arch = "x86_64",
         target_feature = "avx512f",
         target_feature = "avx512dq",

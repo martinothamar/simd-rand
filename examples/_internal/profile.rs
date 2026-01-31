@@ -1,7 +1,6 @@
-use std::{hint::black_box, time::Instant};
-
 use rand_core::{RngCore, SeedableRng};
 use simd_rand::portable::*;
+use std::{hint::black_box, time::Instant};
 
 fn main() {
     let mut seed: Xoshiro256PlusPlusX8Seed = Default::default();
