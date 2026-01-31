@@ -2,13 +2,12 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(unused_mut)]
-#![feature(portable_simd)]
-
-use std::io::{ErrorKind, Write};
+#![cfg_attr(feature = "portable", feature(portable_simd))]
 
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::*;
 use simd_rand::portable::*;
+use std::io::Write;
 use std::mem;
 
 #[repr(align(64))]

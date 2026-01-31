@@ -2,6 +2,7 @@
 name = "simd_rand"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.89"
 
 [profile.release]
 panic = "abort"
@@ -12,6 +13,11 @@ codegen-units = 1
 
 [dependencies]
 rand_core = "0.9"
+
+[features]
+default = ["specific"]
+specific = []
+portable = []
 
 [dev-dependencies]
 rand = { version = "0.9", features = ["small_rng"] }
@@ -30,18 +36,22 @@ bench = false
 [[bench]]
 name = "main"
 harness = false
+required-features = ["portable"]
 
 [[example]]
 name = "dasm"
 path = "examples/_internal/dasm.rs"
 bench = false
+required-features = ["portable", "specific"]
 
 [[example]]
 name = "profile"
 path = "examples/_internal/profile.rs"
 bench = false
+required-features = ["portable"]
 
 [[example]]
 name = "practrand"
 path = "examples/_internal/practrand.rs"
 bench = false
+required-features = ["portable"]

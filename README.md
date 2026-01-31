@@ -2,7 +2,7 @@
 
 Provides SIMD implementations of common PRNGs in Rust. 
 Categories:
-- [`portable`] - portable implementations using `std::simd` (nightly required) 
+- [`portable`] - portable implementations using `std::simd` (feature `portable`, nightly required) 
 - [`specific`] - implementations using architecture-specific hardware intrinsics
   - [`specific::avx2`] - AVX2 for x86_64 architecture (4 lanes for 64bit)
     - Requires `avx2` CPU flag, but has additional optimization if you have `avx512dq` and `avx512vl`
@@ -24,10 +24,21 @@ Choice of PRNGs, unvectorized sources and general advice has been taken from the
 
 ## Usage
 
+MSRV: 1.89.
+
 ```toml
 [dependencies]
-simd_rand = { git = "https://github.com/martinothamar/simd-rand" }
+simd_rand = "0.1"
 ```
+
+Portable SIMD on nightly:
+
+```toml
+[dependencies]
+simd_rand = { version = "0.1", features = ["portable"] }
+```
+
+The example below uses `portable`, which requires the `portable` feature and a nightly toolchain until `std::simd` is stabilized.
 
 ```rust
 use rand_core::{RngCore, SeedableRng};
