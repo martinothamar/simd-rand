@@ -119,8 +119,6 @@
 //! high performance in vectorized codepaths.
 //! If you don't need that kind of performance, stick to [rand](https://docs.rs/rand) and [rand_core](https://docs.rs/rand_core)
 //!
-//! There is also some inline assembly used, where the C-style intrinsics haven't been exposed as Rust APIs in `core::arch`.
-//!
 //! ## `no_std` Support
 //!
 //! This crate is `no_std` compatible but requires `alloc` (used by Shishua's buffered output).

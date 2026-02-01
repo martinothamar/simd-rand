@@ -122,8 +122,6 @@ There is a decent amount of `unsafe` used, due to direct use of hardware intrisi
 high performance in vectorized codepaths. 
 If you don't need that kind of performance, stick to [rand](https://docs.rs/rand) and [rand_core](https://docs.rs/rand_core)
 
-There is also some inline assembly used, where the C-style intrinsics haven't been exposed as Rust APIs in `std::arch`.
-
 ## Notes
 
 Prereqs for disassembly:
