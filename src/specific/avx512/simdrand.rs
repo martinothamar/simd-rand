@@ -1,4 +1,4 @@
-use std::{arch::x86_64::*, mem::transmute};
+use core::{arch::x86_64::*, mem::transmute};
 
 use super::vecs::*;
 
@@ -29,7 +29,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m512i();
             let mut vector = U64x8::default();
-            _mm512_store_epi64(std::ptr::from_mut(&mut vector).cast::<i64>(), v);
+            _mm512_store_epi64(core::ptr::from_mut(&mut vector).cast::<i64>(), v);
             vector
         }
     }

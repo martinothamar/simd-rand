@@ -2,7 +2,7 @@
 //!
 //! Provides SIMD implementations of common PRNGs in Rust.
 //! Categories:
-//! - [`portable`] - portable implementations using `std::simd` (feature `portable`, nightly required)
+//! - [`portable`] - portable implementations using `core::simd` (feature `portable`, nightly required)
 //! - [`specific`] - implementations using architecture-specific hardware intrinsics
 //!   - [`specific::avx2`] - AVX2 for `x86_64` architecture (4 lanes for 64bit)
 //!     - Requires `avx2` CPU flag, but has additional optimization if you have `avx512dq` and `avx512vl`
@@ -51,7 +51,7 @@
 //! ```
 //!
 //! The `portable` module will be available on any architecture, e.g. even on `x86_64` with only AVX2 you can still use `Xoshiro256PlusPluxX8` which uses
-//! 8-lane/512bit vectors (u64x8 from `std::simd`). The compiler is able to make it reasonably fast even if using only 256bit wide registers (AVX2) in the generated code.
+//! 8-lane/512bit vectors (u64x8 from `core::simd`). The compiler is able to make it reasonably fast even if using only 256bit wide registers (AVX2) in the generated code.
 //!
 //! The `specific` submodules (AVX2 and AVX512 currently) are only compiled in depending on target arch/features.
 //!
@@ -119,10 +119,20 @@
 //! high performance in vectorized codepaths.
 //! If you don't need that kind of performance, stick to [rand](https://docs.rs/rand) and [rand_core](https://docs.rs/rand_core)
 //!
-//! There is also some inline assembly used, where the C-style intrinsics haven't been exposed as Rust APIs in `std::arch`.
+//! There is also some inline assembly used, where the C-style intrinsics haven't been exposed as Rust APIs in `core::arch`.
+//!
+//! ## `no_std` Support
+//!
+//! This crate is `no_std` compatible but requires `alloc` (used by Shishua's buffered output).
 
 // Portable SIMD is nightly; keep stable builds working by gating the feature.
+#![no_std]
 #![cfg_attr(feature = "portable", feature(portable_simd))]
+
+extern crate alloc;
+#[cfg(test)]
+#[macro_use]
+extern crate std;
 
 #[cfg(feature = "portable")]
 pub mod portable;

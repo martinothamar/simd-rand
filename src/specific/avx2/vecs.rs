@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut};
 
 #[derive(Default, Debug)]
 #[repr(align(32))]
@@ -64,7 +64,7 @@ impl From<[f64; 4]> for F64x4 {
 
 #[cfg(test)]
 mod tests {
-    use std::{arch::x86_64::*, mem::size_of};
+    use core::{arch::x86_64::*, mem::size_of};
 
     use super::*;
 

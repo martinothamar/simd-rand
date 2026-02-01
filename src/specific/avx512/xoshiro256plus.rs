@@ -1,4 +1,4 @@
-use std::{
+use core::{
     arch::x86_64::*,
     mem,
     ops::{Deref, DerefMut},
@@ -26,10 +26,12 @@ impl From<[u8; 256]> for Xoshiro256PlusX8Seed {
     }
 }
 
-impl From<Vec<u8>> for Xoshiro256PlusX8Seed {
-    fn from(val: Vec<u8>) -> Self {
-        assert!(val.len() == 256);
-        Self::new(val.try_into().unwrap())
+impl From<&[u8]> for Xoshiro256PlusX8Seed {
+    fn from(val: &[u8]) -> Self {
+        assert_eq!(val.len(), 256);
+        let mut seed = [0u8; 256];
+        seed.copy_from_slice(val);
+        Self::new(seed)
     }
 }
 

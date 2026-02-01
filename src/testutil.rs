@@ -1,4 +1,5 @@
-use std::{fmt::Debug, fmt::Display, ops::Range};
+use alloc::vec::Vec;
+use core::{fmt::Debug, fmt::Display, ops::Range};
 
 use num_traits::{Num, NumCast};
 use rust_decimal::Decimal;

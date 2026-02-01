@@ -1,4 +1,4 @@
-use std::{
+use core::{
     arch::x86_64::*,
     mem,
     ops::{Deref, DerefMut},
@@ -26,10 +26,12 @@ impl From<[u8; 128]> for Xoshiro256PlusPlusX4Seed {
     }
 }
 
-impl From<Vec<u8>> for Xoshiro256PlusPlusX4Seed {
-    fn from(val: Vec<u8>) -> Self {
-        assert!(val.len() == 128);
-        Self::new(val.try_into().unwrap())
+impl From<&[u8]> for Xoshiro256PlusPlusX4Seed {
+    fn from(val: &[u8]) -> Self {
+        assert_eq!(val.len(), 128);
+        let mut seed = [0u8; 128];
+        seed.copy_from_slice(val);
+        Self::new(seed)
     }
 }
 
@@ -113,7 +115,8 @@ impl SimdRand for Xoshiro256PlusPlusX4 {
 
 #[cfg(test)]
 mod tests {
-    use std::mem;
+    use alloc::string::{String, ToString};
+    use core::mem;
 
     use itertools::Itertools;
     use num_traits::PrimInt;
