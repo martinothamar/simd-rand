@@ -1,4 +1,4 @@
-use std::simd::{f64x4, f64x8, u64x4, u64x8};
+use core::simd::{f64x4, f64x8, u64x4, u64x8};
 
 pub trait SimdRandX4 {
     fn next_u64x4(&mut self) -> u64x4;

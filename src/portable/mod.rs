@@ -1,4 +1,4 @@
-use std::{
+use core::{
     fmt::Debug,
     mem,
     ops::{BitOr, Shl, Shr, Sub},

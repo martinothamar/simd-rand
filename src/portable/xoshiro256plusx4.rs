@@ -1,4 +1,4 @@
-use std::{
+use core::{
     mem,
     ops::{Deref, DerefMut},
     simd::u64x4,
@@ -24,10 +24,12 @@ impl From<[u8; 128]> for Xoshiro256PlusX4Seed {
     }
 }
 
-impl From<Vec<u8>> for Xoshiro256PlusX4Seed {
-    fn from(val: Vec<u8>) -> Self {
-        assert!(val.len() == 128);
-        Self::new(val.try_into().unwrap())
+impl From<&[u8]> for Xoshiro256PlusX4Seed {
+    fn from(val: &[u8]) -> Self {
+        assert_eq!(val.len(), 128);
+        let mut seed = [0u8; 128];
+        seed.copy_from_slice(val);
+        Self::new(seed)
     }
 }
 
@@ -108,9 +110,9 @@ impl SimdRandX4 for Xoshiro256PlusX4 {
 
 #[cfg(test)]
 mod tests {
+    use core::simd::*;
     use itertools::Itertools;
     use rand_core::{RngCore, SeedableRng};
-    use std::simd::*;
 
     use crate::testutil::{DOUBLE_RANGE, REF_SEED_256, test_uniform_distribution};
 

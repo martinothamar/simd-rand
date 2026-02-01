@@ -1,4 +1,4 @@
-use std::{arch::x86_64::*, mem};
+use core::{arch::x86_64::*, mem};
 
 // pub use shishua::*;
 pub use simdrand::*;

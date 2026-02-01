@@ -1,4 +1,4 @@
-use std::{arch::x86_64::*, mem::transmute};
+use core::{arch::x86_64::*, mem::transmute};
 
 use super::vecs::*;
 
@@ -29,7 +29,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m256i();
             let mut vector = U64x4::default();
-            _mm256_store_si256(std::ptr::from_mut(&mut vector).cast::<__m256i>(), v);
+            _mm256_store_si256(core::ptr::from_mut(&mut vector).cast::<__m256i>(), v);
             vector
         }
     }
@@ -39,7 +39,7 @@ pub trait SimdRand {
         unsafe {
             let v = self.next_m256d();
             let mut vector = F64x4::default();
-            _mm256_store_pd(std::ptr::from_mut(&mut vector).cast::<f64>(), v);
+            _mm256_store_pd(core::ptr::from_mut(&mut vector).cast::<f64>(), v);
             vector
         }
     }

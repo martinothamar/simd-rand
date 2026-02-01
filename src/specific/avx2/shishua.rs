@@ -1,11 +1,11 @@
-use std::ptr::NonNull;
-use std::{arch::x86_64::*, mem::size_of};
+use core::ptr::NonNull;
+use core::{arch::x86_64::*, mem::size_of};
 
+use alloc::alloc;
+use core::alloc::{Layout, LayoutError};
+use core::mem;
 use rand_core::le::read_u64_into;
 use rand_core::{RngCore, SeedableRng};
-use std::alloc::{Layout, LayoutError};
-use std::iter::Iterator;
-use std::{alloc, mem};
 
 use super::simdrand::*;
 
@@ -104,7 +104,7 @@ impl<const BUFFER_SIZE: usize> SimdRand for Shishua<BUFFER_SIZE> {
 
             // Buffer is allocated with __m256i alignment; u8 pointer cast is safe
             #[allow(clippy::cast_ptr_alignment)]
-            let vector = _mm256_load_si256(std::ptr::from_ref(src).cast::<__m256i>());
+            let vector = _mm256_load_si256(core::ptr::from_ref(src).cast::<__m256i>());
 
             state.buffer_index += SIZE;
 
@@ -161,7 +161,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
     #[inline(always)]
     fn next_u32(&mut self) -> u32 {
         let mut result: u32 = 0;
-        let bytes = unsafe { &mut *std::ptr::from_mut(&mut result).cast::<[u8; 4]>() };
+        let bytes = unsafe { &mut *core::ptr::from_mut(&mut result).cast::<[u8; 4]>() };
         self.fill_bytes_arr(bytes);
         result
     }
@@ -169,7 +169,7 @@ impl<const BUFFER_SIZE: usize> RngCore for Shishua<BUFFER_SIZE> {
     #[inline(always)]
     fn next_u64(&mut self) -> u64 {
         let mut result: u64 = 0;
-        let bytes = unsafe { &mut *std::ptr::from_mut(&mut result).cast::<[u8; 8]>() };
+        let bytes = unsafe { &mut *core::ptr::from_mut(&mut result).cast::<[u8; 8]>() };
         self.fill_bytes_arr(bytes);
         result
     }
@@ -364,6 +364,8 @@ mod tests {
 
     type RngImpl = super::Shishua<DEFAULT_BUFFER_SIZE>;
 
+    use ::alloc::{vec, vec::Vec};
+
     use crate::testutil::{DOUBLE_RANGE, FLOAT_RANGE, test_uniform_distribution};
 
     use super::super::vecs::*;
@@ -542,11 +544,11 @@ mod tests {
     }
 
     fn get_zero_seed() -> &'static [u8; 32] {
-        unsafe { &*std::ptr::from_ref(&SEED_ZERO).cast::<[u8; 32]>() }
+        unsafe { &*core::ptr::from_ref(&SEED_ZERO).cast::<[u8; 32]>() }
     }
 
     fn get_predefined_seed() -> &'static [u8; 32] {
-        unsafe { &*std::ptr::from_ref(&SEED_PI).cast::<[u8; 32]>() }
+        unsafe { &*core::ptr::from_ref(&SEED_PI).cast::<[u8; 32]>() }
     }
 
     fn create_with_zero_seed() -> RngImpl {
