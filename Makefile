@@ -21,8 +21,14 @@ test:
 test-miri:
 	$(CARGO_NIGHTLY) miri test -p simd_rand --no-default-features --features portable --lib
 
+doc:
+	RUSTDOCFLAGS="--cfg docsrs $(RUSTFLAGS_AVX512)" RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) doc --all-features --no-deps
+
 bench:
 	$(CARGO_NIGHTLY) bench --features portable -- "$(F)" --verbose
+
+bench-top:
+	$(CARGO_NIGHTLY) bench --features portable -- "Top" --warm-up-time 5 --measurement-time 10 --sample-size 200
 
 stat: build
 	perf stat -d -d -d $(outbin)

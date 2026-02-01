@@ -18,8 +18,6 @@
 //! hardware intrisics to accelerate compute, for example
 //! [Monte Carlo simulations](https://github.com/martinothamar/building-x-in-y/tree/main/monte-carlo-sim/rust).
 //!
-//! This library is under active development. No version has been published to cargo yet.
-//!
 //! Choice of PRNGs, unvectorized sources and general advice has been taken from the great [PRNG shootout resource by Sebastiano Vigna](https://prng.di.unimi.it/).
 //!
 //! ## Usage
@@ -68,48 +66,27 @@
 //! but this doesn't actually vectorize random number generation.
 //!
 //! If you want to actually use these generators, you should benchmark them yourself on your own hardware. See the `bench` target in the [Makefile](/Makefile).
-//! Benchmark results below is from a laptop with 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz CPU.
+//! Benchmark results below is from desktop with an AMD Ryzen 9 9950X3D 16-Core CPU.
 //! There is a `portable` variant of Xoshiro256+ for u64x8/f64x8 as well, but in those cases no guarantees are made about performance. The compiler
 //! decides what to do with the vectors, whereas with AVX512 specific ones in the `specific` module will either not compile or run very fast.
 //!
 //! ```ignore
-//! Top/Rand/Xoshiro256+/1  time:   [5.8505 ns 5.8653 ns 5.8823 ns]
-//!                         thrpt:  [10.133 GiB/s 10.162 GiB/s 10.188 GiB/s]
-//! Found 13 outliers among 100 measurements (13.00%)
-//!   8 (8.00%) high mild
-//!   5 (5.00%) high severe
-//! slope  [5.8505 ns 5.8823 ns] R^2            [0.9830550 0.9828000]
-//! mean   [5.8567 ns 5.8866 ns] std. dev.      [55.633 ps 96.630 ps]
-//! median [5.8421 ns 5.8533 ns] med. abs. dev. [23.662 ps 45.862 ps]
-//!
-//!
-//! Top/RandVectorized/Xoshiro256+/1
-//!                         time:   [7.1770 ns 7.1938 ns 7.2142 ns]
-//!                         thrpt:  [8.2621 GiB/s 8.2855 GiB/s 8.3050 GiB/s]
-//! Found 13 outliers among 100 measurements (13.00%)
-//!   6 (6.00%) high mild
-//!   7 (7.00%) high severe
-//! slope  [7.1770 ns 7.2142 ns] R^2            [0.9858523 0.9855185]
-//! mean   [7.1769 ns 7.2059 ns] std. dev.      [50.956 ps 94.011 ps]
-//! median [7.1633 ns 7.1748 ns] med. abs. dev. [20.377 ps 38.094 ps]
-//!
-//!
-//! Top/Portable/Xoshiro256+X8/1
-//!                         time:   [916.36 ps 920.53 ps 925.57 ps]
-//!                         thrpt:  [64.398 GiB/s 64.750 GiB/s 65.045 GiB/s]
-//! Found 1 outliers among 100 measurements (1.00%)
-//!   1 (1.00%) high severe
-//! slope  [916.36 ps 925.57 ps] R^2            [0.9466915 0.9454417]
-//! mean   [916.46 ps 923.16 ps] std. dev.      [13.352 ps 21.906 ps]
-//! median [915.04 ps 925.21 ps] med. abs. dev. [12.841 ps 20.338 ps]
-//!
-//!
-//! Top/Specific/Xoshiro256+X8/1
-//!                         time:   [961.32 ps 965.08 ps 968.96 ps]
-//!                         thrpt:  [61.514 GiB/s 61.761 GiB/s 62.003 GiB/s]
-//! slope  [961.32 ps 968.96 ps] R^2            [0.9651056 0.9649879]
-//! mean   [963.76 ps 971.23 ps] std. dev.      [16.813 ps 21.217 ps]
-//! median [964.21 ps 975.76 ps] med. abs. dev. [16.026 ps 26.276 ps]
+//! Top/rand/Xoshiro256+
+//!                         time:   [3.2356 ns 3.2367 ns 3.2379 ns]
+//!                         thrpt:  [2.4707 Gelem/s 2.4717 Gelem/s 2.4725 Gelem/s]
+//!                         thrpt:  [18.408 GiB/s 18.415 GiB/s 18.422 GiB/s]
+//! Top/frand
+//!                         time:   [2.5572 ns 2.5580 ns 2.5590 ns]
+//!                         thrpt:  [3.1262 Gelem/s 3.1275 Gelem/s 3.1285 Gelem/s]
+//!                         thrpt:  [23.292 GiB/s 23.301 GiB/s 23.309 GiB/s]
+//! Top/simd_rand/Portable/Xoshiro256+X8
+//!                         time:   [1.0661 ns 1.0663 ns 1.0665 ns]
+//!                         thrpt:  [7.5013 Gelem/s 7.5029 Gelem/s 7.5043 Gelem/s]
+//!                         thrpt:  [55.889 GiB/s 55.901 GiB/s 55.911 GiB/s]
+//! Top/simd_rand/Specific/Xoshiro256+X8
+//!                         time:   [1.0653 ns 1.0655 ns 1.0658 ns]
+//!                         thrpt:  [7.5058 Gelem/s 7.5081 Gelem/s 7.5097 Gelem/s]
+//!                         thrpt:  [55.922 GiB/s 55.939 GiB/s 55.952 GiB/s]
 //! ```
 //!
 //! ## Safety

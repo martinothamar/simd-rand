@@ -1,9 +1,7 @@
 use std::{mem, simd::u64x8};
 
-use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
-use std::hint::black_box;
-// use packed_simd::u64x8 as ps_u64x8;
-use rand::Rng;
+use criterion::{Criterion, Throughput, measurement::Measurement};
+use frand::Rand;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
 use simd_rand::portable::*;
@@ -11,6 +9,9 @@ use simd_rand::portable::*;
 use simd_rand::specific;
 #[cfg(all(feature = "specific", target_arch = "x86_64"))]
 use std::arch::x86_64::*;
+use std::hint::black_box;
+
+const SEED: u64 = 0x0DDB1A5E5BAD5EEDu64;
 
 #[inline(always)]
 fn execute_rand<RNG: RngCore>(rng: &mut RNG, data: &mut u64x8) {
@@ -18,11 +19,6 @@ fn execute_rand<RNG: RngCore>(rng: &mut RNG, data: &mut u64x8) {
         data[i] = rng.next_u64();
     }
 }
-
-// #[inline(always)]
-// fn execute_rand_vectorized<RNG: RngCore>(rng: &mut RNG, data: &mut ps_u64x8) {
-//     *data = rng.gen::<ps_u64x8>();
-// }
 
 #[inline(always)]
 fn execute_vectorized_portable<RNG: SimdRandX8>(rng: &mut RNG, data: &mut u64x8) {
@@ -44,31 +40,42 @@ fn execute_vectorized_specific<RNG: specific::avx512::SimdRand>(rng: &mut RNG, d
 pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criterion<M>) {
     let mut group = c.benchmark_group("Top");
 
-    group.throughput(Throughput::Bytes(mem::size_of::<u64x8>() as u64));
+    group.throughput(Throughput::ElementsAndBytes {
+        elements: 8,
+        bytes: mem::size_of::<u64x8>() as u64,
+    });
+    group.noise_threshold(0.03);
 
-    let name = BenchmarkId::new("Rand/Xoshiro256+".to_string(), 1);
-
-    group.bench_with_input(name, &1, |b, i| {
-        let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    group.bench_function("rand/Xoshiro256+", |b| {
+        let mut rng = Xoshiro256Plus::seed_from_u64(SEED);
         let mut data = u64x8::default();
 
-        b.iter(|| execute_rand(&mut rng, black_box(&mut data)));
+        b.iter(|| {
+            execute_rand(&mut rng, &mut data);
+            black_box(&data);
+        });
     });
 
-    // let name = BenchmarkId::new(format!("RandVectorized/Xoshiro256+"), 1);
-    // group.bench_with_input(name, &1, |b, i| {
-    //     let mut rng = Xoshiro256Plus::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
-    //     let mut data = u64x8::default();
-
-    //     b.iter(|| execute_rand_vectorized(&mut rng, black_box(&mut data)));
-    // });
-
-    let name = BenchmarkId::new("Portable/Xoshiro256+X8".to_string(), 1);
-    group.bench_with_input(name, &1, |b, i| {
-        let mut rng = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    group.bench_function("frand", |b| {
+        let mut rng = Rand::with_seed(SEED);
         let mut data = u64x8::default();
 
-        b.iter(|| execute_vectorized_portable(&mut rng, black_box(&mut data)));
+        b.iter(|| {
+            for i in 0..8 {
+                data[i] = black_box(rng.r#gen::<u64>());
+            }
+            black_box(&data);
+        });
+    });
+
+    group.bench_function("simd_rand/Portable/Xoshiro256+X8", |b| {
+        let mut rng = Xoshiro256PlusX8::seed_from_u64(SEED);
+        let mut data = u64x8::default();
+
+        b.iter(|| {
+            execute_vectorized_portable(&mut rng, &mut data);
+            black_box(&data);
+        });
     });
 
     #[cfg(all(
@@ -78,19 +85,14 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         target_feature = "avx512dq",
         target_feature = "avx512vl"
     ))]
-    let name = BenchmarkId::new("Specific/Xoshiro256+X8".to_string(), 1);
-    #[cfg(all(
-        feature = "specific",
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512dq",
-        target_feature = "avx512vl"
-    ))]
-    group.bench_with_input(name, &1, |b, i| unsafe {
-        let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+    group.bench_function("simd_rand/Specific/Xoshiro256+X8", |b| unsafe {
+        let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(SEED);
         let mut data: __m512i = _mm512_setzero_si512();
 
-        b.iter(|| execute_vectorized_specific(&mut rng, black_box(&mut data)));
+        b.iter(|| {
+            execute_vectorized_specific(&mut rng, &mut data);
+            black_box(&data);
+        });
     });
 
     group.finish();
