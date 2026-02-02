@@ -8,7 +8,7 @@ description = "SIMD-accelerated random number generators"
 repository = "https://github.com/martinothamar/simd-rand"
 homepage = "https://github.com/martinothamar/simd-rand"
 readme = "README.md"
-keywords = ["simd", "random", "rng", "avx2", "avx512"]
+keywords = ["simd", "random", "rng", "prng", "avx2", "avx512"]
 categories = ["algorithms", "no-std"]
 exclude = ["examples/_internal/", "external/", "benches/", ".github/", ".vscode/", "AGENTS.md", "CLAUDE.md", "Makefile"]
 

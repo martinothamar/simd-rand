@@ -1,11 +1,13 @@
 use core::{arch::x86_64::*, mem};
 
+pub use frand::*;
 // pub use shishua::*;
 pub use simdrand::*;
 pub use vecs::*;
 pub use xoshiro256plus::*;
 pub use xoshiro256plusplus::*;
 
+mod frand;
 // mod shishua;
 mod simdrand;
 mod vecs;
