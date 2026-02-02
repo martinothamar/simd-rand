@@ -87,6 +87,14 @@
 //!                         time:   [1.0653 ns 1.0655 ns 1.0658 ns]
 //!                         thrpt:  [7.5058 Gelem/s 7.5081 Gelem/s 7.5097 Gelem/s]
 //!                         thrpt:  [55.922 GiB/s 55.939 GiB/s 55.952 GiB/s]
+//! Top/simd_rand/Portable/FrandX8
+//!                         time:   [539.94 ps 540.11 ps 540.28 ps]
+//!                         thrpt:  [14.807 Gelem/s 14.812 Gelem/s 14.816 Gelem/s]
+//!                         thrpt:  [110.32 GiB/s 110.36 GiB/s 110.39 GiB/s]
+//! Top/simd_rand/Specific/FrandX8
+//!                         time:   [542.55 ps 543.18 ps 543.92 ps]
+//!                         thrpt:  [14.708 Gelem/s 14.728 Gelem/s 14.745 Gelem/s]
+//!                         thrpt:  [109.58 GiB/s 109.73 GiB/s 109.86 GiB/s]
 //! ```
 //!
 //! ## Safety

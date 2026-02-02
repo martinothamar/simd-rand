@@ -78,6 +78,16 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         });
     });
 
+    group.bench_function("simd_rand/Portable/FrandX8", |b| {
+        let mut rng = FrandX8::seed_from_u64(SEED);
+        let mut data = u64x8::default();
+
+        b.iter(|| {
+            execute_vectorized_portable(&mut rng, &mut data);
+            black_box(&data);
+        });
+    });
+
     #[cfg(all(
         feature = "specific",
         target_arch = "x86_64",
@@ -87,6 +97,23 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
     ))]
     group.bench_function("simd_rand/Specific/Xoshiro256+X8", |b| unsafe {
         let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(SEED);
+        let mut data: __m512i = _mm512_setzero_si512();
+
+        b.iter(|| {
+            execute_vectorized_specific(&mut rng, &mut data);
+            black_box(&data);
+        });
+    });
+
+    #[cfg(all(
+        feature = "specific",
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq",
+        target_feature = "avx512vl"
+    ))]
+    group.bench_function("simd_rand/Specific/FrandX8", |b| unsafe {
+        let mut rng = specific::avx512::FrandX8::seed_from_u64(SEED);
         let mut data: __m512i = _mm512_setzero_si512();
 
         b.iter(|| {

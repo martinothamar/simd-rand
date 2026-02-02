@@ -56,6 +56,14 @@ fn add_m256i_benchmarks<M: Measurement, const ITERATIONS: usize>(
 
             b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
         });
+
+        let name = BenchmarkId::new(format!("frand/{suffix}"), iterations);
+        group.bench_with_input(name, &iterations, |b, i| unsafe {
+            let mut rng = FrandX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+            let mut data: __m256i = _mm256_setzero_si256();
+
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
+        });
     }
 
     group.finish();
@@ -100,6 +108,14 @@ fn add_m256d_benchmarks<M: Measurement, const ITERATIONS: usize>(
         let name = BenchmarkId::new(format!("Xoshiro256+/{suffix}"), iterations);
         group.bench_with_input(name, &iterations, |b, i| unsafe {
             let mut rng = Xoshiro256PlusX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+            let mut data: __m256d = _mm256_setzero_pd();
+
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
+        });
+
+        let name = BenchmarkId::new(format!("frand/{suffix}"), iterations);
+        group.bench_with_input(name, &iterations, |b, i| unsafe {
+            let mut rng = FrandX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
             let mut data: __m256d = _mm256_setzero_pd();
 
             b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));

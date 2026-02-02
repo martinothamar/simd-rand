@@ -81,6 +81,28 @@ where
     );
 }
 
+// All lanes seeded to 1 for frand reference tests
+#[rustfmt::skip]
+pub const REF_SEED_FRAND_X4: [u8; 32] = [
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+];
+
+#[cfg(any(feature = "portable", all(target_feature = "avx512f", target_feature = "avx512dq", target_feature = "avx512vl")))]
+#[rustfmt::skip]
+pub const REF_SEED_FRAND_X8: [u8; 64] = [
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0,
+];
+
 #[rustfmt::skip]
 pub const REF_SEED_256: [u8; 128] = [
     1, 0, 0, 0, 0, 0, 0, 0,
