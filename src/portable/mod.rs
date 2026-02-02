@@ -5,12 +5,16 @@ use core::{
     simd::{Simd, SimdElement},
 };
 
+pub use frandx4::*;
+pub use frandx8::*;
 pub use simdrand::*;
 pub use xoshiro256plusplusx4::*;
 pub use xoshiro256plusplusx8::*;
 pub use xoshiro256plusx4::*;
 pub use xoshiro256plusx8::*;
 
+mod frandx4;
+mod frandx8;
 mod simdrand;
 mod xoshiro256plusplusx4;
 mod xoshiro256plusplusx8;
