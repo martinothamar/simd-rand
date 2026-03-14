@@ -3,6 +3,7 @@ outbin := ${bindir}/profile
 TARGET := x86_64-unknown-linux-gnu
 RUSTFLAGS_AVX512 := -C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl
 CARGO_NIGHTLY := cargo +nightly
+BENCH_CPU ?= 31
 
 all: run
 
@@ -28,7 +29,10 @@ bench:
 	$(CARGO_NIGHTLY) bench --features portable -- "$(F)" --verbose
 
 bench-top:
-	$(CARGO_NIGHTLY) bench --features portable -- "Top" --warm-up-time 5 --measurement-time 10 --sample-size 200
+	@test "$$(cat /sys/devices/system/cpu/cpu$(BENCH_CPU)/cpufreq/scaling_governor)" = performance || \
+		(echo "cpu$(BENCH_CPU) scaling governor must be performance" >&2; exit 1)
+	taskset --cpu-list $(BENCH_CPU) env RUSTFLAGS="$(RUSTFLAGS_AVX512)" \
+		$(CARGO_NIGHTLY) bench --features portable -- "Top" --warm-up-time 5 --measurement-time 10 --sample-size 200
 
 stat: build
 	perf stat -d -d -d $(outbin)

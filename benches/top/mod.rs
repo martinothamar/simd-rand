@@ -11,70 +11,45 @@ use simd_rand::specific;
 use std::arch::x86_64::*;
 use std::hint::black_box;
 
-const SEED: u64 = 0x0DDB1A5E5BAD5EEDu64;
-
-#[inline(always)]
-fn execute_rand<RNG: RngCore>(rng: &mut RNG, data: &mut u64x8) {
-    for i in 0..8 {
-        data[i] = rng.next_u64();
-    }
-}
-
-#[inline(always)]
-fn execute_vectorized_portable<RNG: SimdRandX8>(rng: &mut RNG, data: &mut u64x8) {
-    *data = rng.next_u64x8();
-}
-
-#[cfg(all(
-    feature = "specific",
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512dq",
-    target_feature = "avx512vl"
-))]
-#[inline(always)]
-fn execute_vectorized_specific<RNG: specific::avx512::SimdRand>(rng: &mut RNG, data: &mut __m512i) {
-    *data = rng.next_m512i();
-}
-
 pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criterion<M>) {
     let mut group = c.benchmark_group("Top");
 
     group.throughput(Throughput::ElementsAndBytes {
-        elements: 8,
-        bytes: mem::size_of::<u64x8>() as u64,
+        elements: (ITERATIONS * 8) as u64,
+        bytes: (ITERATIONS * mem::size_of::<u64x8>()) as u64,
     });
     group.noise_threshold(0.03);
 
+    let mut rng = rand::rng();
+    let init = rng.next_u64();
+
     group.bench_function("rand/Xoshiro256+", |b| {
-        let mut rng = Xoshiro256Plus::seed_from_u64(SEED);
-        let mut data = u64x8::default();
+        let mut rng = Xoshiro256Plus::seed_from_u64(init);
 
         b.iter(|| {
-            execute_rand(&mut rng, &mut data);
-            black_box(&data);
-        });
-    });
+            let mut data = u64x8::splat(init);
 
-    group.bench_function("frand", |b| {
-        let mut rng = Rand::with_seed(SEED);
-        let mut data = u64x8::default();
-
-        b.iter(|| {
-            for i in 0..8 {
-                data[i] = black_box(rng.r#gen::<u64>());
+            for _ in 0..ITERATIONS {
+                for i in 0..8 {
+                    data[i] = rng.next_u64();
+                }
             }
-            black_box(&data);
+
+            data
         });
     });
 
     group.bench_function("simd_rand/Portable/Xoshiro256+X8", |b| {
-        let mut rng = Xoshiro256PlusX8::seed_from_u64(SEED);
-        let mut data = u64x8::default();
+        let mut rng = Xoshiro256PlusX8::seed_from_u64(init);
 
         b.iter(|| {
-            execute_vectorized_portable(&mut rng, &mut data);
-            black_box(&data);
+            let mut data = u64x8::splat(init);
+
+            for _ in 0..ITERATIONS {
+                data = rng.next_u64x8();
+            }
+
+            data
         });
     });
 
@@ -85,13 +60,17 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         target_feature = "avx512dq",
         target_feature = "avx512vl"
     ))]
-    group.bench_function("simd_rand/Specific/Xoshiro256+X8", |b| unsafe {
-        let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(SEED);
-        let mut data: __m512i = _mm512_setzero_si512();
+    group.bench_function("simd_rand/Specific/Xoshiro256+X8", |b| {
+        let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(init);
 
         b.iter(|| {
-            execute_vectorized_specific(&mut rng, &mut data);
-            black_box(&data);
+            let mut data = unsafe { _mm512_set1_epi64(init as i64) };
+
+            for _ in 0..ITERATIONS {
+                data = specific::avx512::SimdRand::next_m512i(&mut rng);
+            }
+
+            data
         });
     });
 

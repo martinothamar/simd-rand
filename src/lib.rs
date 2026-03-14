@@ -72,21 +72,17 @@
 //!
 //! ```ignore
 //! Top/rand/Xoshiro256+
-//!                         time:   [3.2356 ns 3.2367 ns 3.2379 ns]
-//!                         thrpt:  [2.4707 Gelem/s 2.4717 Gelem/s 2.4725 Gelem/s]
-//!                         thrpt:  [18.408 GiB/s 18.415 GiB/s 18.422 GiB/s]
-//! Top/frand
-//!                         time:   [2.5572 ns 2.5580 ns 2.5590 ns]
-//!                         thrpt:  [3.1262 Gelem/s 3.1275 Gelem/s 3.1285 Gelem/s]
-//!                         thrpt:  [23.292 GiB/s 23.301 GiB/s 23.309 GiB/s]
+//!                         time:   [24.963 ns 24.964 ns 24.965 ns]
+//!                         thrpt:  [2.5636 Gelem/s 2.5637 Gelem/s 2.5638 Gelem/s]
+//!                         thrpt:  [19.100 GiB/s 19.101 GiB/s 19.102 GiB/s]
 //! Top/simd_rand/Portable/Xoshiro256+X8
-//!                         time:   [1.0661 ns 1.0663 ns 1.0665 ns]
-//!                         thrpt:  [7.5013 Gelem/s 7.5029 Gelem/s 7.5043 Gelem/s]
-//!                         thrpt:  [55.889 GiB/s 55.901 GiB/s 55.911 GiB/s]
+//!                         time:   [6.9966 ns 6.9975 ns 6.9983 ns]
+//!                         thrpt:  [9.1451 Gelem/s 9.1462 Gelem/s 9.1473 Gelem/s]
+//!                         thrpt:  [68.136 GiB/s 68.144 GiB/s 68.152 GiB/s]
 //! Top/simd_rand/Specific/Xoshiro256+X8
-//!                         time:   [1.0653 ns 1.0655 ns 1.0658 ns]
-//!                         thrpt:  [7.5058 Gelem/s 7.5081 Gelem/s 7.5097 Gelem/s]
-//!                         thrpt:  [55.922 GiB/s 55.939 GiB/s 55.952 GiB/s]
+//!                         time:   [6.9453 ns 6.9455 ns 6.9457 ns]
+//!                         thrpt:  [9.2144 Gelem/s 9.2147 Gelem/s 9.2149 Gelem/s]
+//!                         thrpt:  [68.652 GiB/s 68.655 GiB/s 68.657 GiB/s]
 //! ```
 //!
 //! ## Safety
