@@ -4,6 +4,8 @@ use core::{
     simd::Simd,
 };
 
+pub use biski64x4::*;
+pub use biski64x8::*;
 pub use frandx4::*;
 pub use frandx8::*;
 pub use simdrand::*;
@@ -12,6 +14,8 @@ pub use xoshiro256plusplusx8::*;
 pub use xoshiro256plusx4::*;
 pub use xoshiro256plusx8::*;
 
+mod biski64x4;
+mod biski64x8;
 mod frandx4;
 mod frandx8;
 mod simdrand;

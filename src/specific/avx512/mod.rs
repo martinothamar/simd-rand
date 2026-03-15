@@ -1,5 +1,6 @@
 use core::arch::x86_64::*;
 
+pub use biski64::*;
 pub use frand::*;
 // pub use shishua::*;
 pub use simdrand::*;
@@ -7,6 +8,7 @@ pub use vecs::*;
 pub use xoshiro256plus::*;
 pub use xoshiro256plusplus::*;
 
+mod biski64;
 mod frand;
 // mod shishua;
 mod simdrand;

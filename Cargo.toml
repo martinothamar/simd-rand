@@ -55,6 +55,7 @@ fallible_impl_from = "allow"
 wildcard_imports = "allow"
 
 [dev-dependencies]
+biski64 = "0.3.2"
 rand = { version = "0.9", features = ["small_rng"] }
 # packed_simd = { version = "0.3" }
 num-traits = "0.2"

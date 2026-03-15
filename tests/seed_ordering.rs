@@ -59,12 +59,14 @@ fn fill_seed_256(words: &[u64; 32]) -> [u8; 256] {
 #[test]
 fn avx2_matches_portable_for_asymmetric_seeds() {
     use simd_rand::portable::{
-        FrandX4 as PortableFrandX4, FrandX4Seed as PortableFrandX4Seed, SimdRandX4,
-        Xoshiro256PlusX4 as PortableXoshiro256PlusX4, Xoshiro256PlusX4Seed as PortableXoshiro256PlusX4Seed,
+        Biski64X4 as PortableBiski64X4, Biski64X4Seed as PortableBiski64X4Seed, FrandX4 as PortableFrandX4,
+        FrandX4Seed as PortableFrandX4Seed, SimdRandX4, Xoshiro256PlusX4 as PortableXoshiro256PlusX4,
+        Xoshiro256PlusX4Seed as PortableXoshiro256PlusX4Seed,
     };
     use simd_rand::specific::avx2::{
-        FrandX4 as SpecificFrandX4, FrandX4Seed as SpecificFrandX4Seed, SimdRand,
-        Xoshiro256PlusX4 as SpecificXoshiro256PlusX4, Xoshiro256PlusX4Seed as SpecificXoshiro256PlusX4Seed,
+        Biski64X4 as SpecificBiski64X4, Biski64X4Seed as SpecificBiski64X4Seed, FrandX4 as SpecificFrandX4,
+        FrandX4Seed as SpecificFrandX4Seed, SimdRand, Xoshiro256PlusX4 as SpecificXoshiro256PlusX4,
+        Xoshiro256PlusX4Seed as SpecificXoshiro256PlusX4Seed,
     };
 
     let frand_seed = fill_seed_32(&[
@@ -78,6 +80,19 @@ fn avx2_matches_portable_for_asymmetric_seeds() {
 
     for _ in 0..3 {
         assert_eq!(portable_frand.next_u64x4().to_array(), *specific_frand.next_u64x4());
+    }
+
+    let biski_seed = fill_seed_32(&[
+        0x0123_4567_89AB_CDEF,
+        0x1112_1314_1516_1718,
+        0x2122_2324_2526_2728,
+        0x3132_3334_3536_3738,
+    ]);
+    let mut portable_biski = PortableBiski64X4::from_seed(PortableBiski64X4Seed::from(biski_seed));
+    let mut specific_biski = SpecificBiski64X4::from_seed(SpecificBiski64X4Seed::from(biski_seed));
+
+    for _ in 0..3 {
+        assert_eq!(portable_biski.next_u64x4().to_array(), *specific_biski.next_u64x4());
     }
 
     let xoshiro_seed = fill_seed_128(&[
@@ -115,12 +130,14 @@ fn avx2_matches_portable_for_asymmetric_seeds() {
 #[test]
 fn avx512_matches_portable_for_asymmetric_seeds() {
     use simd_rand::portable::{
-        FrandX8 as PortableFrandX8, FrandX8Seed as PortableFrandX8Seed, SimdRandX8,
-        Xoshiro256PlusX8 as PortableXoshiro256PlusX8, Xoshiro256PlusX8Seed as PortableXoshiro256PlusX8Seed,
+        Biski64X8 as PortableBiski64X8, Biski64X8Seed as PortableBiski64X8Seed, FrandX8 as PortableFrandX8,
+        FrandX8Seed as PortableFrandX8Seed, SimdRandX8, Xoshiro256PlusX8 as PortableXoshiro256PlusX8,
+        Xoshiro256PlusX8Seed as PortableXoshiro256PlusX8Seed,
     };
     use simd_rand::specific::avx512::{
-        FrandX8 as SpecificFrandX8, FrandX8Seed as SpecificFrandX8Seed, SimdRand,
-        Xoshiro256PlusX8 as SpecificXoshiro256PlusX8, Xoshiro256PlusX8Seed as SpecificXoshiro256PlusX8Seed,
+        Biski64X8 as SpecificBiski64X8, Biski64X8Seed as SpecificBiski64X8Seed, FrandX8 as SpecificFrandX8,
+        FrandX8Seed as SpecificFrandX8Seed, SimdRand, Xoshiro256PlusX8 as SpecificXoshiro256PlusX8,
+        Xoshiro256PlusX8Seed as SpecificXoshiro256PlusX8Seed,
     };
 
     let frand_seed = fill_seed_64(&[
@@ -138,6 +155,23 @@ fn avx512_matches_portable_for_asymmetric_seeds() {
 
     for _ in 0..3 {
         assert_eq!(portable_frand.next_u64x8().to_array(), *specific_frand.next_u64x8());
+    }
+
+    let biski_seed = fill_seed_64(&[
+        0x0123_4567_89AB_CDEF,
+        0x1112_1314_1516_1718,
+        0x2122_2324_2526_2728,
+        0x3132_3334_3536_3738,
+        0x4142_4344_4546_4748,
+        0x5152_5354_5556_5758,
+        0x6162_6364_6566_6768,
+        0x7172_7374_7576_7778,
+    ]);
+    let mut portable_biski = PortableBiski64X8::from_seed(PortableBiski64X8Seed::from(biski_seed));
+    let mut specific_biski = SpecificBiski64X8::from_seed(SpecificBiski64X8Seed::from(biski_seed));
+
+    for _ in 0..3 {
+        assert_eq!(portable_biski.next_u64x8().to_array(), *specific_biski.next_u64x8());
     }
 
     let xoshiro_seed = fill_seed_256(&[

@@ -116,6 +116,8 @@ extern crate alloc;
 #[macro_use]
 extern crate std;
 
+mod biski64;
+
 #[cfg(feature = "portable")]
 pub mod portable;
 #[cfg(feature = "specific")]
