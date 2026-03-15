@@ -129,15 +129,16 @@ mod tests {
     use rand_core::SeedableRng;
 
     use super::{Biski64X4, Biski64X4Seed, SimdRandX4};
-    use crate::biski64::{FixedBytesRng, parallel_reference_vectors, reference_sequence, seed_from_bytes};
+    use crate::biski64::{
+        FixedBytesRng, assert_from_rng_matches_parallel_streams, assert_rngs_match,
+        assert_seed_from_u64_matches_parallel_streams, reference_sequence,
+    };
 
     #[test]
     fn seed_from_u64_matches_upstream_parallel_streams() {
-        let mut rng = Biski64X4::seed_from_u64(42);
-
-        for expected in parallel_reference_vectors::<4, 10>(42) {
-            assert_eq!(rng.next_u64x4().to_array(), expected);
-        }
+        assert_seed_from_u64_matches_parallel_streams::<4, _>(42, Biski64X4::seed_from_u64(42), |rng| {
+            rng.next_u64x4().to_array()
+        });
     }
 
     #[test]
@@ -146,12 +147,9 @@ mod tests {
             0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x28, 0x27,
             0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x38, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31,
         ];
-        let mut rng = Biski64X4::from_rng(&mut FixedBytesRng::new(seed));
-        let master_seed = seed_from_bytes(&seed);
-
-        for expected in parallel_reference_vectors::<4, 10>(master_seed) {
-            assert_eq!(rng.next_u64x4().to_array(), expected);
-        }
+        assert_from_rng_matches_parallel_streams::<4, 32, _>(seed, Biski64X4::from_rng, |rng| {
+            rng.next_u64x4().to_array()
+        });
     }
 
     #[test]
@@ -164,6 +162,17 @@ mod tests {
         let mut rng_b = Biski64X4::from_rng(&mut FixedBytesRng::new(seed_b));
 
         assert_ne!(rng_a.next_u64x4().to_array(), rng_b.next_u64x4().to_array());
+    }
+
+    #[test]
+    fn try_from_rng_matches_from_rng() {
+        let seed = [7u8; 32];
+
+        assert_rngs_match::<4, _>(
+            Biski64X4::from_rng(&mut FixedBytesRng::new(seed)),
+            Biski64X4::try_from_rng(&mut FixedBytesRng::new(seed)).unwrap(),
+            |rng| rng.next_u64x4().to_array(),
+        );
     }
 
     #[test]

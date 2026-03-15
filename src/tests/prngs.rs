@@ -264,6 +264,31 @@ macro_rules! define_prng_tests {
             }
 
             #[test]
+            fn seed_roundtrip() {
+                let bytes = $ref_seed;
+                let mut seed = <$seed_ty>::new(bytes);
+
+                assert_eq!(&*seed, &bytes);
+                assert_eq!(seed.as_ref(), bytes.as_slice());
+                seed[0] ^= 0xFF;
+                assert_ne!(&*seed, &bytes);
+
+                let mut rng_from_new = <$rng_ty>::from_seed(<$seed_ty>::new(bytes));
+                let mut rng_from_array = <$rng_ty>::from_seed(<$seed_ty>::from(bytes));
+                let mut rng_from_slice = <$rng_ty>::from_seed(<$seed_ty>::from(bytes.as_slice()));
+                let mut default_seed = <$seed_ty>::default();
+                default_seed.as_mut().copy_from_slice(&bytes);
+                let mut rng_from_default = <$rng_ty>::from_seed(default_seed);
+
+                for _ in 0..3 {
+                    let expected = $next_u64(&mut rng_from_new);
+                    assert_eq!($next_u64(&mut rng_from_array), expected);
+                    assert_eq!($next_u64(&mut rng_from_slice), expected);
+                    assert_eq!($next_u64(&mut rng_from_default), expected);
+                }
+            }
+
+            #[test]
             fn sample_u64() {
                 let rng = random_seeded_rng::<$rng_ty>();
                 assert_u64_smoke::<$lanes, _>(rng, $next_u64);
