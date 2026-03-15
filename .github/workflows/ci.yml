@@ -28,15 +28,25 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: stable-default
+            toolchain: stable
+            cargo-args: ""
+          - name: nightly-all-features
+            toolchain: nightly
+            cargo-args: "--all-features"
+    name: clippy (${{ matrix.name }})
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
         with:
-          toolchain: stable
+          toolchain: ${{ matrix.toolchain }}
           targets: x86_64-unknown-linux-gnu
           components: clippy
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
-      - run: cargo clippy --all-targets --target $TARGET -- -D warnings
+      - run: cargo +${{ matrix.toolchain }} clippy --all-targets --target $TARGET ${{ matrix.cargo-args }} -- -D warnings
         env:
           RUSTFLAGS: "-C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl"
 

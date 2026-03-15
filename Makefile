@@ -17,7 +17,12 @@ lint:
 	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) clippy --all-targets --all-features --target $(TARGET)
 
 test:
+	# Cover the default local build, which on this machine means specific backends are available.
 	cargo nextest run && cargo nextest run --release
+	# Cover portable-only explicitly; omitting RUSTFLAGS is not enough because .cargo/config.toml uses target-cpu=native.
+	$(CARGO_NIGHTLY) nextest run --no-default-features --features portable --target $(TARGET)
+	$(CARGO_NIGHTLY) nextest run --release --no-default-features --features portable --target $(TARGET)
+	# Cover the combined portable+specific build with the full SIMD feature set used locally.
 	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) nextest run --features portable --target $(TARGET)
 	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) nextest run --release --features portable --target $(TARGET)
 

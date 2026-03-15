@@ -21,7 +21,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
 
     let mut rng = rand::rng();
     let init = rng.next_u64();
-    let init_i = init as i64;
+    let init_i = init.cast_signed();
 
     group.bench_function("rand/Xoshiro256+", |b| {
         let mut rng = Xoshiro256Plus::seed_from_u64(init);
