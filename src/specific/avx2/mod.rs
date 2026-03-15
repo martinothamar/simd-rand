@@ -21,10 +21,10 @@ fn read_u64_into_vec(src: &[u8]) -> __m256i {
     assert!(src.len() == SIZE * 4);
     unsafe {
         _mm256_set_epi64x(
-            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
-            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
-            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),
             u64::cast_signed(u64::from_le_bytes(src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap())),
+            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),
+            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
+            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
         )
     }
 }
@@ -44,5 +44,36 @@ fn rotate_left<const K: i32>(x: __m256i) -> __m256i {
         let left = _mm256_sll_epi64(x, _mm_cvtsi32_si128(K));
         let right = _mm256_srl_epi64(x, _mm_cvtsi32_si128(64 - K));
         _mm256_or_si256(left, right)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::arch::x86_64::{__m256i, _mm256_store_si256};
+
+    use super::{read_u64_into_vec, vecs::U64x4};
+
+    #[test]
+    fn read_u64_into_vec_preserves_lane_order() {
+        let expected: [u64; 4] = [
+            0x0123_4567_89AB_CDEFu64,
+            0x1112_1314_1516_1718u64,
+            0x2122_2324_2526_2728u64,
+            0x3132_3334_3536_3738u64,
+        ];
+        let mut src = [0u8; 32];
+
+        for (index, value) in expected.into_iter().enumerate() {
+            src[(index * 8)..((index + 1) * 8)].copy_from_slice(&value.to_le_bytes());
+        }
+
+        let vector = read_u64_into_vec(&src);
+        let mut actual = U64x4::default();
+
+        unsafe {
+            _mm256_store_si256(core::ptr::from_mut(&mut actual).cast::<__m256i>(), vector);
+        }
+
+        assert_eq!(&*actual, &expected);
     }
 }
