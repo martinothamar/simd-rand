@@ -13,6 +13,12 @@ fn fill_seed_32(words: &[u64; 4]) -> [u8; 32] {
     seed
 }
 
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512dq",
+    target_feature = "avx512vl"
+))]
 fn fill_seed_64(words: &[u64; 8]) -> [u8; 64] {
     let mut seed = [0u8; 64];
 
@@ -33,6 +39,12 @@ fn fill_seed_128(words: &[u64; 16]) -> [u8; 128] {
     seed
 }
 
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512dq",
+    target_feature = "avx512vl"
+))]
 fn fill_seed_256(words: &[u64; 32]) -> [u8; 256] {
     let mut seed = [0u8; 256];
 

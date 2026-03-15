@@ -18,6 +18,8 @@ lint:
 
 test:
 	cargo nextest run && cargo nextest run --release
+	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) nextest run --features portable --target $(TARGET)
+	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) nextest run --release --features portable --target $(TARGET)
 
 test-miri:
 	$(CARGO_NIGHTLY) miri test -p simd_rand --no-default-features --features portable --lib
