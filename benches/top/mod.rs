@@ -1,6 +1,7 @@
 use std::{mem, simd::u64x8};
 
 use criterion::{Criterion, Throughput, measurement::Measurement};
+use frand::Rand;
 use rand_core::{RngCore, SeedableRng};
 use rand_xoshiro::Xoshiro256Plus;
 use simd_rand::portable::*;
@@ -20,6 +21,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
 
     let mut rng = rand::rng();
     let init = rng.next_u64();
+    let init_i = init as i64;
 
     group.bench_function("rand/Xoshiro256+", |b| {
         let mut rng = Xoshiro256Plus::seed_from_u64(init);
@@ -29,7 +31,23 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
 
             for _ in 0..ITERATIONS {
                 for i in 0..8 {
-                    data[i] = rng.next_u64();
+                    data[i] += rng.next_u64();
+                }
+            }
+
+            data
+        });
+    });
+
+    group.bench_function("frand", |b| {
+        let mut rng = Rand::with_seed(init);
+
+        b.iter(|| {
+            let mut data = u64x8::splat(init);
+
+            for _ in 0..ITERATIONS {
+                for i in 0..8 {
+                    data[i] += rng.r#gen::<u64>();
                 }
             }
 
@@ -44,7 +62,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
             let mut data = u64x8::splat(init);
 
             for _ in 0..ITERATIONS {
-                data = rng.next_u64x8();
+                data += rng.next_u64x8();
             }
 
             data
@@ -58,7 +76,7 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
             let mut data = u64x8::splat(init);
 
             for _ in 0..ITERATIONS {
-                data = rng.next_u64x8();
+                data += rng.next_u64x8();
             }
 
             data
@@ -72,14 +90,14 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         target_feature = "avx512dq",
         target_feature = "avx512vl"
     ))]
-    group.bench_function("simd_rand/Specific/Xoshiro256+X8", |b| {
+    group.bench_function("simd_rand/Specific/Xoshiro256+X8", |b| unsafe {
         let mut rng = specific::avx512::Xoshiro256PlusX8::seed_from_u64(init);
 
         b.iter(|| {
-            let mut data = unsafe { _mm512_set1_epi64(init as i64) };
+            let mut data = _mm512_set1_epi64(init_i);
 
             for _ in 0..ITERATIONS {
-                data = specific::avx512::SimdRand::next_m512i(&mut rng);
+                data = _mm512_add_epi64(data, specific::avx512::SimdRand::next_m512i(&mut rng));
             }
 
             data
@@ -97,10 +115,10 @@ pub fn add_top_benchmark<M: Measurement, const ITERATIONS: usize>(c: &mut Criter
         let mut rng = specific::avx512::FrandX8::seed_from_u64(init);
 
         b.iter(|| {
-            let mut data = _mm512_set1_epi64(init as i64);
+            let mut data = _mm512_set1_epi64(init_i);
 
             for _ in 0..ITERATIONS {
-                data = specific::avx512::SimdRand::next_m512i(&mut rng);
+                data = _mm512_add_epi64(data, specific::avx512::SimdRand::next_m512i(&mut rng));
             }
 
             data
