@@ -22,6 +22,16 @@ pub mod test_support {
         repeated_lane_seed::<32>(1, 4)
     }
 
+    #[cfg(any(
+        feature = "portable",
+        all(
+            feature = "specific",
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512dq",
+            target_feature = "avx512vl"
+        )
+    ))]
     pub fn ref_seed_x8() -> [u8; 64] {
         repeated_lane_seed::<64>(1, 8)
     }

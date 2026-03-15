@@ -1,4 +1,15 @@
-use crate::frand::test_support::{FrandReference, ref_seed_x4 as ref_seed_frand_x4, ref_seed_x8 as ref_seed_frand_x8};
+use crate::frand::test_support::{FrandReference, ref_seed_x4 as ref_seed_frand_x4};
+#[cfg(any(
+    feature = "portable",
+    all(
+        feature = "specific",
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq",
+        target_feature = "avx512vl"
+    )
+))]
+use crate::frand::test_support::ref_seed_x8 as ref_seed_frand_x8;
 #[cfg(feature = "portable")]
 use crate::portable::{
     Biski64X4, Biski64X4Seed, Biski64X8, Biski64X8Seed, FrandX4, FrandX4Seed, FrandX8, FrandX8Seed, SimdRandX4,
@@ -67,6 +78,16 @@ fn ref_seed_biski64_x4() -> [u8; 32] {
     repeated_lane_seed::<32>(&sequential_words::<1>(), 4)
 }
 
+#[cfg(any(
+    feature = "portable",
+    all(
+        feature = "specific",
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq",
+        target_feature = "avx512vl"
+    )
+))]
 fn ref_seed_biski64_x8() -> [u8; 64] {
     repeated_lane_seed::<64>(&sequential_words::<1>(), 8)
 }
@@ -79,6 +100,16 @@ fn ref_seed_256() -> [u8; 128] {
     repeated_lane_seed::<128>(&sequential_words::<4>(), 4)
 }
 
+#[cfg(any(
+    feature = "portable",
+    all(
+        feature = "specific",
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq",
+        target_feature = "avx512vl"
+    )
+))]
 fn ref_seed_512() -> [u8; 256] {
     repeated_lane_seed::<256>(&sequential_words::<4>(), 8)
 }

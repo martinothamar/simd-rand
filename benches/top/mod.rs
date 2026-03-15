@@ -35,35 +35,21 @@ macro_rules! for_each_top_portable_x8_case {
     };
 }
 
+#[cfg(all(
+    feature = "specific",
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512dq",
+    target_feature = "avx512vl"
+))]
 macro_rules! for_each_top_specific_x8_case {
     ($m:ident) => {
-        #[cfg(all(
-            feature = "specific",
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512dq",
-            target_feature = "avx512vl"
-        ))]
         $m!(bench_specific_x8, "simd_rand/Specific/Xoshiro256+X8", |seed| {
             simd_rand::specific::avx512::Xoshiro256PlusX8::seed_from_u64(seed)
         });
-        #[cfg(all(
-            feature = "specific",
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512dq",
-            target_feature = "avx512vl"
-        ))]
         $m!(bench_specific_x8, "simd_rand/Specific/FrandX8", |seed| {
             simd_rand::specific::avx512::FrandX8::seed_from_u64(seed)
         });
-        #[cfg(all(
-            feature = "specific",
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512dq",
-            target_feature = "avx512vl"
-        ))]
         $m!(bench_specific_x8, "simd_rand/Specific/Biski64X8", |seed| {
             simd_rand::specific::avx512::Biski64X8::seed_from_u64(seed)
         });
