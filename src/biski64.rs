@@ -56,6 +56,29 @@ pub fn seed_state(seed: u64) -> [u64; 3] {
 }
 
 #[must_use]
+pub fn seed_from_bytes(seed_bytes: &[u8]) -> u64 {
+    let mut state = (seed_bytes.len() as u64) ^ FAST_LOOP_INCREMENT;
+    let mut chunks = seed_bytes.chunks_exact(8);
+
+    for chunk in &mut chunks {
+        let mut word = [0; 8];
+        word.copy_from_slice(chunk);
+        state ^= u64::from_le_bytes(word);
+        state = splitmix64_next(&mut state);
+    }
+
+    let remainder = chunks.remainder();
+    if !remainder.is_empty() {
+        let mut tail = [0; 8];
+        tail[..remainder.len()].copy_from_slice(remainder);
+        state ^= u64::from_le_bytes(tail);
+        state = splitmix64_next(&mut state);
+    }
+
+    state
+}
+
+#[must_use]
 pub fn seed_state_for_stream(seed: u64, stream_index: u64, total_streams: u64) -> [u64; 3] {
     assert!(total_streams >= 1);
     assert!(stream_index < total_streams);

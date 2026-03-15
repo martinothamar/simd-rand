@@ -6,7 +6,7 @@ use core::{
 
 use rand_core::{RngCore, SeedableRng, TryRngCore};
 
-use crate::biski64::{FAST_LOOP_INCREMENT, seed_state, seed_stream_states};
+use crate::biski64::{FAST_LOOP_INCREMENT, seed_from_bytes, seed_state, seed_stream_states};
 
 use super::{rotate_left, simdrand::*};
 
@@ -104,11 +104,15 @@ impl SeedableRng for Biski64X4 {
     }
 
     fn from_rng(rng: &mut impl RngCore) -> Self {
-        Self::seed_from_u64(rng.next_u64())
+        let mut seed = Self::Seed::default();
+        rng.fill_bytes(seed.as_mut());
+        Self::seed_from_u64(seed_from_bytes(seed.as_ref()))
     }
 
     fn try_from_rng<R: TryRngCore>(rng: &mut R) -> Result<Self, R::Error> {
-        Ok(Self::seed_from_u64(rng.try_next_u64()?))
+        let mut seed = Self::Seed::default();
+        rng.try_fill_bytes(seed.as_mut())?;
+        Ok(Self::seed_from_u64(seed_from_bytes(seed.as_ref())))
     }
 }
 

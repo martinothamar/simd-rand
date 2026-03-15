@@ -6,7 +6,7 @@ use core::{
 
 use rand_core::{RngCore, SeedableRng, TryRngCore};
 
-use crate::biski64::{FAST_LOOP_INCREMENT, seed_state, seed_stream_states};
+use crate::biski64::{FAST_LOOP_INCREMENT, seed_from_bytes, seed_state, seed_stream_states};
 
 use super::{SimdRandX8, read_u64_array, rotate_left};
 
@@ -104,11 +104,15 @@ impl SeedableRng for Biski64X8 {
     }
 
     fn from_rng(rng: &mut impl RngCore) -> Self {
-        Self::seed_from_u64(rng.next_u64())
+        let mut seed = Self::Seed::default();
+        rng.fill_bytes(seed.as_mut());
+        Self::seed_from_u64(seed_from_bytes(seed.as_ref()))
     }
 
     fn try_from_rng<R: TryRngCore>(rng: &mut R) -> Result<Self, R::Error> {
-        Ok(Self::seed_from_u64(rng.try_next_u64()?))
+        let mut seed = Self::Seed::default();
+        rng.try_fill_bytes(seed.as_mut())?;
+        Ok(Self::seed_from_u64(seed_from_bytes(seed.as_ref())))
     }
 }
 
@@ -132,9 +136,12 @@ mod tests {
     use itertools::Itertools;
     use rand_core::SeedableRng;
 
-    use crate::testutil::{
-        DOUBLE_RANGE, REF_SEED_BISKI64_X8, biski64_parallel_reference_vectors, biski64_reference_sequence,
-        fixed_u64_rng::FixedU64Rng, test_uniform_distribution,
+    use crate::{
+        biski64::seed_from_bytes,
+        testutil::{
+            DOUBLE_RANGE, REF_SEED_BISKI64_X8, biski64_parallel_reference_vectors, biski64_reference_sequence,
+            fixed_u64_rng::FixedBytesRng, test_uniform_distribution,
+        },
     };
 
     use super::*;
@@ -202,10 +209,17 @@ mod tests {
 
     #[test]
     fn from_rng_matches_upstream_parallel_streams() {
-        let mut seed_rng = FixedU64Rng(42);
+        let seed = [
+            0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x28, 0x27,
+            0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x38, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31, 0x48, 0x47, 0x46, 0x45,
+            0x44, 0x43, 0x42, 0x41, 0x58, 0x57, 0x56, 0x55, 0x54, 0x53, 0x52, 0x51, 0x68, 0x67, 0x66, 0x65, 0x64, 0x63,
+            0x62, 0x61, 0x78, 0x77, 0x76, 0x75, 0x74, 0x73, 0x72, 0x71,
+        ];
+        let mut seed_rng = FixedBytesRng::new(seed);
         let mut rng = RngImpl::from_rng(&mut seed_rng);
+        let master_seed = seed_from_bytes(&seed);
 
-        for expected in biski64_parallel_reference_vectors::<8, 10>(42) {
+        for expected in biski64_parallel_reference_vectors::<8, 10>(master_seed) {
             assert_eq!(rng.next_u64x8().to_array(), expected);
         }
     }
