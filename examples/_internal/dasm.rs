@@ -22,37 +22,37 @@ use std::simd::{f64x4, u64x4, u64x8};
 /// and `simd_rand` and `rand` code
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_xoshiro_baseline(rng: &mut rand_xoshiro::Xoshiro256Plus) -> u64x4 {
+extern "Rust" fn do_u64x4_xoshiro_baseline(rng: &mut rand_xoshiro::Xoshiro256Plus) -> u64x4 {
     u64x4::from_array([rng.next_u64(), rng.next_u64(), rng.next_u64(), rng.next_u64()])
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX4) -> u64x4 {
+extern "Rust" fn do_u64x4_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX4) -> u64x4 {
     rng.next_u64x4()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_portable_frand(rng: &mut portable::FrandX4) -> u64x4 {
+extern "Rust" fn do_u64x4_portable_frand(rng: &mut portable::FrandX4) -> u64x4 {
     rng.next_u64x4()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_xoshiro_specific(rng: &mut specific::avx2::Xoshiro256PlusX4) -> __m256i {
+extern "Rust" fn do_u64x4_xoshiro_specific(rng: &mut specific::avx2::Xoshiro256PlusX4) -> __m256i {
     rng.next_m256i()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_specific_frand(rng: &mut specific::avx2::FrandX4) -> __m256i {
+extern "Rust" fn do_u64x4_specific_frand(rng: &mut specific::avx2::FrandX4) -> __m256i {
     rng.next_m256i()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_xoshiro_baseline(rng: &mut rand_xoshiro::Xoshiro256Plus) -> u64x8 {
+extern "Rust" fn do_u64x8_xoshiro_baseline(rng: &mut rand_xoshiro::Xoshiro256Plus) -> u64x8 {
     u64x8::from_array([
         rng.next_u64(),
         rng.next_u64(),
@@ -67,7 +67,7 @@ fn do_u64x8_xoshiro_baseline(rng: &mut rand_xoshiro::Xoshiro256Plus) -> u64x8 {
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_frand_baseline(rng: &mut Rand) -> u64x8 {
+extern "Rust" fn do_u64x8_frand_baseline(rng: &mut Rand) -> u64x8 {
     u64x8::from_array([
         rng.r#gen::<u64>(),
         rng.r#gen::<u64>(),
@@ -82,13 +82,13 @@ fn do_u64x8_frand_baseline(rng: &mut Rand) -> u64x8 {
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX8) -> u64x8 {
+extern "Rust" fn do_u64x8_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX8) -> u64x8 {
     rng.next_u64x8()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_portable_frand(rng: &mut portable::FrandX8) -> u64x8 {
+extern "Rust" fn do_u64x8_portable_frand(rng: &mut portable::FrandX8) -> u64x8 {
     rng.next_u64x8()
 }
 
@@ -100,7 +100,7 @@ fn do_u64x8_portable_frand(rng: &mut portable::FrandX8) -> u64x8 {
 ))]
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_xoshiro_specific(rng: &mut specific::avx512::Xoshiro256PlusX8) -> __m512i {
+extern "Rust" fn do_u64x8_xoshiro_specific(rng: &mut specific::avx512::Xoshiro256PlusX8) -> __m512i {
     rng.next_m512i()
 }
 
@@ -112,31 +112,31 @@ fn do_u64x8_xoshiro_specific(rng: &mut specific::avx512::Xoshiro256PlusX8) -> __
 ))]
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_specific_frand(rng: &mut specific::avx512::FrandX8) -> __m512i {
+extern "Rust" fn do_u64x8_specific_frand(rng: &mut specific::avx512::FrandX8) -> __m512i {
     rng.next_m512i()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_f64x4_xoshiro_specific(rng: &mut specific::avx2::Xoshiro256PlusX4) -> __m256d {
+extern "Rust" fn do_f64x4_xoshiro_specific(rng: &mut specific::avx2::Xoshiro256PlusX4) -> __m256d {
     rng.next_m256d()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_f64x4_specific_frand(rng: &mut specific::avx2::FrandX4) -> __m256d {
+extern "Rust" fn do_f64x4_specific_frand(rng: &mut specific::avx2::FrandX4) -> __m256d {
     rng.next_m256d()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_f64x4_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX4) -> f64x4 {
+extern "Rust" fn do_f64x4_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX4) -> f64x4 {
     rng.next_f64x4()
 }
 
 #[unsafe(no_mangle)]
 #[inline(never)]
-fn do_f64x4_portable_frand(rng: &mut portable::FrandX4) -> f64x4 {
+extern "Rust" fn do_f64x4_portable_frand(rng: &mut portable::FrandX4) -> f64x4 {
     rng.next_f64x4()
 }
 
