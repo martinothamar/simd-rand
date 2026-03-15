@@ -2,6 +2,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(unused_mut)]
+#![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
 #![cfg_attr(feature = "portable", feature(portable_simd))]
 
 use rand_core::{RngCore, SeedableRng};

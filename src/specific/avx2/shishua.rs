@@ -133,7 +133,11 @@ impl<const BUFFER_SIZE: usize> SeedableRng for Shishua<BUFFER_SIZE> {
         let ptr = unsafe {
             let ptr = alloc::alloc(Self::LAYOUT).cast::<BufferedState<BUFFER_SIZE>>();
 
-            let buffered_state = ptr.as_mut().expect("Failed to allocate state for Shishua");
+            if ptr.is_null() {
+                alloc::handle_alloc_error(Self::LAYOUT);
+            }
+
+            let buffered_state = ptr.as_mut().unwrap_unchecked();
 
             let mut iseed = [0; 4];
             read_u64_into(&seed[..], iseed.as_mut_slice());
