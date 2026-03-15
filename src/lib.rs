@@ -117,7 +117,6 @@ extern crate alloc;
 extern crate std;
 
 mod biski64;
-#[cfg(test)]
 mod frand;
 
 #[cfg(feature = "portable")]
