@@ -57,6 +57,10 @@ jobs:
             toolchain: nightly
             rustflags: ""
             cargo-args: "--no-default-features --features portable"
+          - name: nightly-portable-specific-avx2
+            toolchain: nightly
+            rustflags: "-C target-feature=+avx2"
+            cargo-args: "--features portable"
     name: test (${{ matrix.name }})
     env:
       CARGO_PROFILE_RELEASE_LTO: "false"
