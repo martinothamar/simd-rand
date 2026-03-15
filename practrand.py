@@ -24,16 +24,37 @@ class Case:
     rng: str
 
 
-CASES = (
-    Case("scalar-biski64", "scalar-biski64"),
-    Case("scalar-frand", "scalar-frand"),
-    Case("scalar-xoshiro256plus", "scalar-xoshiro256plus"),
-    Case("portable-biski64-x8", "portable-biski64-x8"),
-    Case("portable-frand-x8", "portable-frand-x8"),
-    Case("portable-xoshiro256plus-x8", "portable-xoshiro256plus-x8"),
-    Case("specific-biski64-x8", "specific-biski64-x8"),
-    Case("specific-frand-x8", "specific-frand-x8"),
-    Case("specific-xoshiro256plus-x8", "specific-xoshiro256plus-x8"),
+@dataclass(frozen=True)
+class CaseGroup:
+    name: str
+    cases: tuple[Case, ...]
+
+
+CASE_GROUPS = (
+    CaseGroup(
+        "biski64",
+        (
+            Case("scalar-biski64", "scalar-biski64"),
+            Case("portable-biski64-x8", "portable-biski64-x8"),
+            Case("specific-biski64-x8", "specific-biski64-x8"),
+        ),
+    ),
+    CaseGroup(
+        "frand",
+        (
+            Case("scalar-frand", "scalar-frand"),
+            Case("portable-frand-x8", "portable-frand-x8"),
+            Case("specific-frand-x8", "specific-frand-x8"),
+        ),
+    ),
+    CaseGroup(
+        "xoshiro256plus",
+        (
+            Case("scalar-xoshiro256plus", "scalar-xoshiro256plus"),
+            Case("portable-xoshiro256plus-x8", "portable-xoshiro256plus-x8"),
+            Case("specific-xoshiro256plus-x8", "specific-xoshiro256plus-x8"),
+        ),
+    ),
 )
 
 
@@ -120,19 +141,24 @@ def normalize_practrand_args(practrand_args: tuple[str, ...], seed: str) -> tupl
     return (*practrand_args, "-seed", seed)
 
 
+def log_header(title: str) -> str:
+    line = "=" * len(title)
+    return f"{line}\n{title}\n{line}\n"
+
+
 def run_case(
     case: Case,
     seed: str,
     binary: Path,
     rng_test: Path,
     practrand_args: tuple[str, ...],
-    run_dir: Path,
-) -> tuple[str, float, Path]:
-    log_path = run_dir / f"{case.name}.log"
+    log_path: Path,
+) -> tuple[str, float]:
     start = time.monotonic()
     status = "ok"
 
-    with log_path.open("w", encoding="utf-8") as log_file:
+    with log_path.open("a", encoding="utf-8") as log_file:
+        log_file.write(log_header(case.name))
         log_file.write(f"$ {binary} {case.rng} {seed}\n")
         log_file.write(f"$ {rng_test} {' '.join(practrand_args)}\n\n")
 
@@ -169,17 +195,45 @@ def run_case(
         if producer_code != 0 or consumer_code != 0:
             status = f"failed (generator={producer_code}, practrand={consumer_code})"
 
-    return status, time.monotonic() - start, log_path
+        log_file.write(f"\nstatus: {status}\n\n")
+
+    return status, time.monotonic() - start
 
 
-def write_summary(run_dir: Path, results: list[tuple[Case, str, float, Path]]) -> None:
+def run_group(
+    group: CaseGroup,
+    seed: str,
+    binary: Path,
+    rng_test: Path,
+    practrand_args: tuple[str, ...],
+    run_dir: Path,
+) -> list[tuple[Case, str, float, Path]]:
+    log_path = run_dir / f"{group.name}.log"
+    log_path.write_text("", encoding="utf-8")
+
+    results: list[tuple[Case, str, float, Path]] = []
+    for case in group.cases:
+        status, duration = run_case(case, seed, binary, rng_test, practrand_args, log_path)
+        results.append((case, status, duration, log_path))
+    return results
+
+
+def write_summary(run_dir: Path, results: list[tuple[CaseGroup, list[tuple[Case, str, float, Path]]]]) -> None:
     summary_path = run_dir / "summary.txt"
     with summary_path.open("w", encoding="utf-8") as summary:
-        for case, status, duration, log_path in results:
-            summary.write(f"{case.name}\n")
-            summary.write(f"status: {status}\n")
-            summary.write(f"duration_seconds: {duration:.2f}\n")
-            summary.write(f"log: {display_path(log_path)}\n\n")
+        for group, group_results in results:
+            if not group_results:
+                continue
+
+            log_path = group_results[0][3]
+            summary.write(f"{group.name}\n")
+            summary.write(f"log: {display_path(log_path)}\n")
+            summary.write("\n")
+
+            for case, status, duration, _ in group_results:
+                summary.write(f"{case.name}\n")
+                summary.write(f"status: {status}\n")
+                summary.write(f"duration_seconds: {duration:.2f}\n\n")
 
 
 def main() -> int:
@@ -198,19 +252,22 @@ def main() -> int:
     else:
         ensure_executable(binary, "practrand example binary")
 
-    results: list[tuple[Case, str, float, Path]] = []
+    results: list[tuple[CaseGroup, list[tuple[Case, str, float, Path]]]] = []
 
     try:
         print(f"output: {display_path(run_dir)}", flush=True)
-        for case in CASES:
-            print(f"==> {case.name}", flush=True)
-            status, duration, log_path = run_case(case, args.seed, binary, rng_test, practrand_args, run_dir)
-            results.append((case, status, duration, log_path))
-            print(f"<== {case.name}: {status} ({duration:.2f}s)", flush=True)
+        for group in CASE_GROUPS:
+            print(f"==> {group.name}", flush=True)
+            group_results = run_group(group, args.seed, binary, rng_test, practrand_args, run_dir)
+            results.append((group, group_results))
+
+            for case, status, duration, _ in group_results:
+                print(f"  {case.name}: {status} ({duration:.2f}s)", flush=True)
+            print(f"<== {group.name}", flush=True)
     finally:
         write_summary(run_dir, results)
 
-    return 0 if all(status == "ok" for _, status, _, _ in results) else 1
+    return 0 if all(status == "ok" for _, group_results in results for _, status, _, _ in group_results) else 1
 
 
 if __name__ == "__main__":
