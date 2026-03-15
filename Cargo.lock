@@ -86,6 +86,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "biski64"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edac6861ccc0a838d8851bd557be3a3821185b49816f50c11ade7cf8c83afe7e"
+dependencies = [
+ "rand_core 0.9.5",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -944,6 +953,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 name = "simd_rand"
 version = "0.1.0"
 dependencies = [
+ "biski64",
  "criterion",
  "dhat",
  "frand",

@@ -1,0 +1,106 @@
+pub const FAST_LOOP_INCREMENT: u64 = 0x9999999999999999;
+
+const SPLITMIX_INCREMENT: u64 = 0x9e3779b97f4a7c15;
+const SPLITMIX_MUL_0: u64 = 0xbf58476d1ce4e5b9;
+const SPLITMIX_MUL_1: u64 = 0x94d049bb133111eb;
+const WARMUP_ROUNDS: usize = 16;
+
+#[inline(always)]
+const fn splitmix64_next(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(SPLITMIX_INCREMENT);
+
+    let mut z = *state;
+    z = (z ^ (z >> 30)).wrapping_mul(SPLITMIX_MUL_0);
+    z = (z ^ (z >> 27)).wrapping_mul(SPLITMIX_MUL_1);
+    z ^ (z >> 31)
+}
+
+#[inline(always)]
+const fn advance_state(fast_loop: &mut u64, mix: &mut u64, loop_mix: &mut u64) {
+    let previous_fast_loop = *fast_loop;
+    let previous_mix = *mix;
+
+    *fast_loop = previous_fast_loop.wrapping_add(FAST_LOOP_INCREMENT);
+    *mix = previous_mix.rotate_left(16).wrapping_add((*loop_mix).rotate_left(40));
+    *loop_mix = previous_fast_loop ^ previous_mix;
+}
+
+#[must_use]
+const fn seed_base_state(seed: u64) -> [u64; 3] {
+    let mut splitmix_state = seed;
+    let mut fast_loop = 0;
+    let mut mix = 0;
+    let mut loop_mix = 0;
+
+    while fast_loop == 0 && mix == 0 && loop_mix == 0 {
+        fast_loop = splitmix64_next(&mut splitmix_state);
+        mix = splitmix64_next(&mut splitmix_state);
+        loop_mix = splitmix64_next(&mut splitmix_state);
+    }
+
+    [fast_loop, mix, loop_mix]
+}
+
+fn warmup_state(mut state: [u64; 3]) -> [u64; 3] {
+    for _ in 0..WARMUP_ROUNDS {
+        let [fast_loop, mix, loop_mix] = &mut state;
+        advance_state(fast_loop, mix, loop_mix);
+    }
+
+    state
+}
+
+#[must_use]
+pub fn seed_state(seed: u64) -> [u64; 3] {
+    warmup_state(seed_base_state(seed))
+}
+
+#[must_use]
+pub fn seed_from_bytes(seed_bytes: &[u8]) -> u64 {
+    let mut state = (seed_bytes.len() as u64) ^ FAST_LOOP_INCREMENT;
+    let mut chunks = seed_bytes.chunks_exact(8);
+
+    for chunk in &mut chunks {
+        let mut word = [0; 8];
+        word.copy_from_slice(chunk);
+        state ^= u64::from_le_bytes(word);
+        state = splitmix64_next(&mut state);
+    }
+
+    let remainder = chunks.remainder();
+    if !remainder.is_empty() {
+        let mut tail = [0; 8];
+        tail[..remainder.len()].copy_from_slice(remainder);
+        state ^= u64::from_le_bytes(tail);
+        state = splitmix64_next(&mut state);
+    }
+
+    state
+}
+
+#[must_use]
+pub fn seed_state_for_stream(seed: u64, stream_index: u64, total_streams: u64) -> [u64; 3] {
+    assert!(total_streams >= 1);
+    assert!(stream_index < total_streams);
+
+    let [base_fast_loop, mix, loop_mix] = seed_base_state(seed);
+    let fast_loop = if total_streams > 1 {
+        let cycles_per_stream = u64::MAX / total_streams;
+        let offset = stream_index
+            .wrapping_mul(cycles_per_stream)
+            .wrapping_mul(FAST_LOOP_INCREMENT);
+        base_fast_loop.wrapping_add(offset)
+    } else {
+        base_fast_loop
+    };
+
+    warmup_state([fast_loop, mix, loop_mix])
+}
+
+#[must_use]
+/// Matches biski64's upstream parallel-stream constructor; `from_seed` keeps
+/// explicit raw lane control for callers that want independent per-lane seeds.
+pub fn seed_stream_states<const LANES: usize>(seed: u64) -> [[u64; 3]; LANES] {
+    assert!(LANES > 0);
+    core::array::from_fn(|lane| seed_state_for_stream(seed, lane as u64, LANES as u64))
+}
