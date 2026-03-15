@@ -53,6 +53,9 @@ coverage-run:
 coverage-html: coverage-run
 	$(CARGO_NIGHTLY_LLVM_COV) report --branch --doctests --html --output-dir target/llvm-cov --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)'
 
+coverage-report: coverage-run
+	$(CARGO_NIGHTLY_LLVM_COV) report --branch --doctests --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)'
+
 coverage-lcov: coverage-run
 	mkdir -p target/llvm-cov
 	$(CARGO_NIGHTLY_LLVM_COV) report --branch --doctests --lcov --output-path target/llvm-cov/lcov.info --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)'

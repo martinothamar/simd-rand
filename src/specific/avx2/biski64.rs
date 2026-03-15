@@ -144,3 +144,22 @@ fn pack_u64x4(values: [u64; 4]) -> __m256i {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rand_core::SeedableRng;
+
+    use super::{Biski64X4, SimdRand};
+    use crate::biski64::{FixedBytesRng, assert_rngs_match};
+
+    #[test]
+    fn try_from_rng_matches_from_rng() {
+        let seed = [7u8; 32];
+
+        assert_rngs_match::<4, _>(
+            Biski64X4::from_rng(&mut FixedBytesRng::new(seed)),
+            Biski64X4::try_from_rng(&mut FixedBytesRng::new(seed)).unwrap(),
+            |rng| *rng.next_u64x4(),
+        );
+    }
+}

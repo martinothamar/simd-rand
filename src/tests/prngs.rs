@@ -45,6 +45,8 @@ use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
 
 const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
+const REFERENCE_STEPS: usize = if cfg!(miri) { 32 } else { 1024 * 1024 };
+const SEED_ROUNDTRIP_STEPS: usize = if cfg!(miri) { 32 } else { 1024 * 1024 };
 
 fn seed_bytes<const BYTES: usize>(values: &[u64]) -> [u8; BYTES] {
     let mut seed = [0u8; BYTES];
@@ -185,7 +187,7 @@ fn assert_matches_scalar_reference<const LANES: usize, R>(
     mut next: impl FnMut(&mut R) -> [u64; LANES],
     mut reference: impl FnMut() -> u64,
 ) {
-    for _ in 0..10 {
+    for _ in 0..REFERENCE_STEPS {
         assert_eq!(next(&mut rng), [reference(); LANES]);
     }
 }
@@ -261,6 +263,31 @@ macro_rules! define_prng_tests {
                 let mut reference = ($reference_rng)($reference_seed);
                 let reference_next = $reference_next;
                 assert_matches_scalar_reference::<$lanes, _>(rng, $next_u64, || reference_next(&mut reference));
+            }
+
+            #[test]
+            fn seed_roundtrip() {
+                let bytes = $ref_seed;
+                let mut seed = <$seed_ty>::new(bytes);
+
+                assert_eq!(&*seed, &bytes);
+                assert_eq!(seed.as_ref(), bytes.as_slice());
+                seed[0] ^= 0xFF;
+                assert_ne!(&*seed, &bytes);
+
+                let mut rng_from_new = <$rng_ty>::from_seed(<$seed_ty>::new(bytes));
+                let mut rng_from_array = <$rng_ty>::from_seed(<$seed_ty>::from(bytes));
+                let mut rng_from_slice = <$rng_ty>::from_seed(<$seed_ty>::from(bytes.as_slice()));
+                let mut default_seed = <$seed_ty>::default();
+                default_seed.as_mut().copy_from_slice(&bytes);
+                let mut rng_from_default = <$rng_ty>::from_seed(default_seed);
+
+                for _ in 0..SEED_ROUNDTRIP_STEPS {
+                    let expected = $next_u64(&mut rng_from_new);
+                    assert_eq!($next_u64(&mut rng_from_array), expected);
+                    assert_eq!($next_u64(&mut rng_from_slice), expected);
+                    assert_eq!($next_u64(&mut rng_from_default), expected);
+                }
             }
 
             #[test]

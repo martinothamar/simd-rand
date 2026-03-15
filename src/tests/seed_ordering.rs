@@ -1,5 +1,7 @@
 use rand_core::SeedableRng;
 
+const PARITY_STEPS: usize = if cfg!(miri) { 32 } else { 1024 * 1024 };
+
 struct FixedBytesRng<const N: usize> {
     bytes: [u8; N],
     offset: usize,
@@ -120,7 +122,7 @@ fn assert_same_vectors<const LANES: usize>(
     mut lhs: impl FnMut() -> [u64; LANES],
     mut rhs: impl FnMut() -> [u64; LANES],
 ) {
-    for _ in 0..3 {
+    for _ in 0..PARITY_STEPS {
         assert_eq!(lhs(), rhs());
     }
 }
