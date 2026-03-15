@@ -3,6 +3,8 @@ outbin := ${bindir}/profile
 TARGET := x86_64-unknown-linux-gnu
 RUSTFLAGS_AVX512 := -C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl
 CARGO_NIGHTLY := cargo +nightly
+CARGO_LLVM_COV := cargo llvm-cov
+CARGO_NIGHTLY_LLVM_COV := cargo +nightly llvm-cov
 BENCH_CPU ?= 31
 DASM_SYMBOLS ?= do_u64x4_xoshiro_baseline,do_u64x4_xoshiro_portable,do_u64x4_portable_frand,do_u64x4_portable_biski,do_u64x4_xoshiro_specific,do_u64x4_specific_frand,do_u64x4_specific_biski,do_u64x8_xoshiro_baseline,do_u64x8_frand_baseline,do_u64x8_biski_baseline,do_u64x8_xoshiro_portable,do_u64x8_portable_frand,do_u64x8_portable_biski,do_u64x8_xoshiro_specific,do_u64x8_specific_frand,do_u64x8_specific_biski,do_f64x4_xoshiro_specific,do_f64x4_specific_frand,do_f64x4_specific_biski,do_f64x4_xoshiro_portable,do_f64x4_portable_frand,do_f64x4_portable_biski
 PRACTRAND_VERSION ?= 0.96
@@ -13,11 +15,13 @@ PRACTRAND_RNG_TEST := $(PRACTRAND_DIR)/RNG_test
 PRACTRAND_RNG ?= portable-frand-x8
 PRACTRAND_SEED ?= 0
 PRACTRAND_ARGS ?= stdin64 -multithreaded
+COVERAGE_IGNORE_FILENAME_REGEX := (^|/)(tests|benches|examples)/
 
 all: run
 
 setup:
 	cargo install --locked cargo-nextest
+	cargo install --locked cargo-llvm-cov
 
 fmt:
 	cargo fmt
@@ -34,6 +38,25 @@ test:
 	# Cover the combined portable+specific build with the full SIMD feature set used locally.
 	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) nextest run --features portable --target $(TARGET)
 	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) nextest run --release --features portable --target $(TARGET)
+
+coverage-clean:
+	$(CARGO_LLVM_COV) clean --workspace
+
+coverage-run:
+	$(CARGO_LLVM_COV) clean --workspace
+	# On this machine, .cargo/config.toml already enables native CPU features, so one
+	# native all-features run exercises the full local backend set without matrix noise.
+	# Use debug here; release optimization drops substantial coverage detail in this crate.
+	$(CARGO_NIGHTLY_LLVM_COV) nextest --branch --no-report --all-features
+	# nextest does not support doctests, so collect them separately and merge them into the final report.
+	$(CARGO_NIGHTLY_LLVM_COV) --branch --no-report --doc --all-features
+
+coverage-html: coverage-run
+	$(CARGO_NIGHTLY_LLVM_COV) report --branch --doctests --html --output-dir target/llvm-cov --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)'
+
+coverage-lcov: coverage-run
+	mkdir -p target/llvm-cov
+	$(CARGO_NIGHTLY_LLVM_COV) report --branch --doctests --lcov --output-path target/llvm-cov/lcov.info --ignore-filename-regex '$(COVERAGE_IGNORE_FILENAME_REGEX)'
 
 test-miri:
 	$(CARGO_NIGHTLY) miri test -p simd_rand --no-default-features --features portable --lib
