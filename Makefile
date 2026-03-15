@@ -5,6 +5,14 @@ RUSTFLAGS_AVX512 := -C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl
 CARGO_NIGHTLY := cargo +nightly
 BENCH_CPU ?= 31
 DASM_SYMBOLS ?= do_u64x4_xoshiro_baseline,do_u64x4_xoshiro_portable,do_u64x4_portable_frand,do_u64x4_xoshiro_specific,do_u64x4_specific_frand,do_u64x8_xoshiro_baseline,do_u64x8_frand_baseline,do_u64x8_xoshiro_portable,do_u64x8_portable_frand,do_u64x8_xoshiro_specific,do_u64x8_specific_frand,do_f64x4_xoshiro_specific,do_f64x4_specific_frand,do_f64x4_xoshiro_portable,do_f64x4_portable_frand
+PRACTRAND_VERSION ?= 0.96
+PRACTRAND_ROOT := external/PractRand
+PRACTRAND_ARCHIVE := PractRand_$(PRACTRAND_VERSION).zip
+PRACTRAND_DIR := $(PRACTRAND_ROOT)/PractRand
+PRACTRAND_RNG_TEST := $(PRACTRAND_DIR)/RNG_test
+PRACTRAND_RNG ?= portable-frand-x8
+PRACTRAND_SEED ?= 0
+PRACTRAND_ARGS ?= stdin64 -multithreaded
 
 all: run
 
@@ -76,20 +84,19 @@ dasmexp: dasm
 	$(CARGO_NIGHTLY) rustc --release --example dasm --features portable -- --emit asm=/dev/stdout | c++filt > $(bindir)/dasm.S
 
 # Tested on Ubuntu 22 with bash - run this as a one-off
-# may need to fix the compiler warning for RNG_test.cpp (I segfaulted otherwise)
 getpractrand:
-	mkdir -p external/PractRand/ && \
-	pushd external/PractRand/ && \
-	curl -OL https://downloads.sourceforge.net/project/pracrand/PractRand_0.93.zip && \
-	unzip -q PractRand_0.93.zip && \
-	curl -sL http://www.pcg-random.org/downloads/practrand-0.93-bigbuffer.patch | patch -p0 && \
-	g++ -std=c++14 -c src/*.cpp src/RNGs/*.cpp src/RNGs/other/*.cpp -O3 -Iinclude -pthread && \
+	mkdir -p $(PRACTRAND_ROOT) && \
+	rm -rf $(PRACTRAND_DIR) && \
+	curl -fL https://downloads.sourceforge.net/project/pracrand/$(PRACTRAND_ARCHIVE) -o $(PRACTRAND_ROOT)/$(PRACTRAND_ARCHIVE) && \
+	unzip -qo $(PRACTRAND_ROOT)/$(PRACTRAND_ARCHIVE) -d $(PRACTRAND_ROOT) && \
+	pushd $(PRACTRAND_DIR) && \
+	g++ -std=c++11 -c src/*.cpp src/RNGs/*.cpp src/RNGs/other/*.cpp -O3 -Iinclude -pthread && \
 	ar rcs libPractRand.a *.o && rm *.o && \
-	g++ -std=c++14 -o RNG_test tools/RNG_test.cpp libPractRand.a -O3 -march=native -Iinclude -pthread && \
+	g++ -std=c++11 -o RNG_test tools/RNG_test.cpp libPractRand.a -O3 -Iinclude -pthread && \
 	popd
 
 practrand:
-	$(CARGO_NIGHTLY) build --example practrand --features portable --release && ./target/release/examples/practrand | ./external/PractRand/RNG_test stdin64 -multithreaded
+	$(CARGO_NIGHTLY) build --example practrand --features portable --release && ./target/release/examples/practrand $(PRACTRAND_RNG) $(PRACTRAND_SEED) | $(PRACTRAND_RNG_TEST) $(PRACTRAND_ARGS)
 
 clean:
 	cargo clean --release && cargo clean
