@@ -37,6 +37,12 @@ bench:
 	$(CARGO_NIGHTLY) bench --features portable -- "$(F)" --verbose
 
 bench-top:
+	# Default benchmark setup here is adapted to my machine, currently a 9950X3D CPU
+	# It has 32 logical cores, of which I've dedicated 1 SMT pair (15 and 31) to benchmarking currently.
+	# To improve stability I use taskset to pin to a specific core.
+	# Avoid scheduling userspace processes to these cores by doing something like
+	# `nohz_full=15,31 rcu_nocbs=15,31 isolcpus=managed_irq,domain,15,31 irqaffinity=0-14,16-30 systemd.cpu_affinity=0-14,16-30`
+	# in limine.conf cmdline in my case (I run cachyOS atm)
 	@test "$$(cat /sys/devices/system/cpu/cpu$(BENCH_CPU)/cpufreq/scaling_governor)" = performance || \
 		(echo "cpu$(BENCH_CPU) scaling governor must be performance" >&2; exit 1)
 	taskset --cpu-list $(BENCH_CPU) env RUSTFLAGS="$(RUSTFLAGS_AVX512)" \
