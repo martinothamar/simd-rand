@@ -1,3 +1,4 @@
+use crate::frand::test_support::ref_seed_x4 as ref_seed_frand_x4;
 #[cfg(any(
     feature = "portable",
     all(
@@ -9,7 +10,6 @@
     )
 ))]
 use crate::frand::test_support::ref_seed_x8 as ref_seed_frand_x8;
-use crate::frand::test_support::{FrandReference, ref_seed_x4 as ref_seed_frand_x4};
 #[cfg(feature = "portable")]
 use crate::portable::{
     Biski64X4, Biski64X4Seed, Biski64X8, Biski64X8Seed, FrandX4, FrandX4Seed, FrandX8, FrandX8Seed, SimdRandX4,
@@ -320,8 +320,8 @@ define_prng_tests!(
     seed = FrandX4Seed,
     ref_seed = ref_seed_frand_x4(),
     reference_seed = 1u64,
-    reference_rng = FrandReference::new,
-    reference_next = |rng: &mut FrandReference| rng.next_u64(),
+    reference_rng = ::frand::Rand::with_seed,
+    reference_next = |rng: &mut ::frand::Rand| rng.r#gen::<u64>(),
     next_u64 = |rng: &mut FrandX4| rng.next_u64x4().to_array(),
     next_f64 = |rng: &mut FrandX4| rng.next_f64x4().to_array()
 );
@@ -334,8 +334,8 @@ define_prng_tests!(
     seed = FrandX8Seed,
     ref_seed = ref_seed_frand_x8(),
     reference_seed = 1u64,
-    reference_rng = FrandReference::new,
-    reference_next = |rng: &mut FrandReference| rng.next_u64(),
+    reference_rng = ::frand::Rand::with_seed,
+    reference_next = |rng: &mut ::frand::Rand| rng.r#gen::<u64>(),
     next_u64 = |rng: &mut FrandX8| rng.next_u64x8().to_array(),
     next_f64 = |rng: &mut FrandX8| rng.next_f64x8().to_array()
 );
@@ -432,8 +432,8 @@ define_prng_tests!(
     seed = SpecificFrandX4Seed,
     ref_seed = ref_seed_frand_x4(),
     reference_seed = 1u64,
-    reference_rng = FrandReference::new,
-    reference_next = |rng: &mut FrandReference| rng.next_u64(),
+    reference_rng = ::frand::Rand::with_seed,
+    reference_next = |rng: &mut ::frand::Rand| rng.r#gen::<u64>(),
     next_u64 = |rng: &mut SpecificFrandX4| *rng.next_u64x4(),
     next_f64 = |rng: &mut SpecificFrandX4| *rng.next_f64x4()
 );
@@ -494,8 +494,8 @@ define_prng_tests!(
     seed = SpecificFrandX8Seed,
     ref_seed = ref_seed_frand_x8(),
     reference_seed = 1u64,
-    reference_rng = FrandReference::new,
-    reference_next = |rng: &mut FrandReference| rng.next_u64(),
+    reference_rng = ::frand::Rand::with_seed,
+    reference_next = |rng: &mut ::frand::Rand| rng.r#gen::<u64>(),
     next_u64 = |rng: &mut SpecificFrandX8| *rng.next_u64x8(),
     next_f64 = |rng: &mut SpecificFrandX8| *rng.next_f64x8()
 );

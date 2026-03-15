@@ -6,6 +6,8 @@ use core::{
 
 use rand_core::SeedableRng;
 
+use crate::frand::{hash_seed_bytes, repeated_seed_bytes};
+
 use super::{SimdRandX4, read_u64_into_vec};
 
 const INCREMENT: u64x4 = u64x4::from_array([12964901029718341801; 4]);
@@ -74,9 +76,14 @@ impl SeedableRng for FrandX4 {
         const LEN: usize = u64x4::LEN;
         assert!(seed.len() == SIZE * LEN);
 
-        let s = read_u64_into_vec(&seed[..]);
+        let seed = hash_seed_bytes::<32>(&seed[..]);
+        let s = read_u64_into_vec(&seed);
 
         Self { seed: s }
+    }
+
+    fn seed_from_u64(seed: u64) -> Self {
+        Self::from_seed(Self::Seed::from(repeated_seed_bytes::<32>(seed)))
     }
 }
 
@@ -86,5 +93,20 @@ impl SimdRandX4 for FrandX4 {
         self.seed = value;
         let value = value * (MUL_XOR ^ value);
         value ^ (value >> SHIFT)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rand_core::SeedableRng;
+
+    use super::{FrandX4, SimdRandX4};
+    use crate::frand::test_support::assert_seed_from_u64_matches_upstream;
+
+    #[test]
+    fn seed_from_u64_matches_upstream() {
+        assert_seed_from_u64_matches_upstream::<4, _>(42, FrandX4::seed_from_u64(42), |rng| {
+            rng.next_u64x4().to_array()
+        });
     }
 }

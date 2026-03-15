@@ -6,6 +6,7 @@ use core::{
 
 use rand_core::SeedableRng;
 
+use crate::frand::{hash_seed_bytes, repeated_seed_bytes};
 use crate::specific::avx2::read_u64_into_vec;
 
 use super::simdrand::*;
@@ -73,9 +74,14 @@ impl SeedableRng for FrandX4 {
         const LEN: usize = 4;
         assert!(seed.len() == SIZE * LEN);
 
-        let s = read_u64_into_vec(&seed[..]);
+        let seed = hash_seed_bytes::<32>(&seed[..]);
+        let s = read_u64_into_vec(&seed);
 
         Self { seed: s }
+    }
+
+    fn seed_from_u64(seed: u64) -> Self {
+        Self::from_seed(Self::Seed::from(repeated_seed_bytes::<32>(seed)))
     }
 }
 
@@ -121,5 +127,18 @@ impl SimdRand for FrandX4 {
 
             _mm256_xor_si256(value, _mm256_srli_epi64::<32>(value))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rand_core::SeedableRng;
+
+    use super::{FrandX4, SimdRand};
+    use crate::frand::test_support::assert_seed_from_u64_matches_upstream;
+
+    #[test]
+    fn seed_from_u64_matches_upstream() {
+        assert_seed_from_u64_matches_upstream::<4, _>(42, FrandX4::seed_from_u64(42), |rng| *rng.next_u64x4());
     }
 }
