@@ -1,5 +1,6 @@
 #![cfg_attr(feature = "portable", feature(portable_simd))]
 
+use frand::Rand;
 use rand_core::{RngCore, SeedableRng};
 use simd_rand::portable;
 use simd_rand::portable::{SimdRandX4 as PortableSimdRandX4, SimdRandX8 as PortableSimdRandX8};
@@ -19,23 +20,39 @@ use std::simd::{f64x4, u64x4, u64x8};
 /// This is a small binary meant to aid in analyzing generated code
 /// For example to see differences between portable and specific code,
 /// and `simd_rand` and `rand` code
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_baseline<RNG: RngCore>(rng: &mut RNG) -> u64x4 {
+fn do_u64x4_xoshiro_baseline(rng: &mut rand_xoshiro::Xoshiro256Plus) -> u64x4 {
     u64x4::from_array([rng.next_u64(), rng.next_u64(), rng.next_u64(), rng.next_u64()])
 }
 
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_portable<RNG: PortableSimdRandX4>(rng: &mut RNG) -> u64x4 {
+fn do_u64x4_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX4) -> u64x4 {
     rng.next_u64x4()
 }
 
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x4_specific<RNG: SpecificSimdRandX4>(rng: &mut RNG) -> __m256i {
+fn do_u64x4_portable_frand(rng: &mut portable::FrandX4) -> u64x4 {
+    rng.next_u64x4()
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+fn do_u64x4_xoshiro_specific(rng: &mut specific::avx2::Xoshiro256PlusX4) -> __m256i {
     rng.next_m256i()
 }
 
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_baseline<RNG: RngCore>(rng: &mut RNG) -> u64x8 {
+fn do_u64x4_specific_frand(rng: &mut specific::avx2::FrandX4) -> __m256i {
+    rng.next_m256i()
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+fn do_u64x8_xoshiro_baseline(rng: &mut rand_xoshiro::Xoshiro256Plus) -> u64x8 {
     u64x8::from_array([
         rng.next_u64(),
         rng.next_u64(),
@@ -48,8 +65,30 @@ fn do_u64x8_baseline<RNG: RngCore>(rng: &mut RNG) -> u64x8 {
     ])
 }
 
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_portable<RNG: PortableSimdRandX8>(rng: &mut RNG) -> u64x8 {
+fn do_u64x8_frand_baseline(rng: &mut Rand) -> u64x8 {
+    u64x8::from_array([
+        rng.r#gen::<u64>(),
+        rng.r#gen::<u64>(),
+        rng.r#gen::<u64>(),
+        rng.r#gen::<u64>(),
+        rng.r#gen::<u64>(),
+        rng.r#gen::<u64>(),
+        rng.r#gen::<u64>(),
+        rng.r#gen::<u64>(),
+    ])
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+fn do_u64x8_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX8) -> u64x8 {
+    rng.next_u64x8()
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+fn do_u64x8_portable_frand(rng: &mut portable::FrandX8) -> u64x8 {
     rng.next_u64x8()
 }
 
@@ -59,46 +98,97 @@ fn do_u64x8_portable<RNG: PortableSimdRandX8>(rng: &mut RNG) -> u64x8 {
     target_feature = "avx512dq",
     target_feature = "avx512vl"
 ))]
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_u64x8_specific<RNG: SpecificSimdRandX8>(rng: &mut RNG) -> __m512i {
+fn do_u64x8_xoshiro_specific(rng: &mut specific::avx512::Xoshiro256PlusX8) -> __m512i {
     rng.next_m512i()
 }
 
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512dq",
+    target_feature = "avx512vl"
+))]
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_f64x4_specific<RNG: SpecificSimdRandX4>(rng: &mut RNG) -> __m256d {
+fn do_u64x8_specific_frand(rng: &mut specific::avx512::FrandX8) -> __m512i {
+    rng.next_m512i()
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+fn do_f64x4_xoshiro_specific(rng: &mut specific::avx2::Xoshiro256PlusX4) -> __m256d {
     rng.next_m256d()
 }
 
+#[unsafe(no_mangle)]
 #[inline(never)]
-fn do_f64x4_portable<RNG: PortableSimdRandX4>(rng: &mut RNG) -> f64x4 {
+fn do_f64x4_specific_frand(rng: &mut specific::avx2::FrandX4) -> __m256d {
+    rng.next_m256d()
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+fn do_f64x4_xoshiro_portable(rng: &mut portable::Xoshiro256PlusX4) -> f64x4 {
+    rng.next_f64x4()
+}
+
+#[unsafe(no_mangle)]
+#[inline(never)]
+fn do_f64x4_portable_frand(rng: &mut portable::FrandX4) -> f64x4 {
     rng.next_f64x4()
 }
 
 fn main() {
     let mut rng_base = rand_xoshiro::Xoshiro256Plus::seed_from_u64(0);
-    let mut rng1 = portable::Xoshiro256PlusX4::seed_from_u64(0);
-    let mut rng2 = specific::avx2::Xoshiro256PlusX4::seed_from_u64(0);
-    let mut rng3 = portable::Xoshiro256PlusX8::seed_from_u64(0);
+    let mut rng_frand = Rand::with_seed(0);
+    let mut rng_portable_x4 = portable::Xoshiro256PlusX4::seed_from_u64(0);
+    let mut rng_portable_frand_x4 = portable::FrandX4::seed_from_u64(0);
+    let mut rng_specific_x4 = specific::avx2::Xoshiro256PlusX4::seed_from_u64(0);
+    let mut rng_specific_frand_x4 = specific::avx2::FrandX4::seed_from_u64(0);
+    let mut rng_portable_x8 = portable::Xoshiro256PlusX8::seed_from_u64(0);
+    let mut rng_portable_frand_x8 = portable::FrandX8::seed_from_u64(0);
     #[cfg(all(
         target_arch = "x86_64",
         target_feature = "avx512f",
         target_feature = "avx512dq",
         target_feature = "avx512vl"
     ))]
-    let mut rng4 = specific::avx512::Xoshiro256PlusX8::seed_from_u64(0);
+    let mut rng_specific_x8 = specific::avx512::Xoshiro256PlusX8::seed_from_u64(0);
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq",
+        target_feature = "avx512vl"
+    ))]
+    let mut rng_specific_frand_x8 = specific::avx512::FrandX8::seed_from_u64(0);
 
-    black_box(do_u64x4_baseline(&mut rng_base));
-    black_box(do_u64x4_portable(&mut rng1));
-    black_box(do_u64x4_specific(&mut rng2));
-    black_box(do_u64x8_baseline(&mut rng_base));
-    black_box(do_u64x8_portable(&mut rng3));
+    black_box(do_u64x4_xoshiro_baseline(&mut rng_base));
+    black_box(do_u64x4_xoshiro_portable(&mut rng_portable_x4));
+    black_box(do_u64x4_portable_frand(&mut rng_portable_frand_x4));
+    black_box(do_u64x4_xoshiro_specific(&mut rng_specific_x4));
+    black_box(do_u64x4_specific_frand(&mut rng_specific_frand_x4));
+    black_box(do_u64x8_xoshiro_baseline(&mut rng_base));
+    black_box(do_u64x8_frand_baseline(&mut rng_frand));
+    black_box(do_u64x8_xoshiro_portable(&mut rng_portable_x8));
+    black_box(do_u64x8_portable_frand(&mut rng_portable_frand_x8));
     #[cfg(all(
         target_arch = "x86_64",
         target_feature = "avx512f",
         target_feature = "avx512dq",
         target_feature = "avx512vl"
     ))]
-    black_box(do_u64x8_specific(&mut rng4));
-    black_box(do_f64x4_specific(&mut rng2));
-    black_box(do_f64x4_portable(&mut rng1));
+    black_box(do_u64x8_xoshiro_specific(&mut rng_specific_x8));
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512dq",
+        target_feature = "avx512vl"
+    ))]
+    black_box(do_u64x8_specific_frand(&mut rng_specific_frand_x8));
+    black_box(do_f64x4_xoshiro_specific(&mut rng_specific_x4));
+    black_box(do_f64x4_specific_frand(&mut rng_specific_frand_x4));
+    black_box(do_f64x4_xoshiro_portable(&mut rng_portable_x4));
+    black_box(do_f64x4_portable_frand(&mut rng_portable_frand_x4));
 }
