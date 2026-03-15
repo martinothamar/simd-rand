@@ -25,10 +25,13 @@ class Case:
 
 
 CASES = (
+    Case("scalar-biski64", "scalar-biski64"),
     Case("scalar-frand", "scalar-frand"),
     Case("scalar-xoshiro256plus", "scalar-xoshiro256plus"),
+    Case("portable-biski64-x8", "portable-biski64-x8"),
     Case("portable-frand-x8", "portable-frand-x8"),
     Case("portable-xoshiro256plus-x8", "portable-xoshiro256plus-x8"),
+    Case("specific-biski64-x8", "specific-biski64-x8"),
     Case("specific-frand-x8", "specific-frand-x8"),
     Case("specific-xoshiro256plus-x8", "specific-xoshiro256plus-x8"),
 )
@@ -36,7 +39,7 @@ CASES = (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run PractRand against the scalar and vectorized xoshiro256+/frand streams."
+        description="Run PractRand against the scalar and vectorized biski64/xoshiro256+/frand streams."
     )
     parser.add_argument("--seed", required=True, help="Seed passed through to the Rust practrand example.")
     parser.add_argument(
