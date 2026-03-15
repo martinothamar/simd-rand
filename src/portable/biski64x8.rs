@@ -132,77 +132,16 @@ impl SimdRandX8 for Biski64X8 {
 
 #[cfg(test)]
 mod tests {
-    use core::simd::*;
-    use itertools::Itertools;
     use rand_core::SeedableRng;
 
-    use crate::{
-        biski64::seed_from_bytes,
-        testutil::{
-            DOUBLE_RANGE, REF_SEED_BISKI64_X8, biski64_parallel_reference_vectors, biski64_reference_sequence,
-            fixed_u64_rng::FixedBytesRng, test_uniform_distribution,
-        },
-    };
-
-    use super::*;
-
-    type RngSeed = Biski64X8Seed;
-    type RngImpl = Biski64X8;
-
-    #[test]
-    fn reference() {
-        let seed: RngSeed = REF_SEED_BISKI64_X8.into();
-        let mut rng = RngImpl::from_seed(seed);
-
-        for expected in biski64_reference_sequence::<10>(1) {
-            let mem = rng.next_u64x8();
-            for &value in mem.as_array() {
-                assert_eq!(value, expected);
-            }
-        }
-    }
-
-    #[test]
-    fn sample_u64x8() {
-        let mut seed = RngSeed::default();
-        rand::rng().fill_bytes(&mut *seed);
-        let mut rng = RngImpl::from_seed(seed);
-
-        let values = *rng.next_u64x8().as_array();
-
-        assert!(values.iter().all(|&value| value != 0));
-        assert!(values.iter().unique().count() == values.len());
-        println!("{values:?}");
-
-        let values = *rng.next_u64x8().as_array();
-
-        assert!(values.iter().all(|&value| value != 0));
-        assert!(values.iter().unique().count() == values.len());
-        println!("{values:?}");
-    }
-
-    #[test]
-    fn sample_f64x8() {
-        let mut seed = RngSeed::default();
-        rand::rng().fill_bytes(&mut *seed);
-        let mut rng = RngImpl::from_seed(seed);
-
-        let values = *rng.next_f64x8().as_array();
-
-        assert!(values.iter().all(|&value| value != 0.0));
-        println!("{values:?}");
-
-        let values = *rng.next_f64x8().as_array();
-
-        assert!(values.iter().all(|&value| value != 0.0));
-        println!("{values:?}");
-    }
+    use super::{Biski64X8, SimdRandX8};
+    use crate::biski64::{FixedBytesRng, parallel_reference_vectors, seed_from_bytes};
 
     #[test]
     fn seed_from_u64_matches_upstream_parallel_streams() {
-        let mut rng = RngImpl::seed_from_u64(42);
+        let mut rng = Biski64X8::seed_from_u64(42);
 
-        for expected in biski64_parallel_reference_vectors::<8, 10>(42) {
+        for expected in parallel_reference_vectors::<8, 10>(42) {
             assert_eq!(rng.next_u64x8().to_array(), expected);
         }
     }
@@ -215,45 +154,11 @@ mod tests {
             0x44, 0x43, 0x42, 0x41, 0x58, 0x57, 0x56, 0x55, 0x54, 0x53, 0x52, 0x51, 0x68, 0x67, 0x66, 0x65, 0x64, 0x63,
             0x62, 0x61, 0x78, 0x77, 0x76, 0x75, 0x74, 0x73, 0x72, 0x71,
         ];
-        let mut seed_rng = FixedBytesRng::new(seed);
-        let mut rng = RngImpl::from_rng(&mut seed_rng);
+        let mut rng = Biski64X8::from_rng(&mut FixedBytesRng::new(seed));
         let master_seed = seed_from_bytes(&seed);
 
-        for expected in biski64_parallel_reference_vectors::<8, 10>(master_seed) {
+        for expected in parallel_reference_vectors::<8, 10>(master_seed) {
             assert_eq!(rng.next_u64x8().to_array(), expected);
         }
-    }
-
-    #[test]
-    #[cfg_attr(
-        any(debug_assertions, miri),
-        ignore = "distribution test requires release mode and real RNG"
-    )]
-    fn sample_f64x8_distribution() {
-        let mut seed = RngSeed::default();
-        rand::rng().fill_bytes(&mut *seed);
-        let mut rng = RngImpl::from_seed(seed);
-
-        let mut current: Option<f64x8> = None;
-        let mut current_index: usize = 0;
-
-        test_uniform_distribution::<10_000_000, f64>(
-            || match &current {
-                Some(vector) if current_index < 8 => {
-                    let result = vector[current_index];
-                    current_index += 1;
-                    result
-                }
-                _ => {
-                    current_index = 0;
-                    let vector = rng.next_f64x8();
-                    let result = vector[current_index];
-                    current = Some(vector);
-                    current_index += 1;
-                    result
-                }
-            },
-            DOUBLE_RANGE,
-        );
     }
 }

@@ -15,6 +15,8 @@ mod simdrand;
 mod vecs;
 mod xoshiro256plus;
 mod xoshiro256plusplus;
+#[cfg(test)]
+pub(crate) use shishua::test_vectors as shishua_test_vectors;
 
 #[inline(always)]
 fn read_u64_into_vec(src: &[u8]) -> __m256i {

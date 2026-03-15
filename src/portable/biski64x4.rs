@@ -126,77 +126,16 @@ impl SimdRandX4 for Biski64X4 {
 
 #[cfg(test)]
 mod tests {
-    use core::simd::*;
-    use itertools::Itertools;
     use rand_core::SeedableRng;
 
-    use crate::{
-        biski64::seed_from_bytes,
-        testutil::{
-            DOUBLE_RANGE, REF_SEED_BISKI64_X4, biski64_parallel_reference_vectors, biski64_reference_sequence,
-            fixed_u64_rng::FixedBytesRng, test_uniform_distribution,
-        },
-    };
-
-    use super::*;
-
-    type RngSeed = Biski64X4Seed;
-    type RngImpl = Biski64X4;
-
-    #[test]
-    fn reference() {
-        let seed: RngSeed = REF_SEED_BISKI64_X4.into();
-        let mut rng = RngImpl::from_seed(seed);
-
-        for expected in biski64_reference_sequence::<10>(1) {
-            let mem = rng.next_u64x4();
-            for &value in mem.as_array() {
-                assert_eq!(value, expected);
-            }
-        }
-    }
-
-    #[test]
-    fn sample_u64x4() {
-        let mut seed = RngSeed::default();
-        rand::rng().fill_bytes(&mut *seed);
-        let mut rng = RngImpl::from_seed(seed);
-
-        let values = *rng.next_u64x4().as_array();
-
-        assert!(values.iter().all(|&value| value != 0));
-        assert!(values.iter().unique().count() == values.len());
-        println!("{values:?}");
-
-        let values = *rng.next_u64x4().as_array();
-
-        assert!(values.iter().all(|&value| value != 0));
-        assert!(values.iter().unique().count() == values.len());
-        println!("{values:?}");
-    }
-
-    #[test]
-    fn sample_f64x4() {
-        let mut seed = RngSeed::default();
-        rand::rng().fill_bytes(&mut *seed);
-        let mut rng = RngImpl::from_seed(seed);
-
-        let values = *rng.next_f64x4().as_array();
-
-        assert!(values.iter().all(|&value| value != 0.0));
-        println!("{values:?}");
-
-        let values = *rng.next_f64x4().as_array();
-
-        assert!(values.iter().all(|&value| value != 0.0));
-        println!("{values:?}");
-    }
+    use super::{Biski64X4, Biski64X4Seed, SimdRandX4};
+    use crate::biski64::{FixedBytesRng, parallel_reference_vectors, reference_sequence, seed_from_bytes};
 
     #[test]
     fn seed_from_u64_matches_upstream_parallel_streams() {
-        let mut rng = RngImpl::seed_from_u64(42);
+        let mut rng = Biski64X4::seed_from_u64(42);
 
-        for expected in biski64_parallel_reference_vectors::<4, 10>(42) {
+        for expected in parallel_reference_vectors::<4, 10>(42) {
             assert_eq!(rng.next_u64x4().to_array(), expected);
         }
     }
@@ -207,11 +146,10 @@ mod tests {
             0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x28, 0x27,
             0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x38, 0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31,
         ];
-        let mut seed_rng = FixedBytesRng::new(seed);
-        let mut rng = RngImpl::from_rng(&mut seed_rng);
+        let mut rng = Biski64X4::from_rng(&mut FixedBytesRng::new(seed));
         let master_seed = seed_from_bytes(&seed);
 
-        for expected in biski64_parallel_reference_vectors::<4, 10>(master_seed) {
+        for expected in parallel_reference_vectors::<4, 10>(master_seed) {
             assert_eq!(rng.next_u64x4().to_array(), expected);
         }
     }
@@ -222,43 +160,10 @@ mod tests {
         let mut seed_b = seed_a;
         seed_b[31] = 1;
 
-        let mut rng_a = RngImpl::from_rng(&mut FixedBytesRng::new(seed_a));
-        let mut rng_b = RngImpl::from_rng(&mut FixedBytesRng::new(seed_b));
+        let mut rng_a = Biski64X4::from_rng(&mut FixedBytesRng::new(seed_a));
+        let mut rng_b = Biski64X4::from_rng(&mut FixedBytesRng::new(seed_b));
 
         assert_ne!(rng_a.next_u64x4().to_array(), rng_b.next_u64x4().to_array());
-    }
-
-    #[test]
-    #[cfg_attr(
-        any(debug_assertions, miri),
-        ignore = "distribution test requires release mode and real RNG"
-    )]
-    fn sample_f64x4_distribution() {
-        let mut seed = RngSeed::default();
-        rand::rng().fill_bytes(&mut *seed);
-        let mut rng = RngImpl::from_seed(seed);
-
-        let mut current: Option<f64x4> = None;
-        let mut current_index: usize = 0;
-
-        test_uniform_distribution::<10_000_000, f64>(
-            || match &current {
-                Some(vector) if current_index < 4 => {
-                    let result = vector[current_index];
-                    current_index += 1;
-                    result
-                }
-                _ => {
-                    current_index = 0;
-                    let vector = rng.next_f64x4();
-                    let result = vector[current_index];
-                    current = Some(vector);
-                    current_index += 1;
-                    result
-                }
-            },
-            DOUBLE_RANGE,
-        );
     }
 
     #[test]
@@ -274,7 +179,7 @@ mod tests {
             seed[(index * 8)..((index + 1) * 8)].copy_from_slice(&word.to_le_bytes());
         }
 
-        let mut rng = RngImpl::from_seed(seed.into());
+        let mut rng = Biski64X4::from_seed(Biski64X4Seed::from(seed));
         let vectors = [
             rng.next_u64x4().to_array(),
             rng.next_u64x4().to_array(),
@@ -283,9 +188,7 @@ mod tests {
         ];
 
         for (lane, seed_word) in seed_words.into_iter().enumerate() {
-            let expected = biski64_reference_sequence::<4>(seed_word);
-            let actual = vectors.map(|vector| vector[lane]);
-            assert_eq!(actual, expected);
+            assert_eq!(vectors.map(|vector| vector[lane]), reference_sequence::<4>(seed_word));
         }
     }
 }

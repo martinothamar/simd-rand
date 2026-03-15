@@ -6,7 +6,6 @@ CARGO_NIGHTLY := cargo +nightly
 CARGO_LLVM_COV := cargo llvm-cov
 CARGO_NIGHTLY_LLVM_COV := cargo +nightly llvm-cov
 BENCH_CPU ?= 31
-DASM_SYMBOLS ?= do_u64x4_xoshiro_baseline,do_u64x4_xoshiro_portable,do_u64x4_portable_frand,do_u64x4_portable_biski,do_u64x4_xoshiro_specific,do_u64x4_specific_frand,do_u64x4_specific_biski,do_u64x8_xoshiro_baseline,do_u64x8_frand_baseline,do_u64x8_biski_baseline,do_u64x8_xoshiro_portable,do_u64x8_portable_frand,do_u64x8_portable_biski,do_u64x8_xoshiro_specific,do_u64x8_specific_frand,do_u64x8_specific_biski,do_f64x4_xoshiro_specific,do_f64x4_specific_frand,do_f64x4_specific_biski,do_f64x4_xoshiro_portable,do_f64x4_portable_frand,do_f64x4_portable_biski
 PRACTRAND_VERSION ?= 0.96
 PRACTRAND_ROOT := external/PractRand
 PRACTRAND_ARCHIVE := PractRand_$(PRACTRAND_VERSION).zip
@@ -93,7 +92,7 @@ run: build
 
 dasm:
 	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) objdump --example dasm --features portable --release -- \
-		--disassemble --disassemble-symbols=$(DASM_SYMBOLS) --x86-asm-syntax=intel \
+		--disassemble --x86-asm-syntax=intel \
 		--no-show-raw-insn --no-leading-addr > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
 
 dasmbench:

@@ -117,18 +117,12 @@ extern crate alloc;
 extern crate std;
 
 mod biski64;
+#[cfg(test)]
+mod frand;
 
 #[cfg(feature = "portable")]
 pub mod portable;
 #[cfg(feature = "specific")]
 pub mod specific;
-
-#[cfg(all(
-    test,
-    any(
-        feature = "portable",
-        all(feature = "specific", any(target_feature = "avx2", target_feature = "avx512f"))
-    )
-))]
 #[cfg(test)]
-mod testutil;
+mod tests;

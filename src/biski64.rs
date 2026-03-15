@@ -1,3 +1,6 @@
+#[cfg(all(test, feature = "portable"))]
+use rand_core::RngCore;
+
 pub const FAST_LOOP_INCREMENT: u64 = 0x9999999999999999;
 
 const SPLITMIX_INCREMENT: u64 = 0x9e3779b97f4a7c15;
@@ -103,4 +106,62 @@ pub fn seed_state_for_stream(seed: u64, stream_index: u64, total_streams: u64) -
 pub fn seed_stream_states<const LANES: usize>(seed: u64) -> [[u64; 3]; LANES] {
     assert!(LANES > 0);
     core::array::from_fn(|lane| seed_state_for_stream(seed, lane as u64, LANES as u64))
+}
+
+#[cfg(all(test, feature = "portable"))]
+pub struct FixedBytesRng<const N: usize> {
+    bytes: [u8; N],
+    offset: usize,
+}
+
+#[cfg(all(test, feature = "portable"))]
+impl<const N: usize> FixedBytesRng<N> {
+    pub const fn new(bytes: [u8; N]) -> Self {
+        Self { bytes, offset: 0 }
+    }
+}
+
+#[cfg(all(test, feature = "portable"))]
+impl<const N: usize> rand_core::RngCore for FixedBytesRng<N> {
+    fn next_u32(&mut self) -> u32 {
+        rand_core::impls::next_u32_via_fill(self)
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        rand_core::impls::next_u64_via_fill(self)
+    }
+
+    fn fill_bytes(&mut self, dst: &mut [u8]) {
+        let end = self.offset + dst.len();
+        assert!(end <= self.bytes.len());
+        dst.copy_from_slice(&self.bytes[self.offset..end]);
+        self.offset = end;
+    }
+}
+
+#[cfg(all(test, feature = "portable"))]
+pub fn reference_sequence<const N: usize>(seed: u64) -> [u64; N] {
+    let mut rng = biski64::Biski64Rng::from_seed_for_stream(seed, 0, 1);
+    let mut output = [0; N];
+
+    for value in &mut output {
+        *value = rng.next_u64();
+    }
+
+    output
+}
+
+#[cfg(all(test, feature = "portable"))]
+pub fn parallel_reference_vectors<const LANES: usize, const N: usize>(seed: u64) -> [[u64; LANES]; N] {
+    let mut rngs: [biski64::Biski64Rng; LANES] =
+        core::array::from_fn(|lane| biski64::Biski64Rng::from_seed_for_stream(seed, lane as u64, LANES as u64));
+    let mut output = [[0; LANES]; N];
+
+    for row in &mut output {
+        for (value, rng) in row.iter_mut().zip(&mut rngs) {
+            *value = rng.next_u64();
+        }
+    }
+
+    output
 }
