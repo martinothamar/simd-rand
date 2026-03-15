@@ -1,4 +1,3 @@
-use crate::frand::test_support::{FrandReference, ref_seed_x4 as ref_seed_frand_x4};
 #[cfg(any(
     feature = "portable",
     all(
@@ -10,6 +9,7 @@ use crate::frand::test_support::{FrandReference, ref_seed_x4 as ref_seed_frand_x
     )
 ))]
 use crate::frand::test_support::ref_seed_x8 as ref_seed_frand_x8;
+use crate::frand::test_support::{FrandReference, ref_seed_x4 as ref_seed_frand_x4};
 #[cfg(feature = "portable")]
 use crate::portable::{
     Biski64X4, Biski64X4Seed, Biski64X8, Biski64X8Seed, FrandX4, FrandX4Seed, FrandX8, FrandX8Seed, SimdRandX4,
