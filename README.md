@@ -99,6 +99,68 @@ Top/simd_rand/Specific/FrandX8
                         thrpt:  [188.41 GiB/s 188.49 GiB/s 188.57 GiB/s]
 ```
 
+### frand deep dive
+
+The `frand` round is very small:
+
+```text
+state += increment
+value = state * (state ^ mul_xor)
+output = value ^ (value >> 32)
+```
+
+This simplicity allows the compiler to autovectorize, which it wont do for Xoshiro256+.
+So that explains the large gap between that and frand in the scalar cases in the results above.
+Our SIMD implementations are still a bit faster because they already store eight independent lanes of state. The autovectorized scalar version first has to broadcast one scalar state and synthesize the next eight steps before it can run the same vector math.
+Assembly:
+
+```asm
+<do_u64x8_frand_baseline>:
+                mov	rax, rdi
+               	mov	rcx, qword ptr [rsi]
+               	movabs	rdx, -0x609b59a2bc563ab8
+               	add	rdx, rcx
+               	vpbroadcastq	zmm0, rcx
+               	vpaddq	zmm0, zmm0, zmmword ptr [rip - 0xc043] # 0x3100 <write+0x3100>
+               	mov	qword ptr [rsi], rdx
+               	vpxorq	zmm1, zmm0, qword ptr [rip - 0xbe20]{1to8} # 0x3330 <write+0x3330>
+               	vpmullq	zmm0, zmm1, zmm0
+               	vpsrlq	zmm1, zmm0, 0x20
+               	vpxorq	zmm0, zmm1, zmm0
+               	vmovdqa64	zmmword ptr [rdi], zmm0
+               	vzeroupper
+               	ret
+               	int3
+               	int3
+               	int3
+
+<do_u64x8_portable_frand>:
+               	mov	rax, rdi
+               	vmovdqa64	zmm0, zmmword ptr [rsi]
+               	vpaddq	zmm0, zmm0, qword ptr [rip - 0xbde3]{1to8} # 0x32b0 <write+0x32b0>
+               	vmovdqa64	zmmword ptr [rsi], zmm0
+               	vpxorq	zmm1, zmm0, qword ptr [rip - 0xbdb3]{1to8} # 0x32f0 <write+0x32f0>
+               	vpmullq	zmm0, zmm1, zmm0
+               	vpsrlq	zmm1, zmm0, 0x20
+               	vpxorq	zmm0, zmm1, zmm0
+               	vmovdqa64	zmmword ptr [rdi], zmm0
+               	vzeroupper
+               	ret
+
+<do_u64x8_specific_frand>:
+               	mov	rax, rdi
+               	vmovdqa64	zmm0, zmmword ptr [rsi]
+               	vpaddq	zmm0, zmm0, qword ptr [rip - 0xbe23]{1to8} # 0x32b0 <write+0x32b0>
+               	vmovdqa64	zmmword ptr [rsi], zmm0
+               	vpxorq	zmm1, zmm0, qword ptr [rip - 0xbdf3]{1to8} # 0x32f0 <write+0x32f0>
+               	vpmullq	zmm0, zmm1, zmm0
+               	vpsrlq	zmm1, zmm0, 0x20
+               	vpxorq	zmm0, zmm1, zmm0
+                vmovdqa64	zmmword ptr [rdi], zmm0
+                vzeroupper
+                ret
+```
+
 ## Safety
 
 There is a decent amount of `unsafe` used, due to direct use of hardware intrisics (e.g. `__m256{i|d}` for AVX2).

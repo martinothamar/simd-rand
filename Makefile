@@ -4,6 +4,7 @@ TARGET := x86_64-unknown-linux-gnu
 RUSTFLAGS_AVX512 := -C target-feature=+avx2,+avx512f,+avx512dq,+avx512vl
 CARGO_NIGHTLY := cargo +nightly
 BENCH_CPU ?= 31
+DASM_SYMBOLS ?= do_u64x4_xoshiro_baseline,do_u64x4_xoshiro_portable,do_u64x4_portable_frand,do_u64x4_xoshiro_specific,do_u64x4_specific_frand,do_u64x8_xoshiro_baseline,do_u64x8_frand_baseline,do_u64x8_xoshiro_portable,do_u64x8_portable_frand,do_u64x8_xoshiro_specific,do_u64x8_specific_frand,do_f64x4_xoshiro_specific,do_f64x4_specific_frand,do_f64x4_xoshiro_portable,do_f64x4_portable_frand
 
 all: run
 
@@ -54,8 +55,9 @@ run: build
 	$(outbin)
 
 dasm:
-	$(CARGO_NIGHTLY) objdump --example dasm --features portable --release -- \
-	-d -M intel > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
+	RUSTFLAGS="$(RUSTFLAGS_AVX512)" $(CARGO_NIGHTLY) objdump --example dasm --features portable --release -- \
+		--disassemble --disassemble-symbols=$(DASM_SYMBOLS) --x86-asm-syntax=intel \
+		--no-show-raw-insn --no-leading-addr > $(bindir)/dasm.asm 2> $(bindir)/dasm.asm.log
 
 dasmbench:
 	$(CARGO_NIGHTLY) objdump --bench main --features portable --release -- \
