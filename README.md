@@ -63,10 +63,9 @@ In some contexts that may be useful.
 
 ## Performance
 
-The top performing generator (on my current hardware) is currently Xoshiro256+ using AVX512 instruction set.
-It is about 6x faster. The below benchmarks generates `u64x8` numbers.
-Note that the RandVectorized variant uses `simd_support` from the `rand` crate,
-but this doesn't actually vectorize random number generation.
+The fastest result below on my current hardware is currently `simd_rand/Specific/FrandX8`,
+with `simd_rand/Portable/FrandX8` effectively tied.
+These top benchmarks generate and accumulate `u64x8` batches to keep the work observable to the compiler.
 
 If you want to actually use these generators, you should benchmark them yourself on your own hardware. See the `bench` target in the [Makefile](/Makefile).
 Benchmark results below is from desktop with an AMD Ryzen 9 9950X3D 16-Core CPU.
@@ -75,17 +74,29 @@ decides what to do with the vectors, whereas with AVX512 specific ones in the `s
 
 ```text
 Top/rand/Xoshiro256+
-                        time:   [24.963 ns 24.964 ns 24.965 ns]
-                        thrpt:  [2.5636 Gelem/s 2.5637 Gelem/s 2.5638 Gelem/s]
-                        thrpt:  [19.100 GiB/s 19.101 GiB/s 19.102 GiB/s]
+                        time:   [33.102 ns 33.103 ns 33.105 ns]
+                        thrpt:  [1.9333 Gelem/s 1.9333 Gelem/s 1.9334 Gelem/s]
+                        thrpt:  [14.404 GiB/s 14.404 GiB/s 14.405 GiB/s]
+Top/frand
+                        time:   [3.1798 ns 3.1800 ns 3.1802 ns]
+                        thrpt:  [20.125 Gelem/s 20.126 Gelem/s 20.127 Gelem/s]
+                        thrpt:  [149.94 GiB/s 149.95 GiB/s 149.96 GiB/s]
 Top/simd_rand/Portable/Xoshiro256+X8
-                        time:   [6.9966 ns 6.9975 ns 6.9983 ns]
-                        thrpt:  [9.1451 Gelem/s 9.1462 Gelem/s 9.1473 Gelem/s]
-                        thrpt:  [68.136 GiB/s 68.144 GiB/s 68.152 GiB/s]
+                        time:   [7.5046 ns 7.5081 ns 7.5116 ns]
+                        thrpt:  [8.5202 Gelem/s 8.5242 Gelem/s 8.5281 Gelem/s]
+                        thrpt:  [63.480 GiB/s 63.510 GiB/s 63.539 GiB/s]
+Top/simd_rand/Portable/FrandX8
+                        time:   [2.5294 ns 2.5304 ns 2.5313 ns]
+                        thrpt:  [25.284 Gelem/s 25.293 Gelem/s 25.302 Gelem/s]
+                        thrpt:  [188.38 GiB/s 188.45 GiB/s 188.51 GiB/s]
 Top/simd_rand/Specific/Xoshiro256+X8
-                        time:   [6.9453 ns 6.9455 ns 6.9457 ns]
-                        thrpt:  [9.2144 Gelem/s 9.2147 Gelem/s 9.2149 Gelem/s]
-                        thrpt:  [68.652 GiB/s 68.655 GiB/s 68.657 GiB/s]
+                        time:   [7.0799 ns 7.0802 ns 7.0805 ns]
+                        thrpt:  [9.0389 Gelem/s 9.0393 Gelem/s 9.0396 Gelem/s]
+                        thrpt:  [67.345 GiB/s 67.348 GiB/s 67.351 GiB/s]
+Top/simd_rand/Specific/FrandX8
+                        time:   [2.5287 ns 2.5298 ns 2.5309 ns]
+                        thrpt:  [25.288 Gelem/s 25.298 Gelem/s 25.309 Gelem/s]
+                        thrpt:  [188.41 GiB/s 188.49 GiB/s 188.57 GiB/s]
 ```
 
 ## Safety

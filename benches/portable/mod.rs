@@ -2,7 +2,7 @@ use std::{mem, simd::u64x4, simd::u64x8};
 
 use criterion::{BenchmarkId, Criterion, Throughput, measurement::Measurement};
 use rand_core::SeedableRng;
-use simd_rand::portable::{SimdRandX4, SimdRandX8, Xoshiro256PlusX4, Xoshiro256PlusX8};
+use simd_rand::portable::{FrandX4, FrandX8, SimdRandX4, SimdRandX8, Xoshiro256PlusX4, Xoshiro256PlusX8};
 use std::hint::black_box;
 
 pub fn add_benchmarks<M: Measurement, const ITERATIONS: usize>(c: &mut Criterion<M>, suffix: &str) {
@@ -38,6 +38,14 @@ fn add_u64x4_benchmarks<M: Measurement, const ITERATIONS: usize>(
 
             b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
         });
+
+        let name = BenchmarkId::new(format!("frand/{suffix}"), iterations);
+        group.bench_with_input(name, &iterations, |b, i| {
+            let mut rng = FrandX4::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+            let mut data = u64x4::default();
+
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
+        });
     }
 
     group.finish();
@@ -66,6 +74,14 @@ fn add_u64x8_benchmarks<M: Measurement, const ITERATIONS: usize>(
         let name = BenchmarkId::new(format!("Xoshiro256+/{suffix}"), iterations);
         group.bench_with_input(name, &iterations, |b, i| {
             let mut rng = Xoshiro256PlusX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
+            let mut data = u64x8::default();
+
+            b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
+        });
+
+        let name = BenchmarkId::new(format!("frand/{suffix}"), iterations);
+        group.bench_with_input(name, &iterations, |b, i| {
+            let mut rng = FrandX8::seed_from_u64(0x0DDB1A5E5BAD5EEDu64);
             let mut data = u64x8::default();
 
             b.iter(|| execute(&mut rng, black_box(&mut data), black_box(*i)));
