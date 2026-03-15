@@ -361,225 +361,40 @@ const PHI: [u64; 16] = [
 ];
 
 #[cfg(test)]
-mod tests {
-    use itertools::Itertools;
-    use rand::Rng;
-    use rand_core::TryRngCore;
+pub mod test_vectors {
+    pub const SEED_ZERO: [u64; 4] = [0, 0, 0, 0];
 
-    type RngImpl = super::Shishua<DEFAULT_BUFFER_SIZE>;
-
-    use ::alloc::{vec, vec::Vec};
-
-    use crate::testutil::{DOUBLE_RANGE, FLOAT_RANGE, test_uniform_distribution};
-
-    use super::super::vecs::*;
-    use super::*;
-
-    #[test]
-    fn alignment() {
-        assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>().is_multiple_of(32));
-
-        let rng = create_with_zero_seed();
-        let state = unsafe { rng.state.as_ref() };
-        let buf_alignment = mem::align_of_val(&state.buffer);
-        assert!(buf_alignment % 32 == 0);
-    }
-
-    #[test]
-    fn reference_zero() {
-        unsafe {
-            let mut state: RawState = mem::zeroed();
-            state.prng_init(&SEED_ZERO);
-            let mut buf: [u8; 512] = [0; 512];
-            state.prng_gen(&mut buf[..]);
-
-            assert_eq!(&buf, &SEED_ZERO_EXPECTED);
-        }
-    }
-
-    #[test]
-    fn reference_pi() {
-        unsafe {
-            let mut state: RawState = mem::zeroed();
-            state.prng_init(&SEED_PI);
-            let mut buf: [u8; 512] = [0; 512];
-            state.prng_gen(&mut buf[..]);
-
-            assert_eq!(&buf, &SEED_PI_EXPECTED);
-        }
-    }
-
-    #[test]
-    fn construction_zero_seed() {
-        let mut rng = create_with_zero_seed();
-        assert!(rng.buffer_index() == 0);
-        let v = rng.random_range(DOUBLE_RANGE);
-        assert!(DOUBLE_RANGE.contains(&v) && v != 0.0);
-    }
-
-    #[test]
-    fn construction_predefined_seed() {
-        let mut rng = create_with_predefined_seed();
-        assert!(rng.buffer_index() == 0);
-        let v = rng.random_range(DOUBLE_RANGE);
-        assert!(DOUBLE_RANGE.contains(&v) && v != 0.0);
-    }
-
-    #[test]
-    #[should_panic(expected = "power of 2")]
-    fn construction_invalid_size_power() {
-        let seed = get_predefined_seed();
-        let rng = super::Shishua::<127>::from_seed(*seed);
-        assert!(rng.buffer_index() == 0);
-    }
-
-    #[test]
-    #[should_panic(expected = "must be >= 256")]
-    fn construction_invalid_size_small() {
-        let seed = get_predefined_seed();
-        let rng = super::Shishua::<128>::from_seed(*seed);
-        assert!(rng.buffer_index() == 0);
-    }
-
-    #[test]
-    fn sample_u32() {
-        let mut rng = create_with_zero_seed();
-
-        let _n = rng.next_u32();
-    }
-
-    #[test]
-    fn sample_u64() {
-        let mut rng = create_with_zero_seed();
-
-        let _n = rng.next_u64();
-    }
-
-    #[test]
-    fn sample_f64() {
-        let mut rng = create_with_zero_seed();
-
-        let n = rng.random_range(DOUBLE_RANGE);
-        assert!(DOUBLE_RANGE.contains(&n));
-    }
-
-    #[test]
-    fn sample_f32() {
-        let mut rng = create_with_zero_seed();
-
-        let n = rng.random_range(FLOAT_RANGE);
-        assert!(FLOAT_RANGE.contains(&n));
-    }
-
-    #[test]
-    fn sample_u64x4() {
-        let mut rng = create_with_predefined_seed();
-
-        let values = rng.next_u64x4();
-
-        assert!(values.iter().all(|&v| v != 0));
-        assert!(values.iter().unique().count() == values.len());
-        println!("{values:?}");
-
-        let values = rng.next_u64x4();
-
-        assert!(values.iter().all(|&v| v != 0));
-        assert!(values.iter().unique().count() == values.len());
-        println!("{values:?}");
-    }
-
-    #[test]
-    fn sample_f64x4() {
-        let mut rng = create_with_predefined_seed();
-
-        let values = rng.next_f64x4();
-
-        assert!(values.iter().all(|&v| v != 0.0));
-        println!("{values:?}");
-
-        let values = rng.next_f64x4();
-
-        assert!(values.iter().all(|&v| v != 0.0));
-        println!("{values:?}");
-    }
-
-    #[test]
-    #[cfg_attr(debug_assertions, ignore = "distribution test requires release mode")]
-    fn sample_f64_distribution() {
-        let mut rng = create_with_zero_seed();
-
-        test_uniform_distribution::<10_000_000, f64>(|| rng.random_range(DOUBLE_RANGE), DOUBLE_RANGE);
-    }
-
-    #[test]
-    #[cfg_attr(debug_assertions, ignore = "distribution test requires release mode")]
-    fn sample_f64x4_distribution() {
-        let mut rng = create_with_zero_seed();
-
-        let mut current: Option<F64x4> = None;
-        let mut current_index: usize = 0;
-
-        test_uniform_distribution::<10_000_000, f64>(
-            || match &current {
-                Some(vector) if current_index < 4 => {
-                    let result = vector[current_index];
-                    current_index += 1;
-                    result
-                }
-                _ => {
-                    current_index = 0;
-                    let vector = rng.next_f64x4();
-                    let result = vector[current_index];
-                    current = Some(vector);
-                    current_index += 1;
-                    result
-                }
-            },
-            DOUBLE_RANGE,
-        );
-    }
-
-    #[test]
-    #[cfg_attr(debug_assertions, ignore = "distribution test requires release mode")]
-    fn sample_f32_distribution() {
-        let mut rng = create_with_zero_seed();
-
-        tests::test_uniform_distribution::<10_000_000, f32>(|| rng.random_range(FLOAT_RANGE), FLOAT_RANGE);
-    }
-
-    fn get_zero_seed() -> &'static [u8; 32] {
-        unsafe { &*core::ptr::from_ref(&SEED_ZERO).cast::<[u8; 32]>() }
-    }
-
-    fn get_predefined_seed() -> &'static [u8; 32] {
-        unsafe { &*core::ptr::from_ref(&SEED_PI).cast::<[u8; 32]>() }
-    }
-
-    fn create_with_zero_seed() -> RngImpl {
-        let seed = get_zero_seed();
-        RngImpl::from_seed(*seed)
-    }
-
-    fn create_with_predefined_seed() -> RngImpl {
-        let seed = get_predefined_seed();
-        RngImpl::from_seed(*seed)
-    }
-
-    const SEED_ZERO: [u64; 4] = [
-        0x0000000000000000,
-        0x0000000000000000,
-        0x0000000000000000,
-        0x0000000000000000,
-    ];
-
-    const SEED_PI: [u64; 4] = [
+    pub const SEED_PI: [u64; 4] = [
         0x243f6a8885a308d3,
         0x13198a2e03707344,
         0xa409382229f31d00,
         0x82efa98ec4e6c894,
     ];
 
-    const SEED_ZERO_EXPECTED: [u8; 512] = [
+    #[must_use]
+    pub const fn seed_bytes(words: [u64; 4]) -> [u8; 32] {
+        let mut seed = [0u8; 32];
+        let mut index = 0;
+
+        while index < 4 {
+            let bytes = words[index].to_le_bytes();
+            let start = index * 8;
+            seed[start] = bytes[0];
+            seed[start + 1] = bytes[1];
+            seed[start + 2] = bytes[2];
+            seed[start + 3] = bytes[3];
+            seed[start + 4] = bytes[4];
+            seed[start + 5] = bytes[5];
+            seed[start + 6] = bytes[6];
+            seed[start + 7] = bytes[7];
+            index += 1;
+        }
+
+        seed
+    }
+
+    #[rustfmt::skip]
+    pub const SEED_ZERO_EXPECTED: [u8; 512] = [
         0x95, 0x5d, 0x96, 0xf9, 0x0f, 0xb4, 0xaa, 0x53, 0x09, 0x2d, 0x82, 0xe6, 0x3a, 0x7c, 0x09, 0xe2, 0x2c, 0xa5,
         0xa4, 0xa5, 0xa7, 0x5a, 0x5a, 0x39, 0xdc, 0x68, 0xb4, 0x12, 0x5d, 0xe7, 0xce, 0x2b, 0x6b, 0x6e, 0xfe, 0xf5,
         0x8b, 0xd9, 0xcc, 0x42, 0x12, 0xdd, 0x74, 0x4e, 0x81, 0xfd, 0x18, 0xb9, 0x58, 0xf0, 0x62, 0x5d, 0x38, 0xef,
@@ -611,119 +426,8 @@ mod tests {
         0xb0, 0x54, 0x03, 0xa7, 0x50, 0xec, 0x93, 0x8f,
     ];
 
-    #[test]
-    fn fill_bytes_matches_reference_vectors() {
-        const REF_BYTES: usize = 512;
-        let seed_zero = get_zero_seed();
-        let mut rng_zero = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed_zero);
-        let mut buf_zero = [0u8; REF_BYTES];
-        rng_zero.fill_bytes(&mut buf_zero);
-        assert_eq!(buf_zero, SEED_ZERO_EXPECTED);
-
-        let seed_pi = get_predefined_seed();
-        let mut rng_pi = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed_pi);
-        let mut buf_pi = [0u8; REF_BYTES];
-        rng_pi.fill_bytes(&mut buf_pi);
-        assert_eq!(buf_pi, SEED_PI_EXPECTED);
-    }
-
-    #[test]
-    fn fill_bytes_matches_next_u64_stream() {
-        const REF_BYTES: usize = 512;
-        let seed = get_predefined_seed();
-        let mut rng_words = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
-        let mut rng_bytes = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
-
-        let from_words = read_with_next_u64(&mut rng_words, REF_BYTES);
-
-        let mut from_bytes = vec![0u8; REF_BYTES];
-        rng_bytes.fill_bytes(&mut from_bytes);
-
-        assert_eq!(from_words, from_bytes);
-    }
-
-    fn read_with_next_u64<const N: usize>(rng: &mut super::Shishua<N>, total_bytes: usize) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(total_bytes);
-        let mut remaining = total_bytes;
-        while remaining >= 8 {
-            bytes.extend_from_slice(&rng.next_u64().to_le_bytes());
-            remaining -= 8;
-        }
-        if remaining > 0 {
-            let v = rng.next_u64().to_le_bytes();
-            bytes.extend_from_slice(&v[..remaining]);
-        }
-        bytes
-    }
-
-    #[test]
-    fn fill_bytes_chunking_is_deterministic() {
-        // Mix sizes to hit alignment and boundary splits.
-        let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255, 1000];
-        // Ensure at least one rebuffer with the default size.
-        let total_bytes = DEFAULT_BUFFER_SIZE + 500;
-        let seed = get_zero_seed();
-
-        assert_chunked_deterministic::<DEFAULT_BUFFER_SIZE>(seed, total_bytes, &chunk_sizes);
-    }
-
-    fn read_with_chunks<const N: usize>(
-        rng: &mut super::Shishua<N>,
-        total_bytes: usize,
-        chunk_sizes: &[usize],
-    ) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(total_bytes);
-        let mut offset = 0;
-        let mut chunk_idx = 0;
-        while offset < total_bytes {
-            let remaining = total_bytes - offset;
-            let chunk = chunk_sizes[chunk_idx % chunk_sizes.len()].min(remaining).min(N);
-            let start = bytes.len();
-            bytes.resize(start + chunk, 0);
-            rng.fill_bytes(&mut bytes[start..start + chunk]);
-            offset += chunk;
-            chunk_idx += 1;
-        }
-        bytes
-    }
-
-    #[test]
-    fn non_default_buffer_sizes_are_deterministic() {
-        let chunk_sizes = [1, 7, 8, 13, 32, 64, 100, 255];
-        let total_bytes = 2048;
-        let seed = get_predefined_seed();
-
-        assert_chunked_deterministic::<256>(seed, total_bytes, &chunk_sizes);
-        assert_chunked_deterministic::<512>(seed, total_bytes, &chunk_sizes);
-        assert_chunked_deterministic::<1024>(seed, total_bytes, &chunk_sizes);
-    }
-
-    fn assert_chunked_deterministic<const N: usize>(seed: &[u8; 32], total_bytes: usize, chunk_sizes: &[usize]) {
-        let mut rng_a = super::Shishua::<N>::from_seed(*seed);
-        let mut rng_b = super::Shishua::<N>::from_seed(*seed);
-
-        let bytes_a = read_with_chunks(&mut rng_a, total_bytes, chunk_sizes);
-        let bytes_b = read_with_chunks(&mut rng_b, total_bytes, chunk_sizes);
-
-        assert_eq!(bytes_a, bytes_b);
-    }
-
-    #[test]
-    fn try_fill_bytes_matches_fill_bytes() {
-        const TRY_FILL_LEN: usize = 256;
-        let seed = get_zero_seed();
-        let mut rng_try = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
-        let mut rng_fill = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed(*seed);
-
-        let mut buf_try = [0u8; TRY_FILL_LEN];
-        let mut buf_fill = [0u8; TRY_FILL_LEN];
-        assert!(rng_try.try_fill_bytes(&mut buf_try).is_ok());
-        rng_fill.fill_bytes(&mut buf_fill);
-
-        assert_eq!(buf_try, buf_fill);
-    }
-
-    const SEED_PI_EXPECTED: [u8; 512] = [
+    #[rustfmt::skip]
+    pub const SEED_PI_EXPECTED: [u8; 512] = [
         0xfa, 0x62, 0xa9, 0x26, 0xdc, 0x1f, 0xbf, 0x00, 0xf1, 0x3c, 0xe8, 0x68, 0x45, 0x9b, 0x6f, 0x74, 0x4b, 0xbf,
         0x2b, 0x57, 0x50, 0x5e, 0xd8, 0x16, 0x0e, 0x4e, 0xd9, 0x2a, 0x2e, 0xf6, 0x96, 0x5c, 0x01, 0xb5, 0xc9, 0xe7,
         0x9d, 0x84, 0xd8, 0xd9, 0x5f, 0x0d, 0xb7, 0x4a, 0x47, 0xf4, 0xac, 0xc8, 0x25, 0xcc, 0x0b, 0x2e, 0x3b, 0x90,
@@ -754,4 +458,65 @@ mod tests {
         0x08, 0xb7, 0xbf, 0x54, 0x6e, 0x09, 0x29, 0x39, 0xf2, 0x53, 0xaa, 0x49, 0x81, 0xb2, 0x14, 0xee, 0xd2, 0x52,
         0x68, 0x4b, 0xe3, 0xc0, 0x4e, 0x1b, 0x75, 0xed,
     ];
+}
+
+#[cfg(test)]
+mod tests {
+    use super::test_vectors;
+    use super::*;
+
+    #[test]
+    fn alignment() {
+        assert!(mem::align_of::<BufferedState<DEFAULT_BUFFER_SIZE>>().is_multiple_of(32));
+
+        let rng = super::Shishua::<DEFAULT_BUFFER_SIZE>::from_seed([0; 32]);
+        let state = unsafe { rng.state.as_ref() };
+        let buf_alignment = mem::align_of_val(&state.buffer);
+        assert!(buf_alignment % 32 == 0);
+    }
+
+    #[test]
+    fn reference_zero() {
+        unsafe {
+            let mut state: RawState = mem::zeroed();
+            state.prng_init(&test_vectors::SEED_ZERO);
+            let mut buf: [u8; 512] = [0; 512];
+            state.prng_gen(&mut buf[..]);
+
+            assert_eq!(&buf, &test_vectors::SEED_ZERO_EXPECTED);
+        }
+    }
+
+    #[test]
+    fn reference_pi() {
+        unsafe {
+            let mut state: RawState = mem::zeroed();
+            state.prng_init(&test_vectors::SEED_PI);
+            let mut buf: [u8; 512] = [0; 512];
+            state.prng_gen(&mut buf[..]);
+
+            assert_eq!(&buf, &test_vectors::SEED_PI_EXPECTED);
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "power of 2")]
+    fn construction_invalid_size_power() {
+        let seed = get_predefined_seed();
+        let rng = super::Shishua::<127>::from_seed(*seed);
+        assert!(rng.buffer_index() == 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "must be >= 256")]
+    fn construction_invalid_size_small() {
+        let seed = get_predefined_seed();
+        let rng = super::Shishua::<128>::from_seed(*seed);
+        assert!(rng.buffer_index() == 0);
+    }
+
+    fn get_predefined_seed() -> &'static [u8; 32] {
+        static SEED_PI_BYTES: [u8; 32] = test_vectors::seed_bytes(test_vectors::SEED_PI);
+        &SEED_PI_BYTES
+    }
 }
