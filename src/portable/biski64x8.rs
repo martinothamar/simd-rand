@@ -4,9 +4,9 @@ use core::{
     simd::u64x8,
 };
 
-use rand_core::SeedableRng;
+use rand_core::{RngCore, SeedableRng, TryRngCore};
 
-use crate::biski64::{FAST_LOOP_INCREMENT, seed_state};
+use crate::biski64::{FAST_LOOP_INCREMENT, seed_state, seed_stream_states};
 
 use super::{SimdRandX8, read_u64_array, rotate_left};
 
@@ -92,6 +92,24 @@ impl SeedableRng for Biski64X8 {
             loop_mix: u64x8::from_array(seeded_state.map(|state| state[2])),
         }
     }
+
+    fn seed_from_u64(seed: u64) -> Self {
+        let seeded_state = seed_stream_states::<8>(seed);
+
+        Self {
+            fast_loop: u64x8::from_array(seeded_state.map(|state| state[0])),
+            mix: u64x8::from_array(seeded_state.map(|state| state[1])),
+            loop_mix: u64x8::from_array(seeded_state.map(|state| state[2])),
+        }
+    }
+
+    fn from_rng(rng: &mut impl RngCore) -> Self {
+        Self::seed_from_u64(rng.next_u64())
+    }
+
+    fn try_from_rng<R: TryRngCore>(rng: &mut R) -> Result<Self, R::Error> {
+        Ok(Self::seed_from_u64(rng.try_next_u64()?))
+    }
 }
 
 impl SimdRandX8 for Biski64X8 {
@@ -112,9 +130,12 @@ impl SimdRandX8 for Biski64X8 {
 mod tests {
     use core::simd::*;
     use itertools::Itertools;
-    use rand_core::{RngCore, SeedableRng};
+    use rand_core::SeedableRng;
 
-    use crate::testutil::{DOUBLE_RANGE, REF_SEED_BISKI64_X8, biski64_reference_sequence, test_uniform_distribution};
+    use crate::testutil::{
+        DOUBLE_RANGE, REF_SEED_BISKI64_X8, biski64_parallel_reference_vectors, biski64_reference_sequence,
+        fixed_u64_rng::FixedU64Rng, test_uniform_distribution,
+    };
 
     use super::*;
 
@@ -168,6 +189,25 @@ mod tests {
 
         assert!(values.iter().all(|&value| value != 0.0));
         println!("{values:?}");
+    }
+
+    #[test]
+    fn seed_from_u64_matches_upstream_parallel_streams() {
+        let mut rng = RngImpl::seed_from_u64(42);
+
+        for expected in biski64_parallel_reference_vectors::<8, 10>(42) {
+            assert_eq!(rng.next_u64x8().to_array(), expected);
+        }
+    }
+
+    #[test]
+    fn from_rng_matches_upstream_parallel_streams() {
+        let mut seed_rng = FixedU64Rng(42);
+        let mut rng = RngImpl::from_rng(&mut seed_rng);
+
+        for expected in biski64_parallel_reference_vectors::<8, 10>(42) {
+            assert_eq!(rng.next_u64x8().to_array(), expected);
+        }
     }
 
     #[test]

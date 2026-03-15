@@ -3,6 +3,11 @@
 
 use rand_core::SeedableRng;
 
+#[path = "../src/testutil/fixed_u64_rng.rs"]
+mod fixed_u64_rng;
+
+use fixed_u64_rng::FixedU64Rng;
+
 fn fill_seed_32(words: &[u64; 4]) -> [u8; 32] {
     let mut seed = [0u8; 32];
 
@@ -95,6 +100,26 @@ fn avx2_matches_portable_for_asymmetric_seeds() {
         assert_eq!(portable_biski.next_u64x4().to_array(), *specific_biski.next_u64x4());
     }
 
+    let mut portable_biski_from_u64 = PortableBiski64X4::seed_from_u64(42);
+    let mut specific_biski_from_u64 = SpecificBiski64X4::seed_from_u64(42);
+
+    for _ in 0..3 {
+        assert_eq!(
+            portable_biski_from_u64.next_u64x4().to_array(),
+            *specific_biski_from_u64.next_u64x4()
+        );
+    }
+
+    let mut portable_biski_from_rng = PortableBiski64X4::from_rng(&mut FixedU64Rng(42));
+    let mut specific_biski_from_rng = SpecificBiski64X4::from_rng(&mut FixedU64Rng(42));
+
+    for _ in 0..3 {
+        assert_eq!(
+            portable_biski_from_rng.next_u64x4().to_array(),
+            *specific_biski_from_rng.next_u64x4()
+        );
+    }
+
     let xoshiro_seed = fill_seed_128(&[
         0x0001_0002_0003_0004,
         0x0101_0102_0103_0104,
@@ -172,6 +197,26 @@ fn avx512_matches_portable_for_asymmetric_seeds() {
 
     for _ in 0..3 {
         assert_eq!(portable_biski.next_u64x8().to_array(), *specific_biski.next_u64x8());
+    }
+
+    let mut portable_biski_from_u64 = PortableBiski64X8::seed_from_u64(42);
+    let mut specific_biski_from_u64 = SpecificBiski64X8::seed_from_u64(42);
+
+    for _ in 0..3 {
+        assert_eq!(
+            portable_biski_from_u64.next_u64x8().to_array(),
+            *specific_biski_from_u64.next_u64x8()
+        );
+    }
+
+    let mut portable_biski_from_rng = PortableBiski64X8::from_rng(&mut FixedU64Rng(42));
+    let mut specific_biski_from_rng = SpecificBiski64X8::from_rng(&mut FixedU64Rng(42));
+
+    for _ in 0..3 {
+        assert_eq!(
+            portable_biski_from_rng.next_u64x8().to_array(),
+            *specific_biski_from_rng.next_u64x8()
+        );
     }
 
     let xoshiro_seed = fill_seed_256(&[

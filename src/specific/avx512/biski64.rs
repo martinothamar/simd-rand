@@ -4,9 +4,9 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use rand_core::SeedableRng;
+use rand_core::{RngCore, SeedableRng, TryRngCore};
 
-use crate::biski64::{FAST_LOOP_INCREMENT, seed_state};
+use crate::biski64::{FAST_LOOP_INCREMENT, seed_state, seed_stream_states};
 
 use super::simdrand::*;
 
@@ -97,6 +97,24 @@ impl SeedableRng for Biski64X8 {
             mix: pack_u64x8(seeded_state.map(|state| state[1])),
             loop_mix: pack_u64x8(seeded_state.map(|state| state[2])),
         }
+    }
+
+    fn seed_from_u64(seed: u64) -> Self {
+        let seeded_state = seed_stream_states::<8>(seed);
+
+        Self {
+            fast_loop: pack_u64x8(seeded_state.map(|state| state[0])),
+            mix: pack_u64x8(seeded_state.map(|state| state[1])),
+            loop_mix: pack_u64x8(seeded_state.map(|state| state[2])),
+        }
+    }
+
+    fn from_rng(rng: &mut impl RngCore) -> Self {
+        Self::seed_from_u64(rng.next_u64())
+    }
+
+    fn try_from_rng<R: TryRngCore>(rng: &mut R) -> Result<Self, R::Error> {
+        Ok(Self::seed_from_u64(rng.try_next_u64()?))
     }
 }
 

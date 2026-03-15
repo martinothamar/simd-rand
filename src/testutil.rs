@@ -8,6 +8,10 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
 
+#[cfg(all(test, feature = "portable"))]
+#[path = "testutil/fixed_u64_rng.rs"]
+pub mod fixed_u64_rng;
+
 pub const DOUBLE_RANGE: Range<f64> = 0.0..1.0;
 #[cfg(feature = "specific")]
 pub const FLOAT_RANGE: Range<f32> = 0.0f32..1.0f32;
@@ -19,6 +23,22 @@ pub fn biski64_reference_sequence<const N: usize>(seed: u64) -> [u64; N] {
 
     for value in &mut output {
         *value = rng.next_u64();
+    }
+
+    output
+}
+
+#[cfg(feature = "portable")]
+#[must_use]
+pub fn biski64_parallel_reference_vectors<const LANES: usize, const N: usize>(seed: u64) -> [[u64; LANES]; N] {
+    let mut rngs: [Biski64Rng; LANES] =
+        core::array::from_fn(|lane| Biski64Rng::from_seed_for_stream(seed, lane as u64, LANES as u64));
+    let mut output = [[0; LANES]; N];
+
+    for row in &mut output {
+        for (value, rng) in row.iter_mut().zip(&mut rngs) {
+            *value = rng.next_u64();
+        }
     }
 
     output
