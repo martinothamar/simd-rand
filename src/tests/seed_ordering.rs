@@ -69,6 +69,12 @@ macro_rules! for_each_avx2_from_seed_case {
     };
 }
 
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512dq",
+    target_feature = "avx512vl"
+))]
 macro_rules! for_each_avx512_from_seed_case {
     ($m:ident) => {
         $m!(
