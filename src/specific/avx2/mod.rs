@@ -20,7 +20,9 @@ fn read_u64_into_vec(src: &[u8]) -> __m256i {
 
     // This intrinsic is specifically the unaligned load variant.
     #[allow(clippy::cast_ptr_alignment)]
-    unsafe { _mm256_loadu_si256(src.as_ptr().cast::<__m256i>()) }
+    unsafe {
+        _mm256_loadu_si256(src.as_ptr().cast::<__m256i>())
+    }
 }
 
 #[inline(always)]

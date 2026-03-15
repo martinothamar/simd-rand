@@ -20,7 +20,9 @@ fn read_u64_into_vec(src: &[u8]) -> __m512i {
 
     // This intrinsic is specifically the unaligned load variant.
     #[allow(clippy::cast_ptr_alignment)]
-    unsafe { _mm512_loadu_si512(src.as_ptr().cast::<__m512i>()) }
+    unsafe {
+        _mm512_loadu_si512(src.as_ptr().cast::<__m512i>())
+    }
 }
 
 #[cfg(test)]
