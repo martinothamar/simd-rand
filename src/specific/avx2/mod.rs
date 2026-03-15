@@ -1,4 +1,4 @@
-use core::{arch::x86_64::*, mem};
+use core::arch::x86_64::*;
 
 pub use frand::*;
 pub use shishua::*;
@@ -14,18 +14,14 @@ mod vecs;
 mod xoshiro256plus;
 mod xoshiro256plusplus;
 
-#[allow(clippy::identity_op, clippy::erasing_op)]
 #[inline(always)]
 fn read_u64_into_vec(src: &[u8]) -> __m256i {
-    const SIZE: usize = mem::size_of::<u64>();
-    assert!(src.len() == SIZE * 4);
+    assert!(src.len() == core::mem::size_of::<__m256i>());
+
+    // This intrinsic is specifically the unaligned load variant.
+    #[allow(clippy::cast_ptr_alignment)]
     unsafe {
-        _mm256_set_epi64x(
-            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 3)..(SIZE * 4)].try_into().unwrap())),
-            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 2)..(SIZE * 3)].try_into().unwrap())),
-            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 1)..(SIZE * 2)].try_into().unwrap())),
-            u64::cast_signed(u64::from_le_bytes(src[(SIZE * 0)..(SIZE * 1)].try_into().unwrap())),
-        )
+        _mm256_loadu_si256(src.as_ptr().cast::<__m256i>())
     }
 }
 

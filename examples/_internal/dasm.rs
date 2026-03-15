@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
 #![cfg_attr(feature = "portable", feature(portable_simd))]
 
 use frand::Rand;

@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
 use rand_core::{RngCore, SeedableRng};
 use simd_rand::portable::*;
 use std::{hint::black_box, time::Instant};

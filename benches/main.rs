@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
+#![allow(clippy::expect_used, clippy::panic, clippy::unwrap_used)]
 #![cfg_attr(feature = "portable", feature(portable_simd))]
 
 use std::arch::x86_64::*;

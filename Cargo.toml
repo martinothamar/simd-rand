@@ -42,6 +42,9 @@ all = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
 nursery = { level = "deny", priority = -1 }
 cargo = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
 # RNG constants are well-known hex values; separators hurt pattern recognition
 unreadable_literal = "allow"
 # Critical for SIMD codegen — these functions must be inlined

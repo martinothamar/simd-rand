@@ -1,8 +1,7 @@
+use core::mem;
 use core::{
-    fmt::Debug,
-    mem,
-    ops::{BitOr, Shl, Shr, Sub},
-    simd::{Simd, SimdElement},
+    ops::{BitOr, Shl, Shr},
+    simd::Simd,
 };
 
 pub use frandx4::*;
@@ -23,33 +22,36 @@ mod xoshiro256plusx8;
 
 #[inline(always)]
 fn read_u64_into_vec<const N: usize>(src: &[u8]) -> Simd<u64, N> {
-    const SIZE: usize = mem::size_of::<u64>();
-    assert!(src.len() == SIZE * N);
-
-    let mut scalars: [u64; N] = [0; N];
-
-    for i in 0..N {
-        scalars[i] = u64::from_le_bytes(src[(SIZE * i)..(SIZE * (i + 1))].try_into().unwrap());
-    }
-
-    Simd::<u64, N>::from_array(scalars)
+    Simd::<u64, N>::from_array(read_u64_array(src))
 }
 
 #[inline(always)]
-// Multiple trait bounds on T are required; clippy sees them as repetition
+fn read_u64_array<const N: usize>(src: &[u8]) -> [u64; N] {
+    assert!(src.len() == mem::size_of::<u64>() * N);
+
+    let (chunks, remainder) = src.as_chunks::<8>();
+    assert!(remainder.is_empty());
+    assert!(chunks.len() == N);
+
+    let mut values = [0; N];
+    for (dst, chunk) in values.iter_mut().zip(chunks) {
+        *dst = u64::from_le_bytes(*chunk);
+    }
+
+    values
+}
+
+#[inline(always)]
+// Multiple trait bounds on the SIMD value are required; clippy sees them as repetition
 #[allow(clippy::type_repetition_in_bounds)]
-fn rotate_left<T, const N: usize>(x: Simd<T, N>, k: T) -> Simd<T, N>
+fn rotate_left<const N: usize>(x: Simd<u64, N>, k: u64) -> Simd<u64, N>
 where
-    T: SimdElement + Sub<T, Output = T>,
-    usize: TryInto<T>,
-    <usize as TryInto<T>>::Error: Debug,
-    Simd<T, N>: Shl<Simd<T, N>, Output = Simd<T, N>>,
-    Simd<T, N>: Shr<Simd<T, N>, Output = Simd<T, N>>,
-    Simd<T, N>: BitOr<Simd<T, N>, Output = Simd<T, N>>,
+    Simd<u64, N>: Shl<Simd<u64, N>, Output = Simd<u64, N>>,
+    Simd<u64, N>: Shr<Simd<u64, N>, Output = Simd<u64, N>>,
+    Simd<u64, N>: BitOr<Simd<u64, N>, Output = Simd<u64, N>>,
 {
-    let bitsize = mem::size_of::<T>() * 8;
-    let kv = Simd::<T, N>::splat(k);
+    let kv = Simd::<u64, N>::splat(k);
     let left = x << kv;
-    let right = x >> Simd::<T, N>::splat(bitsize.try_into().unwrap() - k);
+    let right = x >> Simd::<u64, N>::splat(64 - k);
     left | right
 }
